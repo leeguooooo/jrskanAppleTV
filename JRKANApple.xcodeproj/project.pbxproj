@@ -1,0 +1,433 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0298BA03946FD33EC9D8F06D /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FD24ED9DC92A652D5818D0 /* JRSListingParser.swift */; };
+		3C6FC8BB5D28226F6DD0A14C /* MatchListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D7270272826DA85599E32E /* MatchListModel.swift */; };
+		493FF0508076B2A3288BF0A9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA6F9319869F7EBC156573 /* Models.swift */; };
+		4C6A879B49205915DC89AF62 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1182C93F305B1D44200E7C1 /* JRSClient.swift */; };
+		A750ECD6CF030273C3215751 /* JRKANApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A51B0E79710984585728B1 /* JRKANApp.swift */; };
+		B097EE1819772CF00009C77C /* JRSListingParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4B96A5999547CDBFD0CE69 /* JRSListingParserTests.swift */; };
+		B61993D915BFB90D15AF03AE /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 557B0879199DA42E81694B3F /* PlayerScreen.swift */; };
+		BED8741B716603809753A2BA /* LiveSiteContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED1CCD133B506E8CD3889DD /* LiveSiteContractTests.swift */; };
+		C71AE5C7E830AB80B3A7ADD3 /* StreamResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CBD8E3E50EA3EE27126242 /* StreamResolver.swift */; };
+		EE3EDA90CC3A6D73602417D8 /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF97B798835BA1972E22A00 /* StreamResolverTests.swift */; };
+		EF48327400FF75A91056E7E9 /* MatchListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFA50AF289DDF1FEA211C26 /* MatchListView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		24D0182253CFAC1F4E4FD534 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CECC560E6A9A0B1D342928BF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A7756319BAA53CBD0A08FAA;
+			remoteInfo = JRKANTV;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0CAA6F9319869F7EBC156573 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		18CBD8E3E50EA3EE27126242 /* StreamResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolver.swift; sourceTree = "<group>"; };
+		1ED1CCD133B506E8CD3889DD /* LiveSiteContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSiteContractTests.swift; sourceTree = "<group>"; };
+		35FD24ED9DC92A652D5818D0 /* JRSListingParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParser.swift; sourceTree = "<group>"; };
+		557B0879199DA42E81694B3F /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerScreen.swift; sourceTree = "<group>"; };
+		5CF97B798835BA1972E22A00 /* StreamResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolverTests.swift; sourceTree = "<group>"; };
+		76CF190C1FCCD118D97DAC37 /* JRKANTVTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = JRKANTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7AFA50AF289DDF1FEA211C26 /* MatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListView.swift; sourceTree = "<group>"; };
+		8D4B96A5999547CDBFD0CE69 /* JRSListingParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParserTests.swift; sourceTree = "<group>"; };
+		97D7270272826DA85599E32E /* MatchListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListModel.swift; sourceTree = "<group>"; };
+		A1A51B0E79710984585728B1 /* JRKANApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANApp.swift; sourceTree = "<group>"; };
+		B1182C93F305B1D44200E7C1 /* JRSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSClient.swift; sourceTree = "<group>"; };
+		F7CCA2DEF811B4DBC10F8715 /* JRKANTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		01C2C9541375326149CD958A = {
+			isa = PBXGroup;
+			children = (
+				29BBFA42F4F8BEDC327C6290 /* Sources */,
+				49E8E10115B78C2A3378BD83 /* Tests */,
+				5A8FB00D87F7A0441660C9F1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		29BBFA42F4F8BEDC327C6290 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A1A51B0E79710984585728B1 /* JRKANApp.swift */,
+				B1182C93F305B1D44200E7C1 /* JRSClient.swift */,
+				35FD24ED9DC92A652D5818D0 /* JRSListingParser.swift */,
+				97D7270272826DA85599E32E /* MatchListModel.swift */,
+				7AFA50AF289DDF1FEA211C26 /* MatchListView.swift */,
+				0CAA6F9319869F7EBC156573 /* Models.swift */,
+				557B0879199DA42E81694B3F /* PlayerScreen.swift */,
+				18CBD8E3E50EA3EE27126242 /* StreamResolver.swift */,
+			);
+			name = Sources;
+			path = App/Sources;
+			sourceTree = "<group>";
+		};
+		49E8E10115B78C2A3378BD83 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				8D4B96A5999547CDBFD0CE69 /* JRSListingParserTests.swift */,
+				1ED1CCD133B506E8CD3889DD /* LiveSiteContractTests.swift */,
+				5CF97B798835BA1972E22A00 /* StreamResolverTests.swift */,
+			);
+			name = Tests;
+			path = App/Tests;
+			sourceTree = "<group>";
+		};
+		5A8FB00D87F7A0441660C9F1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F7CCA2DEF811B4DBC10F8715 /* JRKANTV.app */,
+				76CF190C1FCCD118D97DAC37 /* JRKANTVTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5A7756319BAA53CBD0A08FAA /* JRKANTV */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1AFD4B20E283DE23F528B376 /* Build configuration list for PBXNativeTarget "JRKANTV" */;
+			buildPhases = (
+				23EACE20E406AE9A1DCD617A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JRKANTV;
+			packageProductDependencies = (
+			);
+			productName = JRKANTV;
+			productReference = F7CCA2DEF811B4DBC10F8715 /* JRKANTV.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CEFCE3995F1B4B4CFC973A9D /* JRKANTVTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3418848845953D92F91BE96D /* Build configuration list for PBXNativeTarget "JRKANTVTests" */;
+			buildPhases = (
+				69494AB6FCBD0271435358D4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8A200CBE88605CA44EBA41D4 /* PBXTargetDependency */,
+			);
+			name = JRKANTVTests;
+			packageProductDependencies = (
+			);
+			productName = JRKANTVTests;
+			productReference = 76CF190C1FCCD118D97DAC37 /* JRKANTVTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CECC560E6A9A0B1D342928BF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					5A7756319BAA53CBD0A08FAA = {
+						ProvisioningStyle = Automatic;
+					};
+					CEFCE3995F1B4B4CFC973A9D = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 5B33F3058C2A9012F2EC8DE6 /* Build configuration list for PBXProject "JRKANApple" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 01C2C9541375326149CD958A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5A8FB00D87F7A0441660C9F1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5A7756319BAA53CBD0A08FAA /* JRKANTV */,
+				CEFCE3995F1B4B4CFC973A9D /* JRKANTVTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		23EACE20E406AE9A1DCD617A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A750ECD6CF030273C3215751 /* JRKANApp.swift in Sources */,
+				4C6A879B49205915DC89AF62 /* JRSClient.swift in Sources */,
+				0298BA03946FD33EC9D8F06D /* JRSListingParser.swift in Sources */,
+				3C6FC8BB5D28226F6DD0A14C /* MatchListModel.swift in Sources */,
+				EF48327400FF75A91056E7E9 /* MatchListView.swift in Sources */,
+				493FF0508076B2A3288BF0A9 /* Models.swift in Sources */,
+				B61993D915BFB90D15AF03AE /* PlayerScreen.swift in Sources */,
+				C71AE5C7E830AB80B3A7ADD3 /* StreamResolver.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69494AB6FCBD0271435358D4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B097EE1819772CF00009C77C /* JRSListingParserTests.swift in Sources */,
+				BED8741B716603809753A2BA /* LiveSiteContractTests.swift in Sources */,
+				EE3EDA90CC3A6D73602417D8 /* StreamResolverTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8A200CBE88605CA44EBA41D4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5A7756319BAA53CBD0A08FAA /* JRKANTV */;
+			targetProxy = 24D0182253CFAC1F4E4FD534 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1AE03CFD26900DEC7D6D586A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Debug;
+		};
+		3F23A8F18085323F4E34F4D4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGNING_ALLOWED = NO;
+				INFOPLIST_FILE = "App/Info-TV.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Release;
+		};
+		67AF8F039A7FF618AE64ACED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv.tests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JRKANTV.app/JRKANTV";
+			};
+			name = Debug;
+		};
+		C7A759466E7F08F9BDA5F6D4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGNING_ALLOWED = NO;
+				INFOPLIST_FILE = "App/Info-TV.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Debug;
+		};
+		FA3C4D7F8721EC485D045AEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv.tests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JRKANTV.app/JRKANTV";
+			};
+			name = Release;
+		};
+		FB127A0A221A340068A226F0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1AFD4B20E283DE23F528B376 /* Build configuration list for PBXNativeTarget "JRKANTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A759466E7F08F9BDA5F6D4 /* Debug */,
+				3F23A8F18085323F4E34F4D4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3418848845953D92F91BE96D /* Build configuration list for PBXNativeTarget "JRKANTVTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				67AF8F039A7FF618AE64ACED /* Debug */,
+				FA3C4D7F8721EC485D045AEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5B33F3058C2A9012F2EC8DE6 /* Build configuration list for PBXProject "JRKANApple" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1AE03CFD26900DEC7D6D586A /* Debug */,
+				FB127A0A221A340068A226F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CECC560E6A9A0B1D342928BF /* Project object */;
+}

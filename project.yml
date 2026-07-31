@@ -1,0 +1,67 @@
+name: JRKANApple
+
+options:
+  bundleIdPrefix: com.leeguoo
+  deploymentTarget:
+    tvOS: "17.0"
+  xcodeVersion: "26.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  JRKANTV:
+    type: application
+    platform: tvOS
+    sources:
+      - path: App/Sources
+    info:
+      path: App/Info-TV.plist
+      properties:
+        CFBundleDisplayName: JRKAN
+        CFBundleName: JRKAN
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
+        CODE_SIGNING_ALLOWED: NO
+
+  JRKANTVTests:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - path: App/Tests
+    dependencies:
+      - target: JRKANTV
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv.tests
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  JRKANTV:
+    build:
+      targets:
+        JRKANTV: all
+        JRKANTVTests: [test]
+    test:
+      targets:
+        - JRKANTVTests
+
+  JRKANLiveContract:
+    build:
+      targets:
+        JRKANTV: all
+        JRKANTVTests: [test]
+    test:
+      targets:
+        - JRKANTVTests
+      environmentVariables:
+        RUN_LIVE_JRS_TESTS: "1"

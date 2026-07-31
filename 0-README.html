@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JRKAN Apple MVP</title>
+  <style>
+    :root {
+      --fg: #17202a;
+      --muted: #667085;
+      --accent: #1769aa;
+      --border: #d9dee7;
+      --surface: #f7f8fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 48px 28px 80px;
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+    header { border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+    h1 { margin-bottom: 8px; font-size: 32px; }
+    h2 { margin-top: 36px; font-size: 21px; }
+    code {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 2px 6px;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    aside {
+      margin: 24px 0;
+      padding: 14px 18px;
+      border-left: 4px solid var(--accent);
+      background: var(--surface);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; }
+    th { background: var(--surface); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>JRKAN Apple TV MVP</h1>
+    <p>面向实体 Apple TV 的原生 tvOS 赛事观看应用；macOS 不在产品范围内。</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>首版能力</h2>
+      <table>
+        <thead><tr><th>能力</th><th>实现</th></tr></thead>
+        <tbody>
+          <tr><td>比赛列表</td><td>读取目标站点公开首页与动态列表脚本</td></tr>
+          <tr><td>浏览</td><td>分类、搜索、比赛详情、线路选择</td></tr>
+          <tr><td>播放</td><td>解析公开 iframe 链路，发现 HLS 后交给 AVPlayer</td></tr>
+          <tr><td>平台</td><td>tvOS 17+；最终验收设备为实体 Apple TV</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>生成、测试与构建</h2>
+      <pre><code>xcodegen generate
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
+  -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' test
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
+  -sdk appletvos -configuration Release build CODE_SIGNING_ALLOWED=NO</code></pre>
+      <aside>
+        模拟器测试和成功生成 IPA 都不等于真机验收。完成标准是：安装到指定实体 Apple TV，
+        用遥控器打开应用、加载比赛列表、进入赛事并确认至少一条公开线路开始播放。
+      </aside>
+    </section>
+
+    <section>
+      <h2>边界</h2>
+      <aside>
+        应用只读取公开页面，不托管或重分发视频，不绕过登录、DRM、付费墙或地域限制。
+        线路由第三方维护，可能随时失效。公开发布前必须确认赛事内容授权、品牌使用权与隐私合规。
+      </aside>
+      <p>当前为了兼容第三方 HTTP 页面启用了宽松网络策略。正式发布前应由自有 HTTPS 后端完成解析，并收紧 App Transport Security。</p>
+    </section>
+  </main>
+</body>
+</html>
