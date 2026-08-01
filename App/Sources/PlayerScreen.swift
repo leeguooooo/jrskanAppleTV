@@ -2,118 +2,73 @@ import AVFoundation
 import AVKit
 import SwiftUI
 
-/// Full-screen live player.
+/// A stream that has already been resolved to a playable URL.
 ///
-/// This is presented as a `fullScreenCover`, not pushed onto the navigation
-/// stack — a pushed `VideoPlayer` keeps the navigation bar and safe-area
-/// insets, so the picture never actually fills the TV. It wraps
-/// `AVPlayerViewController` rather than SwiftUI's `VideoPlayer` to get the
-/// native tvOS transport bar, the Info panel, and a custom transport-bar menu
-/// for switching channel without leaving playback.
-struct PlayerScreen: View {
+/// Resolution deliberately happens *before* the player appears. Presenting an
+/// empty player and resolving behind it meant the viewer stared at a black
+/// screen with no feedback, and it forced the player to own error states it had
+/// no good way to show.
+struct PlaybackRequest: Identifiable {
+    let id = UUID()
+    let url: URL
+    let sourceName: String
+    let index: Int
+}
+
+/// Presents `AVPlayerViewController` modally from the enclosing screen's own
+/// view controller.
+///
+/// The modal part is load-bearing. Embedded as a child controller — inside a
+/// `fullScreenCover`, say — it eats the Menu button without acting on it:
+/// SwiftUI's `onExitCommand` never fires, a press gesture recogniser on its view
+/// never fires, and Menu falls through to the system, which quits the app
+/// instead of going back. Presented properly, tvOS gives Menu its standard
+/// dismissal behaviour and reports it through the delegate.
+struct PlayerPresenter: UIViewControllerRepresentable {
+    @Binding var request: PlaybackRequest?
     let match: LiveMatch
     let channels: [MatchSource]
+    let onSelectChannel: (Int) -> Void
+    let onStall: (String) -> Void
 
-    @State private var currentIndex: Int
-    @State private var player: AVPlayer?
-    @State private var phase: Phase = .resolving
-    @State private var errorMessage: String?
-
-    @Environment(\.dismiss) private var dismiss
-
-    private let resolver = StreamResolver()
-
-    init(match: LiveMatch, channels: [MatchSource], startAt index: Int) {
-        self.match = match
-        self.channels = channels
-        _currentIndex = State(initialValue: index)
+    func makeUIViewController(context: Context) -> UIViewController {
+        UIViewController()
     }
 
-    private enum Phase {
-        case resolving
-        case playing
-        case failed
-    }
+    func updateUIViewController(_ host: UIViewController, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.onSelectChannel = onSelectChannel
+        coordinator.onStall = onStall
+        coordinator.onDismiss = { request = nil }
 
-    private var currentSource: MatchSource? {
-        channels.indices.contains(currentIndex) ? channels[currentIndex] : nil
-    }
-
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            switch phase {
-            case .playing:
-                if let player {
-                    SystemPlayerView(player: player, menuItems: channelMenuItems)
-                        .ignoresSafeArea()
-                }
-            case .resolving:
-                resolvingOverlay
-            case .failed:
-                failureOverlay
-            }
+        guard let request else {
+            coordinator.dismissIfPresenting(from: host)
+            return
         }
-        .task(id: currentIndex) { await load() }
-        .onExitCommand { dismiss() }
-        .onDisappear { teardown() }
-    }
 
-    // MARK: - Overlays
-
-    private var resolvingOverlay: some View {
-        VStack(spacing: 26) {
-            ProgressView()
-                .controlSize(.large)
-                .tint(Palette.accent)
-
-            VStack(spacing: 10) {
-                Text("\(match.homeTeam) vs \(match.awayTeam)")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Palette.primaryText)
-
-                Text("正在解析\(currentSource.map { " \($0.name)" } ?? "线路")…")
-                    .font(.body)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-        }
-    }
-
-    private var failureOverlay: some View {
-        StatusState(
-            systemImage: "exclamationmark.triangle",
-            title: "这条线路播不了",
-            message: errorMessage ?? "线路可能已经失效，换一条再试。",
-            actionTitle: "重试",
-            action: { Task { await load() } }
+        coordinator.show(
+            request,
+            from: host,
+            metadata: metadataItems(for: request),
+            menuItems: menuItems(currentIndex: request.index)
         )
-        .overlay(alignment: .bottom) {
-            if channels.count > 1 {
-                HStack(spacing: 16) {
-                    ForEach(Array(channels.enumerated()), id: \.element.id) { index, source in
-                        Button(source.name) { currentIndex = index }
-                            .disabled(index == currentIndex)
-                    }
-                }
-                .padding(.bottom, 60)
-            }
-        }
     }
 
-    // MARK: - Transport bar menu
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    // MARK: - Player furniture
 
     /// Channel switching lives in the transport bar so the viewer never has to
     /// back out to the detail screen mid-match.
-    private var channelMenuItems: [UIMenuElement] {
+    private func menuItems(currentIndex: Int) -> [UIMenuElement] {
         guard channels.count > 1 else { return [] }
 
-        let actions = channels.enumerated().map { index, source in
+        let actions = channels.enumerated().map { index, source -> UIAction in
             let action = UIAction(title: source.name) { _ in
-                Task { @MainActor in
-                    guard index != currentIndex else { return }
-                    currentIndex = index
-                }
+                guard index != currentIndex else { return }
+                onSelectChannel(index)
             }
             action.state = index == currentIndex ? .on : .off
             return action
@@ -122,79 +77,16 @@ struct PlayerScreen: View {
         return [UIMenu(title: "切换线路", options: .displayInline, children: actions)]
     }
 
-    // MARK: - Playback
-
-    @MainActor
-    private func load() async {
-        guard let source = currentSource else {
-            phase = .failed
-            errorMessage = "这场比赛没有可用线路。"
-            return
-        }
-
-        teardown()
-        phase = .resolving
-        errorMessage = nil
-
-        do {
-            let streamURL = try await resolver.resolve(sourcePageURL: source.pageURL)
-            let item = AVPlayerItem(url: streamURL)
-            item.externalMetadata = metadataItems(for: source)
-
-            let newPlayer = AVPlayer(playerItem: item)
-            newPlayer.allowsExternalPlayback = true
-            player = newPlayer
-            phase = .playing
-            newPlayer.play()
-
-            await watchForStall(newPlayer)
-        } catch {
-            errorMessage = error.localizedDescription
-            phase = .failed
-        }
-    }
-
-    /// A resolved URL is not a working stream. These links go stale constantly —
-    /// the match ends, the host rotates — and `AVPlayer` reports that by simply
-    /// buffering forever. Without this watchdog the viewer stares at a spinner
-    /// with no error and no way to reach another channel.
-    @MainActor
-    private func watchForStall(_ player: AVPlayer) async {
-        let deadline = 20
-        for _ in 0..<(deadline * 2) {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-
-            // The task is cancelled and restarted whenever the channel changes.
-            if Task.isCancelled { return }
-            guard self.player === player else { return }
-
-            if player.currentItem?.status == .failed {
-                errorMessage = player.currentItem?.error?.localizedDescription
-                    ?? "线路返回的地址无法播放。"
-                phase = .failed
-                return
-            }
-
-            if player.timeControlStatus == .playing { return }
-        }
-
-        errorMessage = "线路连上了，但 \(deadline) 秒内没有画面，多半已经失效。换一条试试。"
-        phase = .failed
-    }
-
-    private func teardown() {
-        player?.pause()
-        player?.replaceCurrentItem(with: nil)
-        player = nil
-    }
-
     /// Populates the tvOS Info panel. Without this the panel shows the bare
     /// stream URL, which is the clearest tell of an unfinished player.
-    private func metadataItems(for source: MatchSource) -> [AVMetadataItem] {
+    private func metadataItems(for request: PlaybackRequest) -> [AVMetadataItem] {
         [
-            metadataItem(.commonIdentifierTitle, value: "\(match.homeTeam) vs \(match.awayTeam)"),
-            metadataItem(.iTunesMetadataTrackSubTitle, value: "\(match.league) · \(source.name)"),
-            metadataItem(.commonIdentifierDescription, value: "\(match.time) 开赛 · 共 \(channels.count) 条线路")
+            metadataItem(.commonIdentifierTitle,
+                         value: "\(match.homeTeam) vs \(match.awayTeam)"),
+            metadataItem(.iTunesMetadataTrackSubTitle,
+                         value: "\(match.league) · \(request.sourceName)"),
+            metadataItem(.commonIdentifierDescription,
+                         value: "\(match.time) 开赛 · 共 \(channels.count) 条线路")
         ].compactMap { $0 }
     }
 
@@ -205,37 +97,115 @@ struct PlayerScreen: View {
         item.extendedLanguageTag = "und"
         return item.copy() as? AVMetadataItem
     }
-}
 
-// MARK: - AVPlayerViewController bridge
+    // MARK: - Coordinator
 
-/// Thin bridge to `AVPlayerViewController`. Everything the tvOS player is good
-/// at — scrubbing preview, LIVE indicator, audio/subtitle menus, Info tab —
-/// comes free once the controller is used directly.
-/// Thin bridge to `AVPlayerViewController`. Everything the tvOS player is good
-/// at — scrubbing preview, LIVE indicator, audio and subtitle menus, the Info
-/// panel — comes free once the controller is used directly instead of SwiftUI's
-/// `VideoPlayer`.
-///
-/// Presenting this modally instead of embedding it was tried and reverted: it
-/// left playback stuck buffering indefinitely on streams that start within
-/// seconds when the controller is a plain child.
-private struct SystemPlayerView: UIViewControllerRepresentable {
-    let player: AVPlayer
-    let menuItems: [UIMenuElement]
+    final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        var onSelectChannel: (Int) -> Void = { _ in }
+        var onStall: (String) -> Void = { _ in }
+        var onDismiss: () -> Void = {}
 
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.playbackControlsIncludeInfoViews = true
-        controller.transportBarCustomMenuItems = menuItems
-        return controller
-    }
+        private weak var controller: AVPlayerViewController?
+        private var shownRequestID: UUID?
+        private var stallWatchdog: Task<Void, Never>?
 
-    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
-        if controller.player !== player {
+        func show(
+            _ request: PlaybackRequest,
+            from host: UIViewController,
+            metadata: [AVMetadataItem],
+            menuItems: [UIMenuElement]
+        ) {
+            guard shownRequestID != request.id else {
+                controller?.transportBarCustomMenuItems = menuItems
+                return
+            }
+            shownRequestID = request.id
+
+            let item = AVPlayerItem(url: request.url)
+            item.externalMetadata = metadata
+            let player = AVPlayer(playerItem: item)
+            player.allowsExternalPlayback = true
+
+            if let controller {
+                // Already on screen — a transport-bar channel switch. Swap the
+                // item in place instead of dismissing and re-presenting.
+                controller.player = player
+                controller.transportBarCustomMenuItems = menuItems
+                player.play()
+                startStallWatchdog(for: player)
+                return
+            }
+
+            let controller = AVPlayerViewController()
             controller.player = player
+            controller.playbackControlsIncludeInfoViews = true
+            controller.transportBarCustomMenuItems = menuItems
+            controller.delegate = self
+            self.controller = controller
+
+            host.present(controller, animated: true) {
+                player.play()
+                self.startStallWatchdog(for: player)
+            }
         }
-        controller.transportBarCustomMenuItems = menuItems
+
+        func dismissIfPresenting(from host: UIViewController) {
+            stallWatchdog?.cancel()
+            stallWatchdog = nil
+            shownRequestID = nil
+
+            guard let controller, controller.presentingViewController != nil else {
+                self.controller = nil
+                return
+            }
+            controller.player?.pause()
+            controller.player = nil
+            self.controller = nil
+            host.dismiss(animated: true)
+        }
+
+        /// A resolved URL is not a working stream. These links go stale
+        /// constantly — the match ends, the host rotates — and `AVPlayer`
+        /// reports that by simply buffering forever. Without this the viewer
+        /// stares at a spinner with no error and no way to another channel.
+        private func startStallWatchdog(for player: AVPlayer) {
+            stallWatchdog?.cancel()
+            stallWatchdog = Task { @MainActor [weak self, weak player] in
+                let seconds = 20
+                for _ in 0..<(seconds * 2) {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    if Task.isCancelled { return }
+                    guard let player, self?.controller?.player === player else { return }
+
+                    if player.currentItem?.status == .failed {
+                        self?.reportStall(
+                            player.currentItem?.error?.localizedDescription
+                                ?? "线路返回的地址无法播放。"
+                        )
+                        return
+                    }
+                    if player.timeControlStatus == .playing { return }
+                }
+                self?.reportStall("线路连上了，但 20 秒内没有画面，多半已经失效。换一条试试。")
+            }
+        }
+
+        @MainActor
+        private func reportStall(_ message: String) {
+            onStall(message)
+            onDismiss()
+        }
+
+        func playerViewControllerDidEndDismissalTransition(
+            _ playerViewController: AVPlayerViewController
+        ) {
+            stallWatchdog?.cancel()
+            stallWatchdog = nil
+            playerViewController.player?.pause()
+            playerViewController.player = nil
+            controller = nil
+            shownRequestID = nil
+            onDismiss()
+        }
     }
 }

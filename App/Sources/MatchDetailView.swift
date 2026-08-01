@@ -8,7 +8,13 @@ struct MatchDetailView: View {
 
     @State private var channels: [MatchSource]?
     @State private var channelErrorMessage: String?
-    @State private var selection: ChannelSelection?
+    @State private var playback: PlaybackRequest?
+    @State private var resolvingIndex: Int?
+    @State private var playbackErrorMessage: String?
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let resolver = StreamResolver()
 
     var body: some View {
         ZStack {
@@ -24,14 +30,24 @@ struct MatchDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        // Hiding the navigation bar also takes away the stack's own Menu-to-pop
+        // handling, so Menu fell through to the system and quit the app instead
+        // of going back one level. Pop explicitly.
+        .onExitCommand { dismiss() }
         .task(id: match.id) { await loadChannels() }
-        .fullScreenCover(item: $selection) { selection in
-            PlayerScreen(
+        .background(
+            PlayerPresenter(
+                request: $playback,
                 match: match,
                 channels: resolvedChannels,
-                startAt: selection.index
+                onSelectChannel: { index in
+                    Task { await startPlayback(at: index) }
+                },
+                onStall: { message in
+                    playbackErrorMessage = message
+                }
             )
-        }
+        )
     }
 
     /// Parsed channels when the source page gave us any, otherwise the homepage
@@ -113,6 +129,12 @@ struct MatchDetailView: View {
                     .foregroundStyle(Palette.accent)
             }
 
+            if let playbackErrorMessage {
+                Label(playbackErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(Palette.live)
+            }
+
             channelList
         }
     }
@@ -138,15 +160,19 @@ struct MatchDetailView: View {
             LazyVStack(spacing: 16) {
                 ForEach(Array(resolvedChannels.enumerated()), id: \.element.id) { index, source in
                     Button {
-                        selection = ChannelSelection(index: index)
+                        Task { await startPlayback(at: index) }
                     } label: {
                         ChannelCard(
                             number: index + 1,
                             source: source,
-                            subtitle: subtitle(for: source)
+                            subtitle: resolvingIndex == index
+                                ? "正在解析线路…"
+                                : subtitle(for: source),
+                            isBusy: resolvingIndex == index
                         )
                     }
                     .buttonStyle(FocusCardButtonStyle())
+                    .disabled(resolvingIndex != nil)
                 }
             }
         }
@@ -156,6 +182,29 @@ struct MatchDetailView: View {
         if channels?.isEmpty ?? true { return "备用入口 · 直接尝试播放" }
         if source.name.localizedCaseInsensitiveContains("高清") { return "高清频道" }
         return "主播解说"
+    }
+
+    // MARK: - Playback
+
+    /// Resolve first, present second — so a dead link surfaces as an error on
+    /// this screen instead of an unexplained black player the viewer then has
+    /// to back out of.
+    @MainActor
+    private func startPlayback(at index: Int) async {
+        let channels = resolvedChannels
+        guard channels.indices.contains(index) else { return }
+        let source = channels[index]
+
+        resolvingIndex = index
+        playbackErrorMessage = nil
+        defer { resolvingIndex = nil }
+
+        do {
+            let url = try await resolver.resolve(sourcePageURL: source.pageURL)
+            playback = PlaybackRequest(url: url, sourceName: source.name, index: index)
+        } catch {
+            playbackErrorMessage = error.localizedDescription
+        }
     }
 
     // MARK: - Loading
@@ -182,9 +231,3 @@ struct MatchDetailView: View {
     }
 }
 
-/// `fullScreenCover(item:)` needs an `Identifiable` binding, and the selection
-/// here is just an index — wrap it rather than conforming `Int` itself.
-private struct ChannelSelection: Identifiable {
-    let index: Int
-    var id: Int { index }
-}

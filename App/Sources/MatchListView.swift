@@ -38,7 +38,7 @@ struct MatchListView: View {
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 40)
 
-            CategoryBar(selection: $model.filter, counts: model.categoryCounts)
+            controlRow
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 26)
                 .padding(.bottom, 28)
@@ -57,34 +57,41 @@ struct MatchListView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("今日比赛")
-                    .font(.system(size: 56, weight: .bold))
-                    .foregroundStyle(Palette.primaryText)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("今日比赛")
+                .font(.system(size: 56, weight: .bold))
+                .foregroundStyle(Palette.primaryText)
 
-                Text("共 \(model.matches.count) 场 · \(model.hotCount) 场热门")
-                    .font(.title3)
-                    .foregroundStyle(Palette.secondaryText)
+            Text("共 \(model.matches.count) 场 · \(model.hotCount) 场热门")
+                .font(.title3)
+                .foregroundStyle(Palette.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Search and refresh sit on the same row as the category chips on purpose.
+    /// Parked in the header's top-right corner they rendered fine but were
+    /// unreachable: pressing Up from the left-most chip finds only the
+    /// non-focusable title above it, so the focus engine never travelled to
+    /// them and the buttons read as missing. Same row means Right gets there.
+    private var controlRow: some View {
+        HStack(spacing: 18) {
+            CategoryBar(selection: $model.filter, counts: model.categoryCounts)
+
+            Spacer(minLength: 24)
+
+            NavigationLink {
+                SearchMatchesView()
+            } label: {
+                Label("搜索", systemImage: "magnifyingglass")
             }
 
-            Spacer()
-
-            HStack(spacing: 18) {
-                NavigationLink {
-                    SearchMatchesView()
-                } label: {
-                    Label("搜索", systemImage: "magnifyingglass")
-                }
-
-                Button {
-                    Task { await model.refresh() }
-                } label: {
-                    Label("刷新", systemImage: "arrow.clockwise")
-                }
-                .disabled(model.isLoading)
+            Button {
+                Task { await model.refresh() }
+            } label: {
+                Label(model.isLoading ? "刷新中" : "刷新", systemImage: "arrow.clockwise")
             }
-            .focusSection()
+            .disabled(model.isLoading)
         }
     }
 
@@ -130,6 +137,8 @@ struct MatchListView: View {
 private struct SearchMatchesView: View {
     @EnvironmentObject private var model: MatchListModel
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         ZStack {
             AppBackground()
@@ -161,6 +170,7 @@ private struct SearchMatchesView: View {
             }
         }
         .searchable(text: $model.searchText, prompt: "搜索球队或联赛")
+        .onExitCommand { dismiss() }
         .onDisappear { model.searchText = "" }
     }
 }

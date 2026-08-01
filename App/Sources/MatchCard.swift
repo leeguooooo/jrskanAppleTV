@@ -118,14 +118,21 @@ struct ChannelCard: View {
     let number: Int
     let source: MatchSource
     let subtitle: String
+    var isBusy = false
 
     var body: some View {
         HStack(spacing: 24) {
-            Text("\(number)")
-                .font(.title2.monospacedDigit().weight(.bold))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 62, height: 62)
-                .background(Palette.accent.opacity(0.16), in: Circle())
+            ZStack {
+                if isBusy {
+                    ProgressView().tint(Palette.accent)
+                } else {
+                    Text("\(number)")
+                        .font(.title2.monospacedDigit().weight(.bold))
+                        .foregroundStyle(Palette.accent)
+                }
+            }
+            .frame(width: 62, height: 62)
+            .background(Palette.accent.opacity(0.16), in: Circle())
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(source.name)
@@ -142,9 +149,9 @@ struct ChannelCard: View {
 
             Spacer(minLength: 16)
 
-            Image(systemName: "play.fill")
+            Image(systemName: isBusy ? "hourglass" : "play.fill")
                 .font(.title3)
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(isBusy ? Palette.secondaryText : Palette.accent)
         }
         .padding(.horizontal, 30)
         .padding(.vertical, 20)
