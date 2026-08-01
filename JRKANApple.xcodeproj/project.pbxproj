@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0298BA03946FD33EC9D8F06D /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FD24ED9DC92A652D5818D0 /* JRSListingParser.swift */; };
 		3C6FC8BB5D28226F6DD0A14C /* MatchListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D7270272826DA85599E32E /* MatchListModel.swift */; };
+		45C9DA96526FFE5AD4F120BE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 921E84FD08F53AE748A4E423 /* Assets.xcassets */; };
 		493FF0508076B2A3288BF0A9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA6F9319869F7EBC156573 /* Models.swift */; };
 		4C6A879B49205915DC89AF62 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1182C93F305B1D44200E7C1 /* JRSClient.swift */; };
 		A750ECD6CF030273C3215751 /* JRKANApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A51B0E79710984585728B1 /* JRKANApp.swift */; };
@@ -40,6 +41,7 @@
 		76CF190C1FCCD118D97DAC37 /* JRKANTVTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = JRKANTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7AFA50AF289DDF1FEA211C26 /* MatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListView.swift; sourceTree = "<group>"; };
 		8D4B96A5999547CDBFD0CE69 /* JRSListingParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParserTests.swift; sourceTree = "<group>"; };
+		921E84FD08F53AE748A4E423 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97D7270272826DA85599E32E /* MatchListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListModel.swift; sourceTree = "<group>"; };
 		A1A51B0E79710984585728B1 /* JRKANApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANApp.swift; sourceTree = "<group>"; };
 		B1182C93F305B1D44200E7C1 /* JRSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSClient.swift; sourceTree = "<group>"; };
@@ -50,6 +52,7 @@
 		01C2C9541375326149CD958A = {
 			isa = PBXGroup;
 			children = (
+				63497BE701BB606DF510E660 /* Resources */,
 				29BBFA42F4F8BEDC327C6290 /* Sources */,
 				49E8E10115B78C2A3378BD83 /* Tests */,
 				5A8FB00D87F7A0441660C9F1 /* Products */,
@@ -92,6 +95,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		63497BE701BB606DF510E660 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				921E84FD08F53AE748A4E423 /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = App/Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -100,6 +112,7 @@
 			buildConfigurationList = 1AFD4B20E283DE23F528B376 /* Build configuration list for PBXNativeTarget "JRKANTV" */;
 			buildPhases = (
 				23EACE20E406AE9A1DCD617A /* Sources */,
+				E5585743172D71313486D888 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -166,6 +179,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E5585743172D71313486D888 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				45C9DA96526FFE5AD4F120BE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		23EACE20E406AE9A1DCD617A /* Sources */ = {

@@ -19,6 +19,7 @@ targets:
     platform: tvOS
     sources:
       - path: App/Sources
+      - path: App/Resources/Assets.xcassets
     info:
       path: App/Info-TV.plist
       properties:
@@ -32,6 +33,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
         CODE_SIGNING_ALLOWED: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
 
   JRKANTVTests:
     type: bundle.unit-test

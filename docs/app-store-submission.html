@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JRKAN tvOS · 上架准备</title>
+<style>
+  :root {
+    --fg: #16202b;
+    --muted: #6a7484;
+    --accent: #1769aa;
+    --danger: #b0281a;
+    --warn: #9a6207;
+    --ok: #1f7a4d;
+    --border: #d9dee7;
+    --surface: #f7f8fa;
+    --surface-2: #eef1f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 48px 28px 96px;
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.68;
+  }
+  header { border-bottom: 2px solid var(--fg); padding-bottom: 20px; margin-bottom: 8px; }
+  h1 { margin: 0 0 6px; font-size: 31px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  h2 {
+    margin-top: 46px; padding-top: 18px; font-size: 21px;
+    border-top: 1px solid var(--border);
+  }
+  h3 { margin-top: 30px; font-size: 16px; }
+  code {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; font-size: 0.9em;
+  }
+  pre {
+    overflow-x: auto; padding: 15px 17px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14.5px; }
+  th, td { padding: 9px 12px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 600; }
+  td.n { white-space: nowrap; }
+  aside {
+    margin: 22px 0; padding: 15px 20px;
+    border-left: 4px solid var(--accent); background: var(--surface);
+  }
+  aside.stop { border-left-color: var(--danger); background: #fdf3f1; }
+  aside.warn { border-left-color: var(--warn); background: #fdf8ec; }
+  aside.ok   { border-left-color: var(--ok);   background: #f1f8f4; }
+  aside h4 { margin: 0 0 8px; font-size: 15px; }
+  .tag {
+    display: inline-block; padding: 1px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .tag-stop { background: #f6d9d4; color: var(--danger); }
+  .tag-warn { background: #f8e9c8; color: var(--warn); }
+  .tag-ok   { background: #d9ecdf; color: var(--ok); }
+  .lede { font-size: 16.5px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 5px 0; }
+  figure { margin: 22px 0; }
+  figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; display: block; }
+  figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin: 20px 0; }
+  .card { border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; background: var(--surface); }
+  .card strong { display: block; margin-bottom: 4px; }
+  .card span { font-size: 13.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>JRKAN tvOS · 正式发布准备</h1>
+  <p>版本 0.1.0（build 1）· Bundle ID <code>com.leeguoo.jrskan.tv</code> · 评估日期 2026-08-01</p>
+</header>
+
+<p class="lede">
+  本文覆盖两件事：<strong>已经做完的品牌图标资源</strong>，以及<strong>App Store 上架所需的全部字段与前置条件</strong>。
+  结论先说：图标与资源目录已完成并通过真机 Release 构建；但这一版<strong>不能提交 App Store</strong>，
+  阻断原因在第一节，不是文案或素材能绕过的问题。
+</p>
+
+<h2>1. 提交阻断项</h2>
+
+<aside class="stop">
+  <h4>这一版提交等于拿开发者账号去赌</h4>
+  <p>
+    我在 tvOS 模拟器上完整跑通了播放链路并截图取证。应用播放出来的流里<strong>硬烧录了境外赌博站点广告</strong>
+    （画面顶部 <code>玩球网址：xty43.cc　充值100私信主播即送168</code>，底部
+    <code>下载直播APP…注册后进群看重心单+抢万元红包雨</code>），
+    播放的是 <strong>MPBL 职业联赛</strong>的持权转播信号，画面右上角还带着联赛台标。
+  </p>
+  <p style="margin-bottom:0">
+    这不是"审核可能被拒"，而是<strong>触发开发者账号封停</strong>的组合：未授权转播 + 未成年可见的实钱赌博推广。
+  </p>
+</aside>
+
+<figure>
+  <img src="../assets/store/evidence/playback-gambling-overlay.png" alt="播放画面中的赌博广告叠加层与联赛台标">
+  <figcaption>
+    取证截图（3840×2160，tvOS 模拟器实测）。存放于
+    <code>assets/store/evidence/</code>，<strong>仅作内部记录，不可作为 App Store 截图使用</strong>。
+  </figcaption>
+</figure>
+
+<table>
+  <thead>
+    <tr><th style="width:15%">条款</th><th style="width:26%">问题</th><th>事实依据</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="n"><span class="tag tag-stop">5.2.1 / 5.2.3</span></td>
+      <td>未授权转播第三方持权赛事</td>
+      <td><code>JRSClient.swift</code> 抓取 <code>www.jrs03.com</code> 首页与列表脚本，<code>StreamResolver.swift</code> 逐层解析 iframe 取出 <code>.m3u8</code> 直接交给 AVPlayer。列表实测含 WNBA、美职联、MPBL、乌拉甲、智利甲等持权赛事，应用侧没有任何授权链路。</td>
+    </tr>
+    <tr>
+      <td class="n"><span class="tag tag-stop">1.4.3 / 3.1.1 / 5.3</span></td>
+      <td>向全年龄用户投放实钱赌博广告</td>
+      <td>播放流内嵌 <code>xty43.cc</code> 充值返利与"重心单"推广，烧录在视频画面里，应用无法过滤，也没有年龄门槛。Apple 对 App 内出现的第三方博彩推广是零容忍。</td>
+    </tr>
+    <tr>
+      <td class="n"><span class="tag tag-stop">5.2.5</span></td>
+      <td>品牌名沿用第三方站点</td>
+      <td><code>CFBundleDisplayName = JRKAN</code>、Bundle ID 含 <code>jrskan</code>，与数据来源站点品牌高度绑定，无授权文件。</td>
+    </tr>
+    <tr>
+      <td class="n"><span class="tag tag-warn">2.1</span></td>
+      <td>核心功能依赖单一硬编码外站</td>
+      <td><code>JRSClient.defaultHomepage</code> 写死 <code>https://www.jrs03.com/</code>。该域名一换，应用即整体不可用——审核期间站点波动会直接判 App 无法使用。</td>
+    </tr>
+    <tr>
+      <td class="n"><span class="tag tag-warn">2.5.1</span></td>
+      <td>ATS 全量放行</td>
+      <td><code>NSAllowsArbitraryLoads = true</code>。仅这一项就需要书面理由；配合"抓取任意第三方页面"的用途，理由不成立。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>可行的合规路线</h3>
+
+<p>把内容来源换掉，上面 5 项里的 4 项同时消失。三条路按落地成本排序：</p>
+
+<table>
+  <thead><tr><th style="width:22%">路线</th><th style="width:38%">做法</th><th>代价 / 结果</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="n"><strong>A. 用户自备播放源</strong><br><span style="color:var(--muted);font-size:13px">推荐</span></td>
+      <td>移除内置站点抓取，改为用户在应用里填入自己的 M3U / IPTV 播放列表 URL。应用只做播放器与 EPG，不预置任何源。</td>
+      <td>这是 App Store 上 IPTV 播放器（iPlayTV、GSE 等）长期在架的模式。内容责任转移给用户，赌博叠加层随源消失。功能改动约 1～2 天。</td>
+    </tr>
+    <tr>
+      <td class="n"><strong>B. 取得授权</strong></td>
+      <td>与赛事版权方或持牌平台签转播/分发协议，改用其官方 API 与 CDN。</td>
+      <td>最干净，但需商务与法务，周期以月计，且需向 Apple 提交授权证明。</td>
+    </tr>
+    <tr>
+      <td class="n"><strong>C. 只做赛程比分</strong></td>
+      <td>保留列表、搜索、赛程、比分，删除播放能力，改用授权数据 API。</td>
+      <td>确定能过审，但产品价值大幅缩水，与"Apple TV 上看球"的原始目标不符。</td>
+    </tr>
+  </tbody>
+</table>
+
+<aside class="warn">
+  <h4>关于本文后半部分</h4>
+  <p style="margin-bottom:0">
+    第 3～8 节的字段、隐私标签、审核信息、检查清单，<strong>在路线 A / B / C 任一落地后都直接可用</strong>——
+    这些是与内容来源无关的上架基础工程。第 5 节的商品文案按<strong>路线 A（用户自备源）</strong>撰写；
+    若走 B 或 C，文案需要重写，说一声我改。
+  </p>
+</aside>
+
+
+<h2>2. 已交付：品牌与图标资源 <span class="tag tag-ok">完成</span></h2>
+
+<p>
+  图标用 <code>chatgpt-imagegen</code> 生成底图与标识，再由
+  <code>assets/brand/build_assets.py</code> 合成为 tvOS 要求的分层资源目录。
+  整套资源已通过 <code>appletvos</code> Release 构建，<code>actool</code> 编译无警告，
+  Xcode 自动注入了 <code>CFBundleIcons</code> 与 <code>TVTopShelfImage</code>。
+</p>
+
+<figure>
+  <img src="../assets/brand/out/app-store-icon-1280x768.png" alt="JRKAN 应用图标">
+  <figcaption>App Store 图标 1280×768（三层视差合成预览）。深海军蓝渐变 + 琥珀色播放/广播符号。</figcaption>
+</figure>
+
+<figure>
+  <img src="../assets/brand/out/topshelf-wide-2320x720.png" alt="Top Shelf 宽幅横幅">
+  <figcaption>Top Shelf Wide 2320×720。左三分之一留空给标识，与图标同一套配色与颗粒质感。</figcaption>
+</figure>
+
+<h3>产出的资源清单</h3>
+
+<table>
+  <thead><tr><th style="width:34%">资源</th><th style="width:22%">尺寸</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>App Icon（分层）</td><td class="n">400×240 @1x / @2x</td><td>主屏图标，Front / Middle / Back 三层视差</td></tr>
+    <tr><td>App Icon - App Store（分层）</td><td class="n">1280×768 @1x</td><td>tvOS 商店图标，随二进制上传，<strong>无需在 ASC 单独上传</strong></td></tr>
+    <tr><td>Top Shelf Image</td><td class="n">1920×720 @1x / @2x</td><td>应用聚焦时的顶部横幅</td></tr>
+    <tr><td>Top Shelf Image Wide</td><td class="n">2320×720 @1x / @2x</td><td>宽屏版顶部横幅</td></tr>
+    <tr><td>营销方图</td><td class="n">1024×1024</td><td>不进包，供官网 / 媒体资料使用</td></tr>
+  </tbody>
+</table>
+
+<h3>文件位置</h3>
+
+<pre><code>App/Resources/Assets.xcassets/
+  └─ App Icon &amp; Top Shelf Image.brandassets/    ← 进包，actool 编译
+assets/brand/src/       AI 生成的原始素材（icon-bg / icon-mark / topshelf-art）
+assets/brand/out/       扁平化预览与营销图，不进包
+assets/brand/build_assets.py   合成脚本</code></pre>
+
+<p>改动素材后重新生成：</p>
+<pre><code>python3 assets/brand/build_assets.py
+xcodegen generate
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
+  -sdk appletvos -configuration Release build CODE_SIGNING_ALLOWED=NO</code></pre>
+
+<aside class="warn">
+  <h4>图标里的品牌名需要跟着改</h4>
+  <p style="margin-bottom:0">
+    Top Shelf 上印的是 <code>JRKAN</code>。按第 1 节的 5.2.5，这个名字建议换掉。
+    换名后只需改 <code>build_assets.py</code> 里 <code>build_topshelf()</code> 的字符串再跑一次脚本；
+    图标符号本身不含任何第三方元素，可以保留。
+  </p>
+</aside>
+
+
+<h2>3. 技术就绪项</h2>
+
+<table>
+  <thead><tr><th style="width:8%">状态</th><th style="width:26%">项目</th><th>当前值 / 需要做什么</th></tr></thead>
+  <tbody>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>部署目标</td><td>tvOS 17.0，满足当前 App Store 最低要求</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>架构 / 设备族</td><td><code>arm64</code>，<code>UIDeviceFamily = [3]</code></td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>图标与 Top Shelf</td><td>见第 2 节，已进包</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">改</span></td><td>版本号</td><td><code>MARKETING_VERSION 0.1.0</code> → 正式版应为 <code>1.0.0</code>；<code>CURRENT_PROJECT_VERSION</code> 每次上传递增</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">改</span></td><td>代码签名</td><td><code>CODE_SIGNING_ALLOWED: NO</code> 是本地调试配置。上传需要 Apple Distribution 证书 + App Store provisioning profile，在 <code>project.yml</code> 里切回 <code>Automatic</code> 并配 Team ID</td></tr>
+    <tr><td class="n"><span class="tag tag-stop">改</span></td><td>ATS</td><td>删除 <code>NSAllowsArbitraryLoads</code>。走路线 A 后所有请求应为 HTTPS；确需 HTTP 时用 <code>NSExceptionDomains</code> 精确到域名</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">加</span></td><td>隐私清单</td><td>新增 <code>PrivacyInfo.xcprivacy</code>。本应用无三方 SDK，仅用 <code>URLSession</code>；若路线 A 用 <code>UserDefaults</code> 存播放源，需声明 <code>CA92.1</code>（App 自身功能）</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">加</span></td><td>出口合规</td><td>Info.plist 加 <code>ITSAppUsesNonExemptEncryption = false</code>（只用 HTTPS 属豁免），可省掉每次上传的问卷</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">查</span></td><td>工作区有未提交改动</td><td>本次会话期间 <code>MatchListView.swift</code>、<code>PlayerScreen.swift</code>、<code>JRSListingParserTests.swift</code>、<code>0-README.html</code> 被本会话之外的进程改动（新增"第 1/2/3 步"引导式 UX）。提交前确认这些改动是预期的</td></tr>
+  </tbody>
+</table>
+
+<h3>Info.plist 需要补的键</h3>
+<pre><code>&lt;key&gt;ITSAppUsesNonExemptEncryption&lt;/key&gt;
+&lt;false/&gt;
+
+&lt;!-- 删除整个 NSAppTransportSecurity 块；若确需例外，改成： --&gt;
+&lt;key&gt;NSAppTransportSecurity&lt;/key&gt;
+&lt;dict&gt;
+  &lt;key&gt;NSExceptionDomains&lt;/key&gt;
+  &lt;dict&gt;
+    &lt;key&gt;example-cdn.com&lt;/key&gt;
+    &lt;dict&gt;
+      &lt;key&gt;NSExceptionAllowsInsecureHTTPLoads&lt;/key&gt;&lt;true/&gt;
+    &lt;/dict&gt;
+  &lt;/dict&gt;
+&lt;/dict&gt;</code></pre>
+
+
+<h2>4. App Store Connect · 应用级字段</h2>
+
+<p>这些字段建应用时填一次，之后基本不改。</p>
+
+<table>
+  <thead><tr><th style="width:22%">字段</th><th style="width:30%">建议值</th><th>说明 / 限制</th></tr></thead>
+  <tbody>
+    <tr><td>平台</td><td>tvOS</td><td>单平台。若日后加 iOS 需同一 Bundle ID 下新增平台</td></tr>
+    <tr><td>Bundle ID</td><td><code>com.leeguoo.jrskan.tv</code></td><td>换品牌名时一并换掉 <code>jrskan</code>。<strong>Bundle ID 创建后不可修改</strong>，要在建应用前定好</td></tr>
+    <tr><td>SKU</td><td><code>JRKANTV-2026</code></td><td>内部标识，用户不可见，创建后不可改</td></tr>
+    <tr><td>应用名称</td><td>待定（见第 1 节 5.2.5）</td><td><strong>上限 30 字符</strong>，全球唯一</td></tr>
+    <tr><td>副标题</td><td>在 Apple TV 上看直播</td><td><strong>上限 30 字符</strong>，显示在名称下方</td></tr>
+    <tr><td>主要语言</td><td>简体中文</td><td>界面全中文，与之一致</td></tr>
+    <tr><td>主类别</td><td>体育</td><td></td></tr>
+    <tr><td>次类别</td><td>娱乐</td><td>可留空</td></tr>
+    <tr><td>价格</td><td>免费</td><td>无内购、无订阅、无广告 SDK</td></tr>
+    <tr><td>供应地区</td><td>按发行计划勾选</td><td>体育内容授权通常有地域范围，勿默认全球</td></tr>
+    <tr><td>内容版权</td><td><code>2026 Leo Guo</code></td><td>格式为「年份 + 权利人」，不写 ©</td></tr>
+  </tbody>
+</table>
+
+<h3>年龄分级问卷</h3>
+<p>按路线 A（用户自备源、应用不预置内容）的答法：</p>
+<table>
+  <thead><tr><th style="width:52%">问题</th><th>回答</th></tr></thead>
+  <tbody>
+    <tr><td>暴力 / 恐怖 / 色情 / 药物等各类内容</td><td>无</td></tr>
+    <tr><td>模拟赌博 / 现实赌博</td><td><strong>无</strong>（前提是已切断第 1 节的赌博叠加层来源）</td></tr>
+    <tr><td>不受限制的网页访问</td><td><strong>是</strong> —— 用户可填任意播放源 URL</td></tr>
+    <tr><td>用户生成内容</td><td>否</td></tr>
+  </tbody>
+</table>
+<aside>
+  <p style="margin:0">
+    「不受限制的网页访问」勾是，分级会落到 <strong>17+</strong>。这是路线 A 的正常代价，
+    也是 IPTV 类应用的通行做法——比隐瞒后被抓要好得多。
+  </p>
+</aside>
+
+
+<h2>5. App Store Connect · 版本字段（商品页文案）</h2>
+
+<aside class="warn">
+  <p style="margin:0">
+    以下文案<strong>按路线 A 撰写</strong>：应用是一个播放器，不预置、不分发任何内容源。
+    在功能真正改成这样之前不要照抄提交——描述与实际功能不符本身就是 2.3.1 拒绝理由。
+  </p>
+</aside>
+
+<h3>宣传文本 <span style="font-weight:400;color:var(--muted);font-size:13px">上限 170 字符 · 可不重新提审直接改</span></h3>
+<pre><code>用你自己的播放源，在 Apple TV 上看比赛。填入 M3U 播放列表，遥控器两下就能开播，
+支持分类、搜索与多线路切换。</code></pre>
+
+<h3>描述 <span style="font-weight:400;color:var(--muted);font-size:13px">上限 4000 字符</span></h3>
+<pre><code>把你自己的直播源，搬到客厅的大屏幕上。
+
+这是一个为 Apple TV 打造的原生播放器。它不提供、不托管、也不分发任何视频内容——
+所有频道都来自你自己填入的 M3U / M3U8 播放列表地址。
+
+主要功能
+
+· 播放列表导入：填入你自己的 M3U 播放列表 URL，自动读取频道与赛事条目。
+· 分类浏览：按你的播放源分组浏览，支持热门、篮球、足球等自定义分类。
+· 搜索：按队伍名或联赛名快速定位。
+· 多线路：同一条目下有多个地址时，可在播放器内直接切换，一条卡顿就换下一条。
+· 原生播放：基于 AVPlayer，支持 HLS 直播，遥控器操作与系统播放控件完全一致。
+· 干净的界面：专为 10 英尺观看距离设计，没有广告，没有账号，没有追踪。
+
+关于内容
+
+本应用是一个播放器工具，本身不附带任何频道或赛事。你需要自备合法的播放源地址，
+并自行确认你拥有观看这些内容的权利。应用不会绕过任何登录、DRM、付费墙或地域限制。
+
+隐私
+
+不收集任何个人信息，不需要注册或登录，不接入任何第三方分析或广告 SDK。
+你填入的播放源地址只保存在这台 Apple TV 本地。</code></pre>
+
+<h3>关键词 <span style="font-weight:400;color:var(--muted);font-size:13px">上限 100 字符 · 英文逗号分隔 · 不要重复应用名称</span></h3>
+<pre><code>直播,播放器,m3u,m3u8,iptv,hls,体育,比赛,足球,篮球,电视,客厅,遥控器,播放列表</code></pre>
+
+<h3>新功能 <span style="font-weight:400;color:var(--muted);font-size:13px">首版填写</span></h3>
+<pre><code>首个版本。</code></pre>
+
+<h3>必填 URL</h3>
+<table>
+  <thead><tr><th style="width:20%">字段</th><th style="width:12%">必填</th><th>要求</th></tr></thead>
+  <tbody>
+    <tr><td>支持网址</td><td class="n"><span class="tag tag-stop">必填</span></td><td>必须是可访问的真实页面，含联系方式。<strong>缺这一项直接被拒</strong>，GitHub Pages 或仓库 README 页即可</td></tr>
+    <tr><td>隐私政策网址</td><td class="n"><span class="tag tag-stop">必填</span></td><td>即使不收集任何数据也必须提供。内容需与第 6 节的隐私标签一致</td></tr>
+    <tr><td>营销网址</td><td class="n">选填</td><td>没有官网就留空</td></tr>
+  </tbody>
+</table>
+
+<h3>截图与预览</h3>
+<table>
+  <thead><tr><th style="width:24%">项目</th><th style="width:26%">规格</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>App 截图</td><td class="n">1920×1080 或 3840×2160 PNG/JPG</td><td><strong>至少 1 张，最多 10 张</strong>。必须是应用真实界面，不能加边框、设备外壳或营销文字拼贴</td></tr>
+    <tr><td>App 预览视频</td><td class="n">1920×1080，15–30 秒</td><td>选填。必须全部取自应用内录屏</td></tr>
+  </tbody>
+</table>
+
+<aside class="stop">
+  <h4>现有截图不能用</h4>
+  <p style="margin-bottom:0">
+    <code>assets/store/screenshots/01-match-list.png</code>（3840×2160，赛事列表）技术规格合格，
+    但界面内容来自未授权源。<code>dist/JRKANTV-simulator-playback.png</code>
+    含赌博广告叠加层，<strong>绝对不能提交</strong>。
+    改造成路线 A 之后需要用合规播放源重新截图，建议 4 张：播放源设置 → 列表 → 线路选择 → 播放中。
+  </p>
+</aside>
+
+<pre><code># 重新截图（Apple TV 4K 模拟器，输出 3840×2160）
+xcrun simctl list devices available | grep "Apple TV"
+xcrun simctl install &lt;UDID&gt; .build/tvos-sim/Build/Products/Debug-appletvsimulator/JRKANTV.app
+xcrun simctl launch &lt;UDID&gt; com.leeguoo.jrskan.tv
+xcrun simctl io &lt;UDID&gt; screenshot assets/store/screenshots/01-list.png</code></pre>
+
+
+<h2>6. App 隐私（隐私标签）</h2>
+
+<p>按当前代码事实填写——应用无账号、无分析、无广告 SDK，仅发出网络请求：</p>
+
+<table>
+  <thead><tr><th style="width:30%">数据类别</th><th style="width:18%">是否收集</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>联系信息 / 健康 / 财务 / 位置</td><td class="n"><span class="tag tag-ok">否</span></td><td>代码中无任何相关 API 调用</td></tr>
+    <tr><td>标识符（用户 ID / 设备 ID）</td><td class="n"><span class="tag tag-ok">否</span></td><td>无注册、无设备指纹</td></tr>
+    <tr><td>使用数据 / 诊断</td><td class="n"><span class="tag tag-ok">否</span></td><td>未接入任何分析 SDK</td></tr>
+    <tr><td>用户内容</td><td class="n"><span class="tag tag-ok">否</span></td><td>路线 A 的播放源 URL 仅存本地，不上传，属"不收集"</td></tr>
+  </tbody>
+</table>
+
+<p>最终选择 <strong>「未收集数据」</strong>。隐私政策页面必须写成同样的口径，两处不一致会被退回。</p>
+
+<aside class="warn">
+  <p style="margin:0">
+    注意：<code>JRSClient.swift</code> 目前会带一个<strong>伪装成 Safari 的 User-Agent</strong> 请求第三方站点。
+    这不构成"收集数据"，但属于规避性行为，路线 A 落地时应一并去掉。
+  </p>
+</aside>
+
+
+<h2>7. 审核信息（App Review Information）</h2>
+
+<table>
+  <thead><tr><th style="width:24%">字段</th><th>填写</th></tr></thead>
+  <tbody>
+    <tr><td>联系人</td><td>姓名 + 电话 + 邮箱，需真实可达，审核有疑问会直接联系</td></tr>
+    <tr><td>演示账号</td><td>不需要——应用无登录。在 ASC 里取消勾选「需要登录」</td></tr>
+    <tr><td>备注</td><td>见下方模板</td></tr>
+    <tr><td>附件</td><td>若走路线 B，<strong>必须</strong>上传内容授权协议扫描件</td></tr>
+  </tbody>
+</table>
+
+<h3>审核备注模板（路线 A）</h3>
+<pre><code>This app is a media player for tvOS. It does not host, provide, bundle, or
+distribute any video content.
+
+On first launch the user is asked to enter their own M3U / M3U8 playlist URL.
+All channels and streams shown in the app come exclusively from that
+user-supplied playlist. The app ships with no preloaded sources.
+
+The app does not bypass any login, DRM, paywall, or geographic restriction.
+It plays standard HLS streams using AVPlayer.
+
+To test: on the setup screen, enter the sample playlist URL below, which points
+to freely redistributable test streams.
+
+  Test playlist: &lt;填入你自己托管的测试 M3U 地址&gt;
+
+No account or login is required.</code></pre>
+
+<aside>
+  <p style="margin:0">
+    这段备注必须<strong>与应用真实行为完全一致</strong>。审核员会按它逐条验证——
+    描述和实现对不上，比功能本身有问题拒得更狠。
+  </p>
+</aside>
+
+
+<h2>8. 上架检查清单</h2>
+
+<div class="grid">
+  <div class="card"><strong>阶段一 · 解除阻断</strong><span>第 1 节的三个 stop 项。这一步不做完，后面全是白工。</span></div>
+  <div class="card"><strong>阶段二 · 技术就绪</strong><span>第 3 节的版本号、签名、ATS、隐私清单、出口合规。</span></div>
+  <div class="card"><strong>阶段三 · 素材文案</strong><span>第 2 / 5 节。图标已完成，截图待重拍。</span></div>
+  <div class="card"><strong>阶段四 · 提交</strong><span>Archive → 上传 → 填表 → 送审。</span></div>
+</div>
+
+<h3>逐项</h3>
+<ol>
+  <li>确定合规内容路线（A / B / C），完成功能改造</li>
+  <li>确定最终应用名与 Bundle ID（<strong>创建后不可改，先定死</strong>）</li>
+  <li>去掉 <code>NSAllowsArbitraryLoads</code>，去掉伪装 User-Agent</li>
+  <li><code>MARKETING_VERSION</code> 改 <code>1.0.0</code>，<code>CURRENT_PROJECT_VERSION</code> 置 <code>1</code></li>
+  <li><code>project.yml</code> 恢复签名：<code>CODE_SIGN_STYLE: Automatic</code> + <code>DEVELOPMENT_TEAM</code></li>
+  <li>新增 <code>PrivacyInfo.xcprivacy</code>；Info.plist 加 <code>ITSAppUsesNonExemptEncryption</code></li>
+  <li>换品牌名后重跑 <code>build_assets.py</code>，确认图标与 Top Shelf 文字一致</li>
+  <li>用合规播放源重新截图 4 张（3840×2160）</li>
+  <li>上线支持页与隐私政策页，拿到两个可访问 URL</li>
+  <li>实体 Apple TV 上完整验收：遥控器操作 → 列表 → 线路 → 播放</li>
+  <li>Archive 并用 Xcode Organizer 或 <code>xcrun altool</code> 上传到 App Store Connect</li>
+  <li>ASC 填完第 4～7 节全部字段，提交审核</li>
+</ol>
+
+<h3>构建与上传</h3>
+<pre><code># 归档（需已配好签名）
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
+  -sdk appletvos -configuration Release \
+  -archivePath build/JRKANTV.xcarchive archive
+
+# 导出并上传
+xcodebuild -exportArchive -archivePath build/JRKANTV.xcarchive \
+  -exportOptionsPlist ExportOptions.plist -exportPath build/export
+
+xcrun notarytool store-credentials   # 首次配置
+xcrun altool --upload-app -f build/export/JRKANTV.ipa \
+  -t tvos --apiKey &lt;KEY_ID&gt; --apiIssuer &lt;ISSUER_ID&gt;</code></pre>
+
+<aside class="ok">
+  <h4>当前构建状态</h4>
+  <p style="margin-bottom:0">
+    <code>appletvos</code> Release 与 <code>appletvsimulator</code> Debug 两条构建均
+    <strong>BUILD SUCCEEDED</strong>；资源目录经 <code>actool</code> 编译进
+    <code>Assets.car</code>（17.9 MB），Info.plist 已自动带上
+    <code>CFBundleIcons → App Icon</code> 与
+    <code>TVTopShelfImage → Top Shelf Image / Top Shelf Image Wide</code>。
+    应用在 Apple TV 4K 模拟器上启动正常，实测拉取到 63 场赛事。
+  </p>
+</aside>
+
+</body>
+</html>
