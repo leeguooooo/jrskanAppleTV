@@ -34,4 +34,35 @@ final class JRSListingParserTests: XCTestCase {
             "http://backup.example/1.html"
         )
     }
+
+    func testPreservesEverySelectableCommentarySource() throws {
+        let script = #"""
+        document.write('<ul class="item play active" data-lid="wnba-0801">');
+        document.write('<li class="lab_events"><span class="name">WNBA</span></li>');
+        document.write('<li class="lab_time">08-01 10:00</li>');
+        document.write('<li class="lab_team_home"><strong class="name">火焰</strong><img src="https://img.example/fire.png"></li>');
+        document.write('<li class="lab_team_away"><strong class="name">狂热</strong><img src="https://img.example/fever.png"></li>');
+        document.write('<li class="lab_channel">');
+        document.write('<a class="item ok type1" href="https://play.example/1.html"><strong>主播解说①</strong></a>');
+        document.write('<a class="item ok type1" href="https://play.example/2.html"><strong>主播解说②</strong></a>');
+        document.write('<a class="item ok type1" href="https://play.example/3.html"><strong>主播解说③</strong></a>');
+        document.write('<a class="item ok type1" href="https://play.example/4.html"><strong>主播解说④</strong></a>');
+        document.write('<a class="item ok type1" href="https://play.example/5.html"><strong>中文高清 Q ⑤</strong></a>');
+        document.write('<a class="item ok type1" href="https://play.example/6.html"><strong>高清直播⑥</strong></a>');
+        document.write('</li>');
+        document.write('</ul>');
+        """#
+
+        let matches = try JRSListingParser().parse(
+            script: script,
+            relativeTo: URL(string: "https://www.jrs03.com/")!
+        )
+
+        XCTAssertEqual(matches.count, 1)
+        XCTAssertEqual(
+            matches[0].sources.map(\.name),
+            ["主播解说①", "主播解说②", "主播解说③", "主播解说④", "中文高清 Q ⑤", "高清直播⑥"]
+        )
+        XCTAssertEqual(matches[0].sources.count, 6)
+    }
 }

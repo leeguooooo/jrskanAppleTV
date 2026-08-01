@@ -20,9 +20,13 @@ struct PlayerScreen: View {
                 VideoPlayer(player: player)
                     .ignoresSafeArea(edges: .bottom)
             } else if isResolving {
-                ProgressView("正在连接 \(source.name)…")
-                    .tint(.white)
-                    .foregroundStyle(.white)
+                VStack(spacing: 18) {
+                    Text("第 3 步 · 正在开始播放")
+                        .font(.headline)
+                    ProgressView("正在解析 \(source.name)…")
+                        .tint(.white)
+                }
+                .foregroundStyle(.white)
             } else {
                 ContentUnavailableView {
                     Label("无法播放此线路", systemImage: "exclamationmark.triangle")
@@ -36,7 +40,7 @@ struct PlayerScreen: View {
                 .foregroundStyle(.white)
             }
         }
-        .navigationTitle("\(match.homeTeam) vs \(match.awayTeam)")
+        .navigationTitle("播放 · \(source.name)")
         .task(id: source.id) {
             await load()
         }

@@ -63,7 +63,7 @@ struct MatchListView: View {
                     }
                 }
             } header: {
-                Text("\(model.filteredMatches.count) 场")
+                Text("第 1 步 · 选择比赛（\(model.filteredMatches.count) 场）")
             } footer: {
                 Text("比赛与线路来自公开网页；播放前请确认你拥有合法观看权限。")
             }
@@ -140,7 +140,7 @@ private struct MatchDetailView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("第 1 步 · 已选择比赛") {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(match.league)
                         .font(.subheadline.weight(.semibold))
@@ -157,21 +157,51 @@ private struct MatchDetailView: View {
                 .padding(.vertical)
             }
 
-            Section("选择线路") {
+            Section {
                 if match.sources.isEmpty {
                     Text("当前比赛还没有可用线路。")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(match.sources) { source in
+                    ForEach(Array(match.sources.enumerated()), id: \.element.id) { index, source in
                         NavigationLink {
                             PlayerScreen(match: match, source: source)
                         } label: {
-                            Label(source.name, systemImage: "play.rectangle.fill")
+                            SourceRow(number: index + 1, source: source)
                         }
                     }
                 }
+            } header: {
+                Text("第 2 步 · 选择解说或直播线路")
+            } footer: {
+                Text("例如主播解说、中文高清或高清直播；选中后进入播放器并解析该线路。")
             }
         }
         .navigationTitle("\(match.homeTeam) vs \(match.awayTeam)")
+    }
+}
+
+private struct SourceRow: View {
+    let number: Int
+    let source: MatchSource
+
+    var body: some View {
+        HStack(spacing: 18) {
+            Text("\(number)")
+                .font(.headline.monospacedDigit())
+                .frame(width: 46, height: 46)
+                .background(.tint.opacity(0.22), in: Circle())
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(source.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text("选择后进入播放器")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(minHeight: 78)
+        .padding(.vertical, 8)
     }
 }
