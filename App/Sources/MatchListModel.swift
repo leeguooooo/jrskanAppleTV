@@ -27,6 +27,17 @@ final class MatchListModel: ObservableObject {
         matches.filter(filter.includes)
     }
 
+    /// Per-category totals for the browse header's category chips.
+    var categoryCounts: [SportFilter: Int] {
+        SportFilter.allCases.reduce(into: [:]) { counts, category in
+            counts[category] = matches.filter(category.includes).count
+        }
+    }
+
+    var hotCount: Int {
+        matches.filter(\.isHot).count
+    }
+
     func loadIfNeeded() async {
         guard matches.isEmpty else { return }
         await refresh()

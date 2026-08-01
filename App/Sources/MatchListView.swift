@@ -5,255 +5,162 @@ struct MatchListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if model.isLoading && model.matches.isEmpty {
-                    ProgressView("正在获取今日比赛…")
-                } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
-                    ContentUnavailableView {
-                        Label("暂时无法载入比赛", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(errorMessage)
-                    } actions: {
-                        Button("重试") {
-                            Task { await model.refresh() }
-                        }
-                    }
-                } else {
-                    matchList
-                }
+            ZStack {
+                AppBackground()
+                content
             }
-            .navigationTitle("今日比赛")
-            .toolbar {
-                ToolbarItem {
-                    NavigationLink {
-                        SearchMatchesView()
-                    } label: {
-                        Label("搜索", systemImage: "magnifyingglass")
-                    }
-                }
-                ToolbarItem {
-                    Button {
-                        Task { await model.refresh() }
-                    } label: {
-                        Label("刷新", systemImage: "arrow.clockwise")
-                    }
-                    .disabled(model.isLoading)
-                }
+            .toolbar(.hidden, for: .navigationBar)
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if model.isLoading && model.matches.isEmpty {
+            loadingState
+        } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
+            StatusState(
+                systemImage: "wifi.exclamationmark",
+                title: "暂时无法载入比赛",
+                message: errorMessage,
+                actionTitle: "重试",
+                action: { Task { await model.refresh() } }
+            )
+        } else {
+            browse
+        }
+    }
+
+    // MARK: - Browse
+
+    private var browse: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 40)
+
+            CategoryBar(selection: $model.filter, counts: model.categoryCounts)
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 26)
+                .padding(.bottom, 28)
+                .focusSection()
+
+            if model.filteredMatches.isEmpty {
+                StatusState(
+                    systemImage: "sportscourt",
+                    title: "这个分类今天没有比赛",
+                    message: "换一个分类，或下拉刷新看看最新赛程。"
+                )
+            } else {
+                matchList
             }
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("今日比赛")
+                    .font(.system(size: 56, weight: .bold))
+                    .foregroundStyle(Palette.primaryText)
+
+                Text("共 \(model.matches.count) 场 · \(model.hotCount) 场热门")
+                    .font(.title3)
+                    .foregroundStyle(Palette.secondaryText)
+            }
+
+            Spacer()
+
+            HStack(spacing: 18) {
+                NavigationLink {
+                    SearchMatchesView()
+                } label: {
+                    Label("搜索", systemImage: "magnifyingglass")
+                }
+
+                Button {
+                    Task { await model.refresh() }
+                } label: {
+                    Label("刷新", systemImage: "arrow.clockwise")
+                }
+                .disabled(model.isLoading)
+            }
+            .focusSection()
         }
     }
 
     private var matchList: some View {
-        List {
-            Section {
-                Picker("分类", selection: $model.filter) {
-                    ForEach(SportFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-
-            Section {
+        ScrollView {
+            LazyVStack(spacing: 18) {
                 ForEach(model.filteredMatches) { match in
                     NavigationLink {
                         MatchDetailView(match: match)
                     } label: {
-                        MatchRow(match: match)
+                        MatchCard(match: match)
                     }
+                    .buttonStyle(FocusCardButtonStyle())
                 }
-            } header: {
-                Text("第 1 步 · 选择比赛（\(model.filteredMatches.count) 场）")
-            } footer: {
-                Text("比赛与线路来自公开网页；播放前请确认你拥有合法观看权限。")
             }
-        }
-        .overlay {
-            if model.filteredMatches.isEmpty {
-                ContentUnavailableView("当前分类没有比赛", systemImage: "sportscourt")
-            }
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.bottom, 60)
         }
     }
+
+    // MARK: - Loading
+
+    private var loadingState: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("今日比赛")
+                .font(.system(size: 56, weight: .bold))
+                .foregroundStyle(Palette.primaryText)
+                .padding(.bottom, 30)
+
+            ForEach(0..<5, id: \.self) { _ in
+                MatchSkeletonRow()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 40)
+    }
 }
+
+// MARK: - Search
 
 private struct SearchMatchesView: View {
     @EnvironmentObject private var model: MatchListModel
 
     var body: some View {
-        List(model.visibleMatches) { match in
-            NavigationLink {
-                MatchDetailView(match: match)
-            } label: {
-                MatchRow(match: match)
+        ZStack {
+            AppBackground()
+
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    ForEach(model.visibleMatches) { match in
+                        NavigationLink {
+                            MatchDetailView(match: match)
+                        } label: {
+                            MatchCard(match: match)
+                        }
+                        .buttonStyle(FocusCardButtonStyle())
+                    }
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.vertical, 30)
+            }
+            .overlay {
+                if model.visibleMatches.isEmpty {
+                    StatusState(
+                        systemImage: "magnifyingglass",
+                        title: "没有匹配的比赛",
+                        message: model.searchText.isEmpty
+                            ? "输入球队名或联赛名开始搜索。"
+                            : "换个关键词试试，比如联赛名或球队简称。"
+                    )
+                }
             }
         }
-        .navigationTitle("搜索比赛")
         .searchable(text: $model.searchText, prompt: "搜索球队或联赛")
-        .overlay {
-            if model.visibleMatches.isEmpty {
-                ContentUnavailableView.search(text: model.searchText)
-            }
-        }
-        .onDisappear {
-            model.searchText = ""
-        }
-    }
-}
-
-private struct MatchRow: View {
-    let match: LiveMatch
-
-    var body: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(match.league)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    if match.isHot {
-                        Label("热门", systemImage: "flame.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                    }
-                }
-                Text("\(match.homeTeam)  vs  \(match.awayTeam)")
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 5) {
-                Text(match.time)
-                    .font(.subheadline.monospacedDigit())
-                Text("\(match.sources.count) 条线路")
-                    .font(.caption)
-                    .foregroundStyle(match.sources.isEmpty ? .red : .secondary)
-            }
-        }
-        .frame(minHeight: 84)
-        .padding(.vertical, 10)
-    }
-}
-
-private struct MatchDetailView: View {
-    let match: LiveMatch
-    @State private var channels: [MatchSource]?
-    @State private var channelErrorMessage: String?
-
-    var body: some View {
-        List {
-            Section("第 1 步 · 已选择比赛") {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(match.league)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(match.homeTeam)
-                        .font(.title2.weight(.bold))
-                    Text("对阵")
-                        .foregroundStyle(.secondary)
-                    Text(match.awayTeam)
-                        .font(.title2.weight(.bold))
-                    Text(match.time)
-                        .font(.headline.monospacedDigit())
-                }
-                .padding(.vertical)
-            }
-
-            Section {
-                if match.sources.isEmpty {
-                    Text("当前比赛还没有可用线路。")
-                        .foregroundStyle(.secondary)
-                } else if channels == nil {
-                    ProgressView("正在读取主播解说与高清频道…")
-                        .frame(minHeight: 78)
-                } else if let channels, !channels.isEmpty {
-                    ForEach(Array(channels.enumerated()), id: \.element.id) { index, source in
-                        NavigationLink {
-                            PlayerScreen(match: match, source: source)
-                        } label: {
-                            SourceRow(
-                                number: index + 1,
-                                source: source,
-                                subtitle: source.name.localizedCaseInsensitiveContains("中文高清")
-                                    ? "中文高清频道 · 选择后进入播放器"
-                                    : "选择后进入播放器"
-                            )
-                        }
-                    }
-                } else {
-                    if let channelErrorMessage {
-                        Text(channelErrorMessage)
-                            .foregroundStyle(.orange)
-                    }
-                    ForEach(Array(match.sources.enumerated()), id: \.element.id) { index, source in
-                        NavigationLink {
-                            PlayerScreen(match: match, source: source)
-                        } label: {
-                            SourceRow(
-                                number: index + 1,
-                                source: source,
-                                subtitle: "备用入口 · 选择后直接尝试播放"
-                            )
-                        }
-                    }
-                }
-            } header: {
-                Text("第 2 步 · 选择具体频道")
-            } footer: {
-                Text("这里会显示主播解说①～④、中文高清 Q ⑤、高清直播⑥等频道；用遥控器向下移动并按中间键选择。")
-            }
-        }
-        .navigationTitle("\(match.homeTeam) vs \(match.awayTeam)")
-        .task(id: match.id) {
-            await loadChannels()
-        }
-    }
-
-    @MainActor
-    private func loadChannels() async {
-        channels = nil
-        channelErrorMessage = nil
-
-        for source in match.sources {
-            do {
-                let loadedChannels = try await SourcePageClient().fetchChannels(from: source.pageURL)
-                if !loadedChannels.isEmpty {
-                    channels = loadedChannels
-                    return
-                }
-            } catch {
-                continue
-            }
-        }
-
-        channels = []
-        channelErrorMessage = "暂时没能读取具体频道，下面保留首页备用入口。"
-    }
-}
-
-private struct SourceRow: View {
-    let number: Int
-    let source: MatchSource
-    let subtitle: String
-
-    var body: some View {
-        HStack(spacing: 18) {
-            Text("\(number)")
-                .font(.headline.monospacedDigit())
-                .frame(width: 46, height: 46)
-                .background(.tint.opacity(0.22), in: Circle())
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(source.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(minHeight: 78)
-        .padding(.vertical, 8)
+        .onDisappear { model.searchText = "" }
     }
 }
