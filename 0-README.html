@@ -43,6 +43,18 @@
       border-left: 4px solid var(--accent);
       background: var(--surface);
     }
+    figure { margin: 26px 0; }
+    figure img {
+      display: block;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    figcaption {
+      margin-top: 9px;
+      font-size: 14px;
+      color: var(--muted);
+    }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; }
     th { background: var(--surface); }
@@ -55,6 +67,31 @@
   </header>
 
   <main>
+    <section>
+      <h2>界面</h2>
+      <figure>
+        <img src="assets/store/ui/list-web.png" alt="赛事列表：分类 chip、队徽、开赛时间与线路数">
+        <figcaption>赛事列表。分类 chip 带各分类场次，卡片显示双方队徽、开赛时间与可用线路数，焦点态为琥珀描边。</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/store/ui/detail-web.png" alt="比赛详情：对阵 hero 与编号线路卡片">
+        <figcaption>比赛详情。对阵 hero 加编号线路卡片；线路读取期间显示骨架屏。</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/store/ui/topshelf-web.png" alt="Top Shelf 横幅">
+        <figcaption>Top Shelf 横幅（2320×720）。应用在主屏聚焦时显示。</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/store/ui/icon-web.png" alt="应用图标">
+        <figcaption>应用图标（1280×768 三层视差合成预览）。琥珀主色贯穿图标、横幅与界面。</figcaption>
+      </figure>
+      <aside>
+        截图取自 Apple TV 4K 模拟器实拍。播放页为全屏 <code>AVPlayerViewController</code>，
+        带原生传输栏、LIVE 指示与 Info 面板；因画面内嵌第三方推广，此处不附播放截图。
+        资源与合成脚本见 <code>assets/brand/</code>，上架准备见 <code>docs/app-store-submission.html</code>。
+      </aside>
+    </section>
+
     <section>
       <h2>首版能力</h2>
       <table>
