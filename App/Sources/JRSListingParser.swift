@@ -138,6 +138,73 @@ struct JRSListingParser {
     }
 }
 
+struct SourcePageParser {
+    func parse(html: String, relativeTo pageURL: URL) -> [MatchSource] {
+        let uncommentedHTML = html.replacingOccurrences(
+            of: #"(?is)<!--.*?-->"#,
+            with: "",
+            options: .regularExpression
+        )
+        let channelBlocks = uncommentedHTML.regexCaptures(
+            #"(?is)<div\s+[^>]*class=[\"'][^\"']*\bsub_channel\b[^\"']*[\"'][^>]*>(.*?)</div>"#
+        )
+        let scope = channelBlocks.first?[safe: 1] ?? uncommentedHTML
+        let anchors = scope.regexCaptures(
+            #"(?is)<a\s+([^>]*class=[\"'][^\"']*\bok\b[^\"']*[\"'][^>]*)>(.*?)</a>"#
+        )
+
+        var seen = Set<URL>()
+        return anchors.enumerated().compactMap { offset, captures in
+            guard captures.count >= 3 else { return nil }
+            let attributes = captures[1]
+            let innerHTML = captures[2]
+            let rawURL = [attribute("data-play", in: attributes), attribute("href", in: attributes)]
+                .compactMap { $0 }
+                .first { !$0.isEmpty && $0 != "=" && !$0.hasPrefix("javascript:") }
+            guard
+                let rawURL,
+                let resolvedURL = resolve(rawURL, relativeTo: pageURL),
+                seen.insert(resolvedURL).inserted
+            else {
+                return nil
+            }
+
+            let label = innerHTML.regexCaptures(#"(?is)<strong[^>]*>(.+?)</strong>"#)
+                .first?[safe: 1]
+                .map(cleanHTML) ?? ""
+            return MatchSource(
+                id: "channel-\(offset)-\(resolvedURL.absoluteString)",
+                name: label.isEmpty ? "频道 \(offset + 1)" : label,
+                pageURL: resolvedURL
+            )
+        }
+    }
+
+    private func attribute(_ name: String, in attributes: String) -> String? {
+        let escapedName = NSRegularExpression.escapedPattern(for: name)
+        return attributes.regexCaptures(#"\#(escapedName)=[\"']([^\"']*)[\"']"#)
+            .first?[safe: 1]
+            .map(cleanHTML)
+    }
+
+    private func cleanHTML(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func resolve(_ rawValue: String, relativeTo pageURL: URL) -> URL? {
+        if rawValue.hasPrefix("//") {
+            return URL(string: "https:\(rawValue)")
+        }
+        return URL(string: rawValue, relativeTo: pageURL)?.absoluteURL
+    }
+}
+
 extension String {
     func regexCaptures(_ pattern: String) -> [[String]] {
         guard let expression = try? NSRegularExpression(pattern: pattern) else {

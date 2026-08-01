@@ -57,4 +57,44 @@ final class StreamResolverTests: XCTestCase {
 
         XCTAssertNil(resolver.extractM3U8URL(in: html, pageURL: pageURL))
     }
+
+    func testExtractsIframeGeneratedByEncryptedPlayerScript() {
+        let pageURL = URL(string: "http://play.example/play/kbs/?id=5")!
+        let html = #"var encodedStr = "encrypted-payload";"#
+        let playerScript = #"""
+        document.getElementById("myElement").innerHTML =
+          "<iframe src='https://cloud.example/player/paps.html?id=" + encodedStr + "'></iframe>";
+        """#
+
+        XCTAssertEqual(
+            resolver.generatedIframeURL(
+                in: html,
+                playerScript: playerScript,
+                pageURL: pageURL
+            )?.absoluteString,
+            "https://cloud.example/player/paps.html?id=encrypted-payload"
+        )
+    }
+
+    func testEvaluatesEncryptedPlayerPageToHLSURL() {
+        let pageURL = URL(string: "https://cloud.example/player/paps.html?id=payload")!
+        let libraryScript = "var CryptoLibraryLoaded = true;"
+        let pageScript = #"""
+        var encryptedBase64Str = "payload";
+        function decryptUrlWithExpiry(value) {
+          return CryptoLibraryLoaded && value === "payload"
+            ? "https://media.example/live/chinese-hd.m3u8?token=abc"
+            : "";
+        }
+        """#
+
+        XCTAssertEqual(
+            resolver.evaluateEncryptedHLSURL(
+                libraryScript: libraryScript,
+                pageScript: pageScript,
+                pageURL: pageURL
+            )?.absoluteString,
+            "https://media.example/live/chinese-hd.m3u8?token=abc"
+        )
+    }
 }

@@ -65,4 +65,34 @@ final class JRSListingParserTests: XCTestCase {
         )
         XCTAssertEqual(matches[0].sources.count, 6)
     }
+
+    func testParsesSecondLevelCommentaryChannelsFromSourcePage() {
+        let html = #"""
+        <iframe class="sub_player" src="/play/sm.html?id=330&id2="></iframe>
+        <div class="sub_channel" data-lid="3909034,2,3909034">
+          <a class="item play ok me" data-play="/play/sm.html?id=330&id2=" href=""><strong>主播解说①</strong></a>
+          <a class="item ok me" data-play="/play/sm.html?id=157&id2=" href=""><strong>主播解说②</strong></a>
+          <a class="item ok me" data-play="/play/sm.html?id=439&id2=" href=""><strong>主播解说③</strong></a>
+          <a class="item ok me" data-play="/play/sm.html?id=329&id2=" href=""><strong>主播解说④</strong></a>
+          <a class="item ok me" data-play="/play/kbs/?id=11022600215&amp;id2=" href=""><strong>中文高清 Q ⑤</strong></a>
+          <a class="item ok me" data-play="/play/pao/?id=39090342&amp;id2=" href=""><strong>高清直播⑥</strong></a>
+          <!-- <a class="item ok me" data-play="=&amp;id2=" href=""><strong>⑦</strong></a> -->
+        </div>
+        """#
+
+        let channels = SourcePageParser().parse(
+            html: html,
+            relativeTo: URL(string: "http://play.example/play/game.html")!
+        )
+
+        XCTAssertEqual(
+            channels.map(\.name),
+            ["主播解说①", "主播解说②", "主播解说③", "主播解说④", "中文高清 Q ⑤", "高清直播⑥"]
+        )
+        XCTAssertEqual(channels.count, 6)
+        XCTAssertEqual(
+            channels[4].pageURL.absoluteString,
+            "http://play.example/play/kbs/?id=11022600215&id2="
+        )
+    }
 }

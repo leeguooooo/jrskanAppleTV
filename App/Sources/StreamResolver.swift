@@ -1,4 +1,5 @@
 import Foundation
+import JavaScriptCore
 
 enum StreamResolverError: LocalizedError {
     case noPlayableStream
@@ -123,7 +124,19 @@ struct StreamResolver {
             return streamURL
         }
 
-        for iframeURL in iframeURLs(in: html, pageURL: pageURL) {
+        if let streamURL = try await encryptedHLSURL(in: html, pageURL: pageURL) {
+            return streamURL
+        }
+
+        var nestedPlayerURLs = iframeURLs(in: html, pageURL: pageURL)
+        if
+            let generatedPlayerURL = try await generatedIframeURL(in: html, pageURL: pageURL),
+            !nestedPlayerURLs.contains(generatedPlayerURL)
+        {
+            nestedPlayerURLs.append(generatedPlayerURL)
+        }
+
+        for iframeURL in nestedPlayerURLs {
             do {
                 return try await resolve(
                     pageURL: iframeURL,
@@ -136,6 +149,127 @@ struct StreamResolver {
             }
         }
         throw StreamResolverError.noPlayableStream
+    }
+
+    func generatedIframeURL(
+        in html: String,
+        playerScript: String,
+        pageURL: URL
+    ) -> URL? {
+        guard
+            let encodedValue = html.regexCaptures(
+                #"(?is)var\s+encodedStr\s*=\s*[\"']([^\"']+)[\"']"#
+            ).first?[safe: 1],
+            let context = JSContext()
+        else {
+            return nil
+        }
+
+        context.setObject(encodedValue, forKeyedSubscript: "encodedStr" as NSString)
+        context.evaluateScript(
+            #"""
+            var __playerElement = { innerHTML: "" };
+            var navigator = { userAgent: "iPhone" };
+            var document = {
+              getElementById: function() { return __playerElement; }
+            };
+            """#
+        )
+        context.evaluateScript(playerScript)
+        guard
+            context.exception == nil,
+            let generatedHTML = context.objectForKeyedSubscript("__playerElement")?
+                .objectForKeyedSubscript("innerHTML")?.toString()
+        else {
+            return nil
+        }
+        return iframeURLs(in: generatedHTML, pageURL: pageURL).first
+    }
+
+    func evaluateEncryptedHLSURL(
+        libraryScript: String,
+        pageScript: String,
+        pageURL: URL
+    ) -> URL? {
+        guard let context = JSContext() else { return nil }
+        context.setObject(pageURL.absoluteString, forKeyedSubscript: "__pageURL" as NSString)
+        context.evaluateScript(
+            #"""
+            var window = this;
+            var self = this;
+            var document = {
+              location: { href: __pageURL },
+              referrer: "",
+              cookie: "",
+              getElementById: function() { return { innerHTML: "" }; },
+              write: function() {}
+            };
+            var navigator = { userAgent: "iPhone", maxTouchPoints: 0 };
+            var console = {
+              log: function() {}, error: function() {}, warn: function() {},
+              info: function() {}, debug: function() {}, exception: function() {},
+              trace: function() {}
+            };
+            var setInterval = function() { return 0; };
+            var setTimeout = function() { return 0; };
+            var clearInterval = function() {};
+            var clearTimeout = function() {};
+            """#
+        )
+        context.evaluateScript(libraryScript)
+        guard context.exception == nil else { return nil }
+        context.evaluateScript(pageScript)
+        guard context.exception == nil else { return nil }
+        guard
+            let rawValue = context.evaluateScript(
+                "decryptUrlWithExpiry(encryptedBase64Str)"
+            )?.toString(),
+            let streamURL = URL(string: rawValue),
+            isM3U8URL(streamURL)
+        else {
+            return nil
+        }
+        return streamURL
+    }
+
+    private func generatedIframeURL(in html: String, pageURL: URL) async throws -> URL? {
+        guard
+            html.range(of: "encodedStr") != nil,
+            let rawScriptURL = html.regexCaptures(
+                #"(?is)<script[^>]+src\s*=\s*[\"']([^\"']*pjs\.js[^\"']*)[\"']"#
+            ).first?[safe: 1],
+            let scriptURL = makeURL(from: rawScriptURL, relativeTo: pageURL)
+        else {
+            return nil
+        }
+        let playerScript = try await fetchText(from: scriptURL, referer: pageURL)
+        return generatedIframeURL(in: html, playerScript: playerScript, pageURL: pageURL)
+    }
+
+    private func encryptedHLSURL(in html: String, pageURL: URL) async throws -> URL? {
+        let pageScript = html.regexCaptures(
+            #"(?is)<script(?:\s[^>]*)?>(.*?)</script>"#
+        )
+        .compactMap { $0[safe: 1] }
+        .first { $0.range(of: "decryptUrlWithExpiry") != nil }
+
+        guard
+            html.range(of: "decryptUrlWithExpiry") != nil,
+            let rawLibraryURL = html.regexCaptures(
+                #"(?is)<script[^>]+src\s*=\s*[\"']([^\"']*index\.min\.js[^\"']*)[\"']"#
+            ).first?[safe: 1],
+            let libraryURL = makeURL(from: rawLibraryURL, relativeTo: pageURL),
+            let pageScript
+        else {
+            return nil
+        }
+
+        let libraryScript = try await fetchText(from: libraryURL, referer: pageURL)
+        return evaluateEncryptedHLSURL(
+            libraryScript: libraryScript,
+            pageScript: pageScript,
+            pageURL: pageURL
+        )
     }
 
     private func fetchText(from url: URL, referer: URL) async throws -> String {

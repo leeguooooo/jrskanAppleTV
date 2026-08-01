@@ -69,3 +69,53 @@ struct JRSClient {
         return text
     }
 }
+
+enum SourcePageClientError: LocalizedError {
+    case noChannels
+    case invalidResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .noChannels:
+            return "这个入口没有找到可选择的具体频道。"
+        case .invalidResponse:
+            return "频道页面暂时无法访问。"
+        }
+    }
+}
+
+/// Loads the second-level channel buttons exposed by a match source page.
+/// The homepage only contains mirror entrances such as `直播①`; the actual
+/// commentary choices (for example `中文高清 Q ⑤`) live on this page.
+struct SourcePageClient {
+    let session: URLSession
+    private let parser = SourcePageParser()
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func fetchChannels(from sourcePageURL: URL) async throws -> [MatchSource] {
+        var request = URLRequest(url: sourcePageURL)
+        request.timeoutInterval = 20
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        request.setValue(JRSClient.defaultHomepage.absoluteString, forHTTPHeaderField: "Referer")
+        request.setValue(JRSClient.userAgent, forHTTPHeaderField: "User-Agent")
+
+        let (data, response) = try await session.data(for: request)
+        guard
+            let httpResponse = response as? HTTPURLResponse,
+            (200..<400).contains(httpResponse.statusCode),
+            let html = String(data: data, encoding: .utf8)
+                ?? String(data: data, encoding: .isoLatin1)
+        else {
+            throw SourcePageClientError.invalidResponse
+        }
+
+        let channels = parser.parse(html: html, relativeTo: sourcePageURL)
+        guard !channels.isEmpty else {
+            throw SourcePageClientError.noChannels
+        }
+        return channels
+    }
+}
