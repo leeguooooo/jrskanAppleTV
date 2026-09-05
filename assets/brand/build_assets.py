@@ -322,10 +322,10 @@ def write_ios_catalog() -> None:
 
     icon_dir = IOS_CATALOG / "AppIcon.appiconset"
     icon_dir.mkdir(parents=True)
-    # iOS icons must be opaque; flatten_icon() returns RGB. The tv icon is
-    # 5:3, so take a centred square of the composed art with the mark
-    # scaled to the same proportion.
-    square = flatten_icon((1024, 1024))
+    # A dedicated square composition (assets/brand/src/ios-icon.png, generated
+    # with chatgpt-imagegen --no-style) rather than a crop of the 5:3 tv art.
+    # iOS icons must be opaque and square-cornered; iOS masks the corners.
+    square = cover(Image.open(SRC / "ios-icon.png").convert("RGB"), (1024, 1024))
     square.save(icon_dir / "icon-1024.png")
     write_json(icon_dir / "Contents.json", {
         "images": [{"filename": "icon-1024.png", "idiom": "universal",
@@ -396,6 +396,7 @@ write_ios_catalog()
 
 flatten_icon((1280, 768)).save(OUT / "app-store-icon-1280x768.png")
 flatten_icon((1024, 1024)).save(OUT / "marketing-icon-1024.png")
+cover(Image.open(SRC / "ios-icon.png").convert("RGB"), (1024, 1024)).save(OUT / "ios-icon-1024.png")
 build_topshelf((2320, 720)).save(OUT / "topshelf-wide-2320x720.png")
 cover(launch_src, (1920, 1080)).save(OUT / "launch-1920x1080.png")
 

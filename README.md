@@ -81,7 +81,7 @@ xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route detail:0    # 当前分�
 python3 assets/brand/build_assets.py
 ```
 
-原始素材由 `chatgpt-imagegen` 生成（`assets/brand/gen_art.sh`，状态插画要求纯黑底，脚本用亮度抠成透明）。
+原始素材由 `chatgpt-imagegen` 生成（`assets/brand/gen_art.sh`，状态插画要求纯黑底，脚本用亮度抠成透明；iOS 图标单独用 `assets/brand/src/ios-icon.png`）。
 
 ## TestFlight
 
