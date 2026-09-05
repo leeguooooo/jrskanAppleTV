@@ -5,6 +5,7 @@
 #
 # 用法：Scripts/renew-if-expiring.sh            # 按到期日判断
 #       FORCE=all|ios|tvos Scripts/renew-if-expiring.sh   # 不看到期日，直接上传
+# 注意：$VAR 后面紧跟中文时要写成 ${VAR}，runner 上 bash 3.2 在 C locale 下会把中文字节吞进变量名。
 # 依赖：Scripts/asc_api.py（python3 + cryptography）、Scripts/testflight.sh 的全部前提。
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -36,14 +37,14 @@ print("build", builds[0]["attributes"]["version"], "expires", exp.isoformat(), f
 }
 
 needs_upload() {  # $1 平台名(ios|tvos) $2 ASC 平台枚举
-  case "$FORCE" in all|"$1") echo "==> [$1] FORCE=$FORCE，直接上传"; return 0;; esac
+  case "$FORCE" in all|"$1") echo "==> [$1] FORCE=${FORCE}，直接上传"; return 0;; esac
   local left; left=$(days_left "$2")
   if [ "$left" -lt 0 ]; then echo "==> [$1] 没有可用构建，上传"; return 0; fi
-  if [ "$left" -le "$THRESHOLD_DAYS" ]; then echo "==> [$1] 剩余 $left 天 ≤ $THRESHOLD_DAYS，上传"; return 0; fi
-  echo "==> [$1] 剩余 $left 天，跳过"; return 1
+  if [ "$left" -le "$THRESHOLD_DAYS" ]; then echo "==> [$1] 剩余 ${left} 天 ≤ ${THRESHOLD_DAYS}，上传"; return 0; fi
+  echo "==> [$1] 剩余 ${left} 天，跳过"; return 1
 }
 
 uploaded=0
 if needs_upload tvos TV_OS; then Scripts/testflight.sh tvos "$BUILD_NUMBER"; uploaded=1; fi
 if needs_upload ios IOS;    then Scripts/testflight.sh ios  "$BUILD_NUMBER"; uploaded=1; fi
-[ "$uploaded" = 1 ] && echo "已上传构建 $BUILD_NUMBER" || echo "无需上传"
+[ "$uploaded" = 1 ] && echo "已上传构建 ${BUILD_NUMBER}" || echo "无需上传"
