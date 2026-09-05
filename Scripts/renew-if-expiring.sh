@@ -38,7 +38,13 @@ print("build", builds[0]["attributes"]["version"], "expires", exp.isoformat(), f
 
 needs_upload() {  # $1 平台名(ios|tvos) $2 ASC 平台枚举
   case "$FORCE" in all|"$1") echo "==> [$1] FORCE=${FORCE}，直接上传"; return 0;; esac
-  local left; left=$(days_left "$2")
+  # 在 if 条件里 set -e 不生效：查询失败会让 left 变成空串，两个数字比较都为假，
+  # 脚本会假装「跳过」并退出 0，正好在密钥失效时把续期静默掉。所以这里自己判。
+  local left
+  if ! left=$(days_left "$2") || ! [[ "$left" =~ ^-?[0-9]+$ ]]; then
+    echo "!! [$1] ASC 查询失败，无法判断到期日（密钥失效 / 限流 / 网络？）" >&2
+    exit 2
+  fi
   if [ "$left" -lt 0 ]; then echo "==> [$1] 没有可用构建，上传"; return 0; fi
   if [ "$left" -le "$THRESHOLD_DAYS" ]; then echo "==> [$1] 剩余 ${left} 天 ≤ ${THRESHOLD_DAYS}，上传"; return 0; fi
   echo "==> [$1] 剩余 ${left} 天，跳过"; return 1
