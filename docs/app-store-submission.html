@@ -276,7 +276,7 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
 <h2>3b. TestFlight <span class="tag tag-ok">已打通</span></h2>
 <p>2026-09-05 起用 <code>Scripts/testflight.sh</code> 一条命令归档、云端签名、上传。内部测试（团队成员）不需要 Beta 审核；外部测试组第一次分发会触发 Beta App Review，
   审核标准与第 1 节相同，<strong>不要把当前内容源的包发给外部测试组</strong>。</p>
-<pre><code>Scripts/testflight.sh                 # 构建号 = 当前时间戳
+<pre><code>Scripts/testflight.sh tvos            # 构建号 = 当前时间戳；ios / all 同理，iOS 平台已挂在同一条记录下
 python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&amp;sort=-uploadedDate&amp;limit=3"   # 看处理状态</code></pre>
 <p>本轮同时修复了一个会让测试员看到空应用的问题：站点 2026-09-05 起把线路链接改成 <code>getPlayUrl("lineN", id)</code>，主机表以 base64 写在首页 <code>PLAY_HOSTS</code>，
   旧解析器对每场比赛都解析出 0 条线路。现在 <code>JRSListingParser</code> 会读取该表还原地址，并有回归测试覆盖。</p>

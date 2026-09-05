@@ -1,8 +1,8 @@
 # JRKAN Apple TV
 
-面向实体 Apple TV 的原生 tvOS 赛事观看应用。macOS 不在产品范围内。
+面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad 版。macOS 不在产品范围内。
 
-tvOS 17+ · SwiftUI · AVFoundation · XcodeGen
+tvOS 17+ · iOS 17+ · SwiftUI · AVFoundation · XcodeGen
 
 ---
 
@@ -19,6 +19,13 @@ tvOS 17+ · SwiftUI · AVFoundation · XcodeGen
 设置。自动换线、自动刷新两个开关，关注与观看记录清除，以及内容来源、隐私、遥控器说明。
 
 ![设置](assets/store/ui/settings-web.png)
+
+iPhone 版。同一套数据与播放逻辑，界面按触屏重排：分组列表、分类 chip、下拉刷新、搜索补全；详情页关注与线路；全屏播放带关闭与线路菜单，支持画中画与 AirPlay。
+
+<p>
+  <img src="assets/store/ui/ios-list-web.png" width="300" alt="iPhone 赛事列表">
+  <img src="assets/store/ui/ios-detail-web.png" width="300" alt="iPhone 比赛详情">
+</p>
 
 Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 
@@ -44,7 +51,7 @@ Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 | 自动换线 | 解析失败或 20 秒无画面时自动尝试下一条，可在设置里关闭 |
 | 播放 | 解析公开 iframe 与加密播放器链路，发现 HLS 后交给 AVPlayer 全屏播放；传输栏内可切换线路 |
 | 刷新 | 列表每 5 分钟自动刷新、回到前台检查过期；刷新失败保留上次数据并提示 |
-| 平台 | tvOS 17+，启动画面、空态插画、隐私清单齐备，最终验收设备为实体 Apple TV |
+| 平台 | tvOS 17+ 与 iOS 17+ 两个目标共用 `App/Sources/Shared`；启动画面、空态插画、隐私清单齐备，最终验收设备为实体 Apple TV 与 iPhone |
 
 ## 构建与测试
 
@@ -54,8 +61,18 @@ xcodegen generate
 xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
   -destination 'platform=tvOS Simulator,name=Apple TV 4K' test
 
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANiOS \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+
 xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
   -sdk appletvos -configuration Release build CODE_SIGNING_ALLOWED=NO
+```
+
+Debug 包支持启动参数直达页面，模拟器核对界面时不必模拟遥控器或点击：
+
+```bash
+xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route play:live   # 最新开赛且有线路的比赛，直接播放
+xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route detail:0    # 当前分类第 1 场的详情
 ```
 
 品牌资源与界面插画由脚本合成，**不要手改 `App/Resources/Assets.xcassets`**，下次运行会被整个覆盖：
@@ -69,11 +86,12 @@ python3 assets/brand/build_assets.py
 ## TestFlight
 
 ```bash
-Scripts/testflight.sh            # 归档 → 用 ASC API 密钥云端签名 → 上传
-Scripts/testflight.sh 202609051  # 指定构建号（缺省为时间戳）
+Scripts/testflight.sh tvos            # 归档 → 用 ASC API 密钥云端签名 → 上传
+Scripts/testflight.sh ios             # iPhone / iPad 版
+Scripts/testflight.sh all 202609051   # 两端一起，指定构建号（缺省为时间戳）
 ```
 
-前提：`~/.appstoreconnect/private_keys/AuthKey_<ID>.p8`（Admin / App Manager 角色），App Store Connect 里已有 Bundle ID 为 `com.leeguoo.jrskan.tv` 的 App 记录（App ID 6808947990，名称 JRKAN，SKU `JRKANTV-2026`）。查构建处理状态：
+前提：`~/.appstoreconnect/private_keys/AuthKey_<ID>.p8`（Admin / App Manager 角色），App Store Connect 里已有 Bundle ID 为 `com.leeguoo.jrskan.tv` 的 App 记录（App ID 6808947990，名称 JRKAN，SKU `JRKANTV-2026`，tvOS 与 iOS 两个平台挂同一条记录）。查构建处理状态：
 
 ```bash
 python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploadedDate&limit=3"
@@ -85,8 +103,10 @@ python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploaded
 
 | 路径 | 内容 |
 | --- | --- |
-| `App/Sources/` | 应用源码（`DesignSystem.swift` 为配色、焦点卡片、横幅、空态的统一定义；`Preferences.swift` 为本机偏好与记录） |
-| `App/Resources/` | 资源目录、启动画面 storyboard、隐私清单 |
+| `App/Sources/Shared/` | 两端共用：模型、网络、解析、`MatchListModel`、`MatchPlaybackModel`（线路与播放状态）、`Preferences`、`DesignSystem` |
+| `App/Sources/TV/` | tvOS 界面与 `AVPlayerViewController` 模态播放 |
+| `App/Sources/iOS/` | iPhone / iPad 界面与全屏播放 |
+| `App/Resources/` | tvOS 与 iOS 两套资源目录、启动画面 storyboard、隐私清单 |
 | `assets/brand/` | 图标与插画原始素材、生成脚本、合成脚本 |
 | `assets/store/` | 商店截图（3840×2160）与 README 用的缩略版 |
 | `Scripts/` | TestFlight 上传脚本、导出配置、ASC API 最小客户端 |
