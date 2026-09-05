@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct JRKANiOSApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = MatchListModel()
     @Environment(\.scenePhase) private var scenePhase
 

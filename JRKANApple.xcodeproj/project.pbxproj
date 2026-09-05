@@ -41,6 +41,7 @@
 		A5FB174EC9771F64DBB18670 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCBF11EAF493C5299A821529 /* Assets.xcassets */; };
 		ABF39F61FAD181936DAAC61B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18C6543E468B4065A6EC744 /* Models.swift */; };
 		AD966957C062CE6661493EDF /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */; };
+		B977CB79D85E42A3106F2365 /* OrientationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 423BF4E949A39E0F05368991 /* OrientationController.swift */; };
 		BEEE4D5741E33A0C34D64F73 /* PhoneDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730827990B1D8C455D0161F9 /* PhoneDesign.swift */; };
 		C4F2CE29255ED27A5F842FE6 /* iOSAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1309C8B5493C3C6AF2316DD1 /* iOSAssets.xcassets */; };
 		CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
@@ -76,6 +77,7 @@
 		13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchPlaybackModel.swift; sourceTree = "<group>"; };
 		146FE878061FD60A7E8B410D /* StreamResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolverTests.swift; sourceTree = "<group>"; };
 		166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerScreen.swift; sourceTree = "<group>"; };
+		423BF4E949A39E0F05368991 /* OrientationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationController.swift; sourceTree = "<group>"; };
 		56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRoute.swift; sourceTree = "<group>"; };
 		581B4B353F8C9863B02DF5F1 /* JRKANiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */,
+				423BF4E949A39E0F05368991 /* OrientationController.swift */,
 				730827990B1D8C455D0161F9 /* PhoneDesign.swift */,
 				CAE862383A8B2185F5F5133A /* PhoneMatchDetailScreen.swift */,
 				093966DE6EFABD5BB16E2F19 /* PhoneMatchListScreen.swift */,
@@ -401,6 +404,7 @@
 				17235F6837A722ED53FAA65E /* MatchListModel.swift in Sources */,
 				2B66D3DADE77370AA966A3B9 /* MatchPlaybackModel.swift in Sources */,
 				ABF39F61FAD181936DAAC61B /* Models.swift in Sources */,
+				B977CB79D85E42A3106F2365 /* OrientationController.swift in Sources */,
 				BEEE4D5741E33A0C34D64F73 /* PhoneDesign.swift in Sources */,
 				324C8E5776C615EBDCB961E5 /* PhoneMatchDetailScreen.swift in Sources */,
 				2589C8005CBDD0470DBDA251 /* PhoneMatchListScreen.swift in Sources */,

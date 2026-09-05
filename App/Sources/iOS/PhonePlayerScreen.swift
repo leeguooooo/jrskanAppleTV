@@ -3,60 +3,47 @@ import AVKit
 import SwiftUI
 
 /// Full-screen player for the phone. `AVPlayerViewController` supplies the
-/// native controls, Picture in Picture and AirPlay; a thin overlay adds the
-/// close button and channel switching, which the iOS controller has no slot
-/// for (unlike the tvOS transport bar). A channel switch from the overlay
-/// swaps the player item in place instead of re-presenting the cover.
+/// native controls, close button, Picture in Picture and AirPlay; a small
+/// overlay at the top centre adds what the iOS controller has no slot for:
+/// channel switching and an aspect-fill toggle. The overlay stays clear of
+/// the controller's own corners (close top-left, PiP and AirPlay top-right).
+///
+/// A match is a landscape picture. The screen is forced into landscape while
+/// the player is up and released when it closes, so the video fills the phone
+/// instead of sitting in a strip across a portrait screen.
 struct PhonePlayerScreen: View {
     @ObservedObject var model: MatchPlaybackModel
     @State private var player = AVPlayer()
     @State private var watchdog: Task<Void, Never>?
     @State private var shownRequestID: UUID?
+    @State private var fillsScreen = false
 
     var body: some View {
         ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
 
-            PlayerContainer(player: player)
+            PlayerContainer(player: player, gravity: fillsScreen ? .resizeAspectFill : .resizeAspect)
                 .ignoresSafeArea()
 
             overlay
         }
         .statusBarHidden(true)
-        .onAppear { load(model.playback) }
+        .persistentSystemOverlays(.hidden)
+        .onAppear {
+            Orientation.enterLandscape()
+            load(model.playback)
+        }
         .onChange(of: model.playback?.id) { _, _ in load(model.playback) }
         .onDisappear {
             watchdog?.cancel()
             player.pause()
             player.replaceCurrentItem(with: nil)
+            Orientation.restoreDefault()
         }
     }
 
     private var overlay: some View {
-        HStack(spacing: 12) {
-            Button {
-                model.stopPlayback()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.headline)
-                    .padding(10)
-                    .background(.black.opacity(0.45), in: Circle())
-            }
-            .accessibilityLabel("关闭播放")
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(model.match.homeTeam) vs \(model.match.awayTeam)")
-                    .font(.footnote.weight(.semibold))
-                    .lineLimit(1)
-                Text("\(model.match.league) · \(model.playback?.sourceName ?? "")")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.7))
-                    .lineLimit(1)
-            }
-            .shadow(color: .black.opacity(0.7), radius: 4)
-
-            Spacer()
-
+        HStack(spacing: 8) {
             if model.resolvedChannels.count > 1 {
                 Menu {
                     ForEach(Array(model.resolvedChannels.enumerated()), id: \.element.id) { index, source in
@@ -72,17 +59,27 @@ struct PhonePlayerScreen: View {
                         }
                     }
                 } label: {
-                    Label("线路", systemImage: "list.bullet")
+                    Label(model.playback?.sourceName ?? "线路", systemImage: "list.bullet")
                         .font(.footnote.weight(.semibold))
+                        .lineLimit(1)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(.black.opacity(0.45), in: Capsule())
                 }
             }
+
+            Button {
+                fillsScreen.toggle()
+            } label: {
+                Image(systemName: fillsScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                    .font(.footnote.weight(.semibold))
+                    .padding(8)
+                    .background(.black.opacity(0.45), in: Circle())
+            }
+            .accessibilityLabel(fillsScreen ? "适应屏幕" : "填满屏幕")
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(.top, 10)
     }
 
     private func load(_ request: PlaybackRequest?) {
@@ -133,6 +130,7 @@ struct PhonePlayerScreen: View {
 
 private struct PlayerContainer: UIViewControllerRepresentable {
     let player: AVPlayer
+    let gravity: AVLayerVideoGravity
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
@@ -140,11 +138,12 @@ private struct PlayerContainer: UIViewControllerRepresentable {
         controller.allowsPictureInPicturePlayback = true
         controller.canStartPictureInPictureAutomaticallyFromInline = true
         controller.updatesNowPlayingInfoCenter = true
-        controller.videoGravity = .resizeAspect
+        controller.videoGravity = gravity
         return controller
     }
 
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
         if controller.player !== player { controller.player = player }
+        if controller.videoGravity != gravity { controller.videoGravity = gravity }
     }
 }
