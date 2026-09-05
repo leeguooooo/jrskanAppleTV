@@ -4,7 +4,10 @@
 Outputs App/Resources/Assets.xcassets with the full tvOS brandassets structure:
 layered App Icon (400x240) + App Icon - App Store (1280x768), Top Shelf Image
 (1920x720) and Top Shelf Image Wide (2320x720), each at 1x and 2x where tvOS
-asks for it.
+asks for it. Also the in-app imagesets: the launch-screen artwork (LaunchArt),
+the brand mark cutout (BrandMark) and the four empty-state illustrations
+(EmptyNoMatch / EmptyOffline / EmptyNoChannel / EmptySearch), all keyed from
+bright-on-black source art in assets/brand/src.
 
 Run:  python3 assets/brand/build_assets.py
 """
@@ -253,6 +256,60 @@ write_imageset(BRAND / "Top Shelf Image Wide.imageset",
 
 
 # --------------------------------------------------------------------------
+# In-app imagesets: launch artwork, brand mark, empty-state illustrations
+# --------------------------------------------------------------------------
+
+def write_plain_imageset(imageset_dir: Path, images: list[tuple[str, Image.Image]],
+                         basename: str) -> None:
+    """images: [(scale, rendered)] — a regular (non-brand) tv imageset."""
+    if imageset_dir.exists():
+        shutil.rmtree(imageset_dir)
+    imageset_dir.mkdir(parents=True, exist_ok=True)
+    manifest = []
+    for scale, rendered in images:
+        filename = f"{basename}{'' if scale == '1x' else '@' + scale}.png"
+        rendered.save(imageset_dir / filename)
+        manifest.append({"filename": filename, "idiom": "tv", "scale": scale})
+    write_json(imageset_dir / "Contents.json", {"images": manifest, "info": INFO})
+
+
+# Launch screen: full-bleed stadium art. The storyboard shows it edge to edge,
+# and AppBackground(showsArtwork:) reuses it so the browse screen picks up
+# exactly where the launch screen left off.
+launch_src = Image.open(SRC / "launch-art.png").convert("RGB")
+write_plain_imageset(CATALOG / "LaunchArt.imageset", [
+    ("1x", cover(launch_src, (1920, 1080))),
+    ("2x", cover(launch_src, (3840, 2160))),
+], "launch")
+
+# Brand mark cutout for the settings screen.
+write_plain_imageset(CATALOG / "BrandMark.imageset", [
+    ("1x", fit_height(mark_src, 240)),
+    ("2x", fit_height(mark_src, 480)),
+], "mark")
+
+
+def illustration(name: str, height: int) -> list[tuple[str, Image.Image]]:
+    """Amber-on-black line art -> RGBA cutout, padded so the glow is not
+    clipped, at 1x and 2x. Sized so a 250pt frame in StatusState renders
+    sharp on a 4K panel."""
+    cutout = autocrop_alpha(key_out_black(Image.open(SRC / f"{name}.png"), lo=18, hi=170))
+    pad = int(cutout.height * 0.06)
+    padded = Image.new("RGBA", (cutout.width + 2 * pad, cutout.height + 2 * pad), (0, 0, 0, 0))
+    padded.paste(cutout, (pad, pad), cutout)
+    return [("1x", fit_height(padded, height)), ("2x", fit_height(padded, height * 2))]
+
+
+for source_name, asset_name in [
+    ("empty-nomatch", "EmptyNoMatch"),
+    ("empty-offline", "EmptyOffline"),
+    ("empty-nochannel", "EmptyNoChannel"),
+    ("empty-search", "EmptySearch"),
+]:
+    write_plain_imageset(CATALOG / f"{asset_name}.imageset", illustration(source_name, 300), asset_name.lower())
+
+
+# --------------------------------------------------------------------------
 # Catalog manifests
 # --------------------------------------------------------------------------
 
@@ -287,6 +344,7 @@ def flatten_icon(size: tuple[int, int]) -> Image.Image:
 flatten_icon((1280, 768)).save(OUT / "app-store-icon-1280x768.png")
 flatten_icon((1024, 1024)).save(OUT / "marketing-icon-1024.png")
 build_topshelf((2320, 720)).save(OUT / "topshelf-wide-2320x720.png")
+cover(launch_src, (1920, 1080)).save(OUT / "launch-1920x1080.png")
 
 print(f"catalog  -> {CATALOG.relative_to(ROOT)}")
 print(f"previews -> {OUT.relative_to(ROOT)}")

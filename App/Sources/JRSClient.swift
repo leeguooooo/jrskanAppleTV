@@ -37,7 +37,11 @@ struct JRSClient {
             throw JRSClientError.missingListingScript
         }
         let script = try await fetchText(from: scriptURL)
-        return try parser.parse(script: script, relativeTo: homepageURL)
+        return try parser.parse(
+            script: script,
+            relativeTo: homepageURL,
+            playHosts: JRSListingParser.playHosts(inHomepage: homepage)
+        )
     }
 
     private func listingScriptURL(in html: String) -> URL? {

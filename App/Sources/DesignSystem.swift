@@ -44,9 +44,27 @@ enum Metrics {
 /// Full-bleed gradient plus a soft amber bloom in the top-left, echoing the
 /// floodlight glow in the icon artwork.
 struct AppBackground: View {
+    /// Show the stadium artwork under the gradient. On the browse screen it
+    /// carries the launch screen straight into the app; on busy screens it
+    /// stays off so text never sits on texture.
+    var showsArtwork = false
+
     var body: some View {
         ZStack {
             Palette.background
+            if showsArtwork {
+                Image("LaunchArt")
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(0.42)
+                    .overlay(
+                        LinearGradient(
+                            colors: [Palette.backgroundTop.opacity(0.35), Palette.backgroundBottom],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
             RadialGradient(
                 colors: [Palette.accent.opacity(0.16), .clear],
                 center: .init(x: 0.12, y: -0.05),
@@ -254,14 +272,24 @@ struct StatusState: View {
     let systemImage: String
     let title: String
     var message: String?
+    /// Asset-catalog illustration shown instead of the symbol when present.
+    var illustration: String?
     var actionTitle: String?
     var action: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 22) {
-            Image(systemName: systemImage)
-                .font(.system(size: 76, weight: .light))
-                .foregroundStyle(Palette.accent.opacity(0.85))
+            if let illustration {
+                Image(illustration)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 210)
+                    .padding(.bottom, 6)
+            } else {
+                Image(systemName: systemImage)
+                    .font(.system(size: 76, weight: .light))
+                    .foregroundStyle(Palette.accent.opacity(0.85))
+            }
 
             Text(title)
                 .font(.title2.weight(.semibold))
@@ -281,5 +309,135 @@ struct StatusState: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Names of the generated empty-state artwork in the asset catalog. Built by
+/// `assets/brand/build_assets.py` from the source illustrations.
+enum Illustration {
+    static let noMatches = "EmptyNoMatch"
+    static let offline = "EmptyOffline"
+    static let noChannel = "EmptyNoChannel"
+    static let search = "EmptySearch"
+}
+
+// MARK: - Notices
+
+/// Inline notice for problems that should not take over the screen: a refresh
+/// that failed while yesterday's list is still usable, a channel that died
+/// while others are still worth trying. Carries at most one action so the
+/// viewer's next press is obvious.
+struct NoticeBanner: View {
+    enum Tone { case warning, error, info }
+
+    let message: String
+    var tone: Tone = .warning
+    var actionTitle: String?
+    var action: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: 20) {
+            Image(systemName: symbol)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(tint)
+
+            Text(message)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(Palette.primaryText)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 16)
+
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.callout.weight(.bold))
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(FocusCardButtonStyle(corner: 14))
+            }
+        }
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous)
+                .fill(tint.opacity(0.14))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous)
+                .strokeBorder(tint.opacity(0.45), lineWidth: 1)
+        )
+    }
+
+    private var tint: Color {
+        switch tone {
+        case .warning: return Palette.accent
+        case .error: return Palette.live
+        case .info: return Palette.secondaryText
+        }
+    }
+
+    private var symbol: String {
+        switch tone {
+        case .warning: return "exclamationmark.triangle.fill"
+        case .error: return "xmark.octagon.fill"
+        case .info: return "info.circle.fill"
+        }
+    }
+}
+
+/// Section header used between the "on now / up next / over" groups.
+struct SectionHeader: View {
+    let title: String
+    let count: Int
+    var isLive = false
+
+    var body: some View {
+        HStack(spacing: 14) {
+            if isLive {
+                LiveBadge(compact: true)
+            }
+            Text(title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(isLive ? Palette.live : Palette.primaryText)
+            Text("\(count)")
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Palette.tertiaryText)
+            Spacer()
+        }
+        .padding(.top, 18)
+        .padding(.bottom, 4)
+        .padding(.leading, 6)
+    }
+}
+
+/// Small state label used on cards and the detail hero: "已进行 32 分钟",
+/// "15 分钟后开赛", "已结束". LIVE gets the pulsing badge instead.
+struct StatusLabel: View {
+    let status: MatchStatus
+    var compact = false
+
+    var body: some View {
+        switch status {
+        case .live(let elapsed):
+            HStack(spacing: 10) {
+                LiveBadge()
+                // Cards get the football-style minute mark so the column never
+                // wraps; the detail hero has room for the full sentence.
+                Text(compact ? "\(elapsed)′" : (elapsed < 1 ? "刚开始" : "已进行 \(elapsed) 分钟"))
+                    .font(.callout.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Palette.live)
+            }
+        case .upcoming(let minutes) where minutes <= 90:
+            MetaPill(text: "\(minutes) 分钟后开赛", systemImage: "clock", tint: Palette.accent)
+        case .upcoming:
+            EmptyView()
+        case .finished:
+            MetaPill(text: "已结束", systemImage: "checkmark", tint: Palette.tertiaryText)
+        case .unknown:
+            EmptyView()
+        }
     }
 }

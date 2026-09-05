@@ -95,4 +95,68 @@ final class JRSListingParserTests: XCTestCase {
             "http://play.example/play/kbs/?id=11022600215&id2="
         )
     }
+
+    func testBuildsSourceURLsFromGetPlayUrlAnchors() throws {
+        let homepage = #"""
+        <script>
+        window.PLAY_HOSTS = {
+            line1: atob("aHR0cDovL3BsYXkuc3BvcnRzdGVhbTM2OC5jb20="),
+            line2: atob("aHR0cDovL3BsYXkuamdkaGRzLmNvbQ==")
+        };
+        function getPlayUrl(line, id) { return window.PLAY_HOSTS[line] + "/play/steam" + id + ".html"; }
+        </script>
+        """#
+        let hosts = JRSListingParser.playHosts(inHomepage: homepage)
+        XCTAssertEqual(hosts, ["line1": "http://play.sportsteam368.com", "line2": "http://play.jgdhds.com"])
+
+        let script = #"""
+        document.write('<ul class="item play d-touch active" data-lid="821720">');
+        document.write('<li class="lab_events"><span class="name">英超</span></li>');
+        document.write('<li class="lab_time">09-05 20:30</li>');
+        document.write('<li class="lab_team_home"><strong class="name">纽卡斯尔联</strong><img src="https://img.example/h.png"></li>');
+        document.write('<li class="lab_team_away"><strong class="name">伯恩茅斯</strong><img src="https://img.example/a.png"></li>');
+        document.write('<li class="lab_channel">');
+        document.write('<a class="item ok_kqt type1" data-group="直播①" href="javascript:void(0)" onclick="openRandomUrl1()"><strong>直播①</strong></a>');
+        document.write('<a class="item ok type1 me" target="_blank" data-group="直播①" href="' + getPlayUrl("line1", "821720") + '" data-play=""><em class="icon-play-circle"></em><strong>直播①</strong></a>');
+        document.write('<a class="item ok type1 me" target="_blank" data-group="直播①" href="' + getPlayUrl("line2", "821720") + '" data-play=""><em class="icon-play-circle"></em><strong>直播②</strong></a>');
+        document.write('<a class="item ok type1 me" target="_blank" data-group="直播①" href="' + getPlayUrl("line3", "821720") + '" data-play=".html"><em class="icon-play-circle"></em><strong>直播③</strong></a>');
+        document.write('</li>');
+        document.write('</ul>');
+        """#
+
+        let matches = try JRSListingParser().parse(
+            script: script,
+            relativeTo: URL(string: "https://www.jrs03.com/")!,
+            playHosts: hosts
+        )
+
+        XCTAssertEqual(matches.count, 1)
+        XCTAssertEqual(matches[0].sources.map(\.name), ["直播①", "直播②"])
+        XCTAssertEqual(
+            matches[0].sources.map(\.pageURL.absoluteString),
+            ["http://play.sportsteam368.com/play/steam821720.html",
+             "http://play.jgdhds.com/play/steam821720.html"]
+        )
+    }
+
+    func testSkipsPlaceholderChannelAnchorsOnSourcePage() {
+        let html = #"""
+        <div class="sub_channel">
+        <a class="item play ok me" target="myplayer" data-group="云直播①" data-play="/play/sm.html?id=432&id2=" href=""><strong>云直播①</strong></a>
+        <a class="item ok me" target="myplayer" data-group="云直播④" data-play="/play/pao/?id=46364301&id2=" href=""><strong>云直播④</strong></a>
+        <a class="item ok me" target="myplayer" data-group="云直播④" data-play="=&id2=" href=""><strong>备用</strong></a>
+        <a class="item ok me" target="myplayer" data-group="云直播④" data-play="=&id2=" href=""><strong>备用</strong></a>
+        </div>
+        """#
+        let channels = SourcePageParser().parse(
+            html: html,
+            relativeTo: URL(string: "http://play.sportsteam368.com/play/steam821720.html")!
+        )
+        XCTAssertEqual(channels.map(\.name), ["云直播①", "云直播④"])
+        XCTAssertEqual(
+            channels.map(\.pageURL.absoluteString),
+            ["http://play.sportsteam368.com/play/sm.html?id=432&id2=",
+             "http://play.sportsteam368.com/play/pao/?id=46364301&id2="]
+        )
+    }
 }

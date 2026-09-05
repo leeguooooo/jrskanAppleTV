@@ -77,7 +77,7 @@
 
 <header>
   <h1>JRKAN tvOS · 正式发布准备</h1>
-  <p>版本 0.1.0（build 1）· Bundle ID <code>com.leeguoo.jrskan.tv</code> · 评估日期 2026-08-01</p>
+  <p>版本 1.0.0 · Bundle ID <code>com.leeguoo.jrskan.tv</code> · ASC App ID <code>6808947990</code> · 评估日期 2026-08-01，更新 2026-09-05</p>
 </header>
 
 <p class="lede">
@@ -241,12 +241,13 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
     <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>部署目标</td><td>tvOS 17.0，满足当前 App Store 最低要求</td></tr>
     <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>架构 / 设备族</td><td><code>arm64</code>，<code>UIDeviceFamily = [3]</code></td></tr>
     <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>图标与 Top Shelf</td><td>见第 2 节，已进包</td></tr>
-    <tr><td class="n"><span class="tag tag-warn">改</span></td><td>版本号</td><td><code>MARKETING_VERSION 0.1.0</code> → 正式版应为 <code>1.0.0</code>；<code>CURRENT_PROJECT_VERSION</code> 每次上传递增</td></tr>
-    <tr><td class="n"><span class="tag tag-warn">改</span></td><td>代码签名</td><td><code>CODE_SIGNING_ALLOWED: NO</code> 是本地调试配置。上传需要 Apple Distribution 证书 + App Store provisioning profile，在 <code>project.yml</code> 里切回 <code>Automatic</code> 并配 Team ID</td></tr>
-    <tr><td class="n"><span class="tag tag-stop">改</span></td><td>ATS</td><td>删除 <code>NSAllowsArbitraryLoads</code>。走路线 A 后所有请求应为 HTTPS；确需 HTTP 时用 <code>NSExceptionDomains</code> 精确到域名</td></tr>
-    <tr><td class="n"><span class="tag tag-warn">加</span></td><td>隐私清单</td><td>新增 <code>PrivacyInfo.xcprivacy</code>。本应用无三方 SDK，仅用 <code>URLSession</code>；若路线 A 用 <code>UserDefaults</code> 存播放源，需声明 <code>CA92.1</code>（App 自身功能）</td></tr>
-    <tr><td class="n"><span class="tag tag-warn">加</span></td><td>出口合规</td><td>Info.plist 加 <code>ITSAppUsesNonExemptEncryption = false</code>（只用 HTTPS 属豁免），可省掉每次上传的问卷</td></tr>
-    <tr><td class="n"><span class="tag tag-warn">查</span></td><td>工作区有未提交改动</td><td>本次会话期间 <code>MatchListView.swift</code>、<code>PlayerScreen.swift</code>、<code>JRSListingParserTests.swift</code>、<code>0-README.html</code> 被本会话之外的进程改动（新增"第 1/2/3 步"引导式 UX）。提交前确认这些改动是预期的</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>版本号</td><td><code>MARKETING_VERSION 1.0.0</code>；<code>CURRENT_PROJECT_VERSION</code> 由 <code>Scripts/testflight.sh</code> 用时间戳覆盖，每次上传自动递增</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>代码签名</td><td><code>DEVELOPMENT_TEAM 6ZPXG4KVVS</code> + <code>CODE_SIGN_STYLE Automatic</code>。归档不签名，导出阶段用 ASC API 密钥（<code>AuthKey_U4QUAH53N9</code>）云端签名并直传，本机不需要证书</td></tr>
+    <tr><td class="n"><span class="tag tag-warn">改</span></td><td>ATS</td><td>仍是 <code>NSAllowsArbitraryLoads = true</code>：线路主机（<code>play.sportsteam368.com</code> 等）与部分 HLS 仍为 HTTP。TestFlight 不查此项；提审前收紧到 <code>NSExceptionDomains</code></td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>隐私清单</td><td><code>App/Resources/PrivacyInfo.xcprivacy</code>：无追踪、无收集；<code>UserDefaults</code> 声明 <code>CA92.1</code>（关注球队、上次线路、开关都存本机）</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>出口合规</td><td><code>ITSAppUsesNonExemptEncryption = false</code> 已写入 Info.plist</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>启动画面</td><td><code>LaunchScreen.storyboard</code> 全屏体育场画面（<code>LaunchArt</code> 1920×1080 / 3840×2160），列表页背景延续同一张图</td></tr>
+    <tr><td class="n"><span class="tag tag-ok">OK</span></td><td>ASC 记录</td><td>App「JRKAN」已建（ID 6808947990，SKU <code>JRKANTV-2026</code>，主语言简体中文，tvOS）；Bundle ID <code>com.leeguoo.jrskan.tv</code> 已在开发者门户注册</td></tr>
   </tbody>
 </table>
 
@@ -266,6 +267,23 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANTV \
   &lt;/dict&gt;
 &lt;/dict&gt;</code></pre>
 
+
+<h2>3b. TestFlight <span class="tag tag-ok">已打通</span></h2>
+<p>2026-09-05 起用 <code>Scripts/testflight.sh</code> 一条命令归档、云端签名、上传。内部测试（团队成员）不需要 Beta 审核；外部测试组第一次分发会触发 Beta App Review，
+  审核标准与第 1 节相同，<strong>不要把当前内容源的包发给外部测试组</strong>。</p>
+<pre><code>Scripts/testflight.sh                 # 构建号 = 当前时间戳
+python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&amp;sort=-uploadedDate&amp;limit=3"   # 看处理状态</code></pre>
+<p>本轮同时修复了一个会让测试员看到空应用的问题：站点 2026-09-05 起把线路链接改成 <code>getPlayUrl("lineN", id)</code>，主机表以 base64 写在首页 <code>PLAY_HOSTS</code>，
+  旧解析器对每场比赛都解析出 0 条线路。现在 <code>JRSListingParser</code> 会读取该表还原地址，并有回归测试覆盖。</p>
+<h3>本轮界面与易用性改动</h3>
+<ul>
+  <li>列表按「正在进行 / 即将开始 / 已结束」分组，LIVE 显示已进行分钟数，开赛时间换算为本机时区（非北京时区时标注）；每分钟自动重算，每 5 分钟自动刷新，回到前台检查过期。</li>
+  <li>关注球队：详情页「关注」按钮，列表出现「关注」分类与标记；搜索页联赛名一键补全。</li>
+  <li>线路：记住每场上次用的线路并默认聚焦；解析失败或 20 秒无画面自动换下一条（可关）；失败提示带「试线路 N」一键动作。</li>
+  <li>设置页：两个开关、清除记录、内容来源 / 隐私 / 遥控器说明、版本号。</li>
+  <li>启动画面与四张空态插画（无比赛 / 离线 / 无线路 / 搜索无结果）由 <code>chatgpt-imagegen</code> 生成，<code>build_assets.py</code> 合成进资源目录。</li>
+  <li>刷新失败时保留上次数据并显示可重试的横幅，而不是清空列表。</li>
+</ul>
 
 <h2>4. App Store Connect · 应用级字段</h2>
 

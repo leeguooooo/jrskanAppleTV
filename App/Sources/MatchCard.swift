@@ -1,10 +1,19 @@
 import SwiftUI
 
 /// A match row in the browse list: league and status on the left, the two
-/// crests facing each other in the middle, kickoff time and channel count on
-/// the right. Sized and spaced for a 10-foot viewing distance.
+/// crests facing each other in the middle, kickoff or live state and channel
+/// count on the right. Sized and spaced for a 10-foot viewing distance.
 struct MatchCard: View {
     let match: LiveMatch
+    /// Passed in rather than read inside so every row re-evaluates against
+    /// the same instant when the list's minute tick fires.
+    var now = Date()
+
+    @EnvironmentObject private var preferences: Preferences
+
+    private var status: MatchStatus {
+        MatchSchedule.status(for: match.time, now: now)
+    }
 
     var body: some View {
         HStack(spacing: 32) {
@@ -16,6 +25,8 @@ struct MatchCard: View {
         .padding(.horizontal, 34)
         .padding(.vertical, 12)
         .frame(minHeight: Metrics.rowHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
     private var leading: some View {
@@ -26,8 +37,13 @@ struct MatchCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            if match.isHot {
-                MetaPill(text: "热门", systemImage: "flame.fill", tint: Palette.live)
+            HStack(spacing: 8) {
+                if preferences.follows(match) {
+                    MetaPill(text: "关注", systemImage: "star.fill", tint: Palette.accent)
+                }
+                if match.isHot {
+                    MetaPill(text: "热门", systemImage: "flame.fill", tint: Palette.live)
+                }
             }
         }
         .frame(width: 190, alignment: .leading)
@@ -45,7 +61,7 @@ struct MatchCard: View {
                 .foregroundStyle(Palette.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
-                .frame(width: 290, alignment: .trailing)
+                .frame(width: 270, alignment: .trailing)
 
             Text("VS")
                 .font(.caption.weight(.heavy))
@@ -56,59 +72,80 @@ struct MatchCard: View {
                 .foregroundStyle(Palette.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
-                .frame(width: 290, alignment: .leading)
+                .frame(width: 270, alignment: .leading)
 
             TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam)
         }
     }
 
     private var trailing: some View {
-        VStack(alignment: .trailing, spacing: 6) {
-            KickoffTime(raw: match.time)
-
-            if match.sources.isEmpty {
-                MetaPill(text: "暂无线路", systemImage: "nosign", tint: Palette.tertiaryText)
-            } else {
-                MetaPill(
-                    text: "\(match.sources.count) 条线路",
-                    systemImage: "dot.radiowaves.left.and.right",
-                    tint: Palette.secondaryText
-                )
+        VStack(alignment: .trailing, spacing: 8) {
+            switch status {
+            case .live:
+                StatusLabel(status: status, compact: true)
+            case .finished:
+                HStack(spacing: 12) {
+                    KickoffTime(raw: match.time, now: now, dimmed: true)
+                    StatusLabel(status: status)
+                }
+            case .upcoming, .unknown:
+                KickoffTime(raw: match.time, now: now)
+                StatusLabel(status: status)
             }
+
+            channelPill
         }
-        .frame(width: 230, alignment: .trailing)
+        .frame(width: 270, alignment: .trailing)
+    }
+
+    @ViewBuilder
+    private var channelPill: some View {
+        if let last = preferences.lastChannel(for: match.id) {
+            MetaPill(text: "上次 · \(last.name)", systemImage: "clock.arrow.circlepath", tint: Palette.secondaryText)
+        } else if match.sources.isEmpty {
+            MetaPill(text: "暂无线路", systemImage: "nosign", tint: Palette.tertiaryText)
+        } else {
+            MetaPill(
+                text: "\(match.sources.count) 条线路",
+                systemImage: "dot.radiowaves.left.and.right",
+                tint: Palette.secondaryText
+            )
+        }
+    }
+
+    private var accessibilitySummary: String {
+        let shown = MatchSchedule.displayTime(for: match.time, now: now)
+        let state: String
+        switch status {
+        case .live(let elapsed): state = "正在进行，已进行 \(elapsed) 分钟"
+        case .upcoming: state = "\(shown.day) \(shown.clock) 开赛"
+        case .finished: state = "已结束"
+        case .unknown: state = match.time
+        }
+        return "\(match.league)，\(match.homeTeam) 对 \(match.awayTeam)，\(state)，\(match.sources.count) 条线路"
     }
 }
 
-/// Kickoff shown as `08-01` over `06:00`. The feed hands back one
-/// `"MM-dd HH:mm"` string, and rendering it on a single line either truncates
-/// or forces the clock down to an unreadable size at 10 feet.
-private struct KickoffTime: View {
+/// Kickoff shown as `今天` over `20:00`, in the viewer's own time zone.
+/// Rendering the feed's `MM-dd HH:mm` on one line either truncates or forces
+/// the clock down to an unreadable size at 10 feet.
+struct KickoffTime: View {
     let raw: String
+    var now = Date()
+    var dimmed = false
 
     var body: some View {
+        let shown = MatchSchedule.displayTime(for: raw, now: now)
         VStack(alignment: .trailing, spacing: 2) {
-            if let date {
-                Text(date)
-                    .font(.caption.monospacedDigit().weight(.semibold))
+            if !shown.day.isEmpty {
+                Text(shown.day)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Palette.tertiaryText)
             }
-            Text(clock)
+            Text(shown.clock)
                 .font(.title2.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Palette.primaryText)
+                .foregroundStyle(dimmed ? Palette.secondaryText : Palette.primaryText)
         }
-    }
-
-    private var parts: [Substring] {
-        raw.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-    }
-
-    private var date: String? {
-        parts.count == 2 ? String(parts[0]) : nil
-    }
-
-    private var clock: String {
-        parts.count == 2 ? String(parts[1]) : raw
     }
 }
 
@@ -119,6 +156,7 @@ struct ChannelCard: View {
     let source: MatchSource
     let subtitle: String
     var isBusy = false
+    var isLastWatched = false
 
     var body: some View {
         HStack(spacing: 24) {
@@ -135,11 +173,17 @@ struct ChannelCard: View {
             .background(Palette.accent.opacity(0.16), in: Circle())
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(source.name)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Palette.primaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                HStack(spacing: 12) {
+                    Text(source.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Palette.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+
+                    if isLastWatched {
+                        MetaPill(text: "上次观看", systemImage: "clock.arrow.circlepath", tint: Palette.accent)
+                    }
+                }
 
                 Text(subtitle)
                     .font(.callout)
@@ -163,16 +207,18 @@ struct ChannelCard: View {
 /// which on tvOS reads as a form control rather than a browse affordance.
 struct CategoryBar: View {
     @Binding var selection: SportFilter
+    let filters: [SportFilter]
     let counts: [SportFilter: Int]
 
     var body: some View {
         HStack(spacing: 16) {
-            ForEach(SportFilter.allCases) { filter in
+            ForEach(filters) { filter in
                 Button {
                     withAnimation(.easeOut(duration: 0.2)) { selection = filter }
                 } label: {
                     CategoryChip(
                         title: filter.rawValue,
+                        systemImage: filter.systemImage,
                         count: counts[filter] ?? 0,
                         isSelected: selection == filter
                     )
@@ -190,12 +236,17 @@ struct CategoryBar: View {
 /// list below it.
 private struct CategoryChip: View {
     let title: String
+    let systemImage: String?
     let count: Int
     let isSelected: Bool
     @Environment(\.isFocused) private var isFocused
 
     var body: some View {
         HStack(spacing: 10) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.callout.weight(.semibold))
+            }
             Text(title)
                 .font(.title3.weight(.semibold))
             Text("\(count)")
@@ -236,5 +287,33 @@ private struct CategoryChip: View {
 
     private var countBackground: Color {
         isFocused ? Palette.backgroundTop.opacity(0.20) : Color.white.opacity(0.10)
+    }
+}
+
+/// Icon-only control for the header row (search, refresh, settings). A
+/// labelled `Button` here wraps to two lines once the chips grow, and the
+/// glyphs are unambiguous at 10 feet.
+struct HeaderIconButton: View {
+    let systemImage: String
+    let title: String
+    var isBusy = false
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        ZStack {
+            if isBusy {
+                ProgressView().tint(isFocused ? Palette.backgroundTop : Palette.accent)
+            } else {
+                Image(systemName: systemImage)
+                    .font(.title3.weight(.semibold))
+            }
+        }
+        .frame(width: 74, height: 62)
+        .foregroundStyle(isFocused ? Palette.backgroundTop : Palette.primaryText)
+        .background(Capsule().fill(isFocused ? Palette.accent : Palette.surface))
+        .overlay(Capsule().strokeBorder(isFocused ? .clear : Palette.hairline, lineWidth: 1))
+        .scaleEffect(isFocused ? 1.08 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
+        .accessibilityLabel(title)
     }
 }

@@ -1,0 +1,18 @@
+{
+  "images": [
+    {
+      "filename": "emptynochannel.png",
+      "idiom": "tv",
+      "scale": "1x"
+    },
+    {
+      "filename": "emptynochannel@2x.png",
+      "idiom": "tv",
+      "scale": "2x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

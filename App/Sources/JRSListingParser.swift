@@ -12,7 +12,15 @@ enum ListingParserError: LocalizedError {
 }
 
 struct JRSListingParser {
-    func parse(script: String, relativeTo baseURL: URL) throws -> [LiveMatch] {
+    /// The homepage no longer writes channel URLs into the listing. Each anchor
+    /// carries `href="' + getPlayUrl("line1", "821720") + '"` and the hosts
+    /// behind `line1…lineN` live in a `PLAY_HOSTS` map on the homepage, base64
+    /// encoded. Pass the decoded map so those anchors resolve to real pages.
+    func parse(
+        script: String,
+        relativeTo baseURL: URL,
+        playHosts: [String: String] = [:]
+    ) throws -> [LiveMatch] {
         let html = decodeDocumentWrites(in: script)
         let blocks = html.regexCaptures(
             #"(?is)(<ul\s+class="item\s+play[^"]*"[^>]*data-lid="([^"]+)"[^>]*>.*?</ul>)"#
@@ -39,7 +47,7 @@ struct JRSListingParser {
             let awayTeam = cleanHTML(teams[1][1])
             guard !league.isEmpty, !homeTeam.isEmpty, !awayTeam.isEmpty else { return nil }
 
-            let sources = parseSources(in: block, baseURL: baseURL, matchID: dataID)
+            let sources = parseSources(in: block, baseURL: baseURL, matchID: dataID, playHosts: playHosts)
             return LiveMatch(
                 id: dataID,
                 league: league,
@@ -60,7 +68,16 @@ struct JRSListingParser {
     }
 
     private func decodeDocumentWrites(in script: String) -> String {
-        script.regexCaptures(#"(?is)document\.write\(\s*'((?:\\'|[^'])*)'\s*\)\s*;?"#)
+        // `href="' + getPlayUrl("line1", "821720") + '"` splits one write into
+        // two string literals with a call in between. Fold the call back into
+        // the literal as a `getPlayUrl:line1:821720` token first, so the anchor
+        // survives decoding with its line and id attached.
+        let folded = script.replacingOccurrences(
+            of: #"'\s*\+\s*getPlayUrl\(\s*["'](\w+)["']\s*,\s*["']([A-Za-z0-9_-]+)["']\s*\)\s*\+\s*'"#,
+            with: "getPlayUrl:$1:$2",
+            options: .regularExpression
+        )
+        return folded.regexCaptures(#"(?is)document\.write\(\s*'((?:\\'|[^'])*)'\s*\)\s*;?"#)
             .compactMap { $0.count > 1 ? $0[1] : nil }
             .map {
                 $0.replacingOccurrences(of: #"\'"#, with: "'", options: .literal)
@@ -69,7 +86,27 @@ struct JRSListingParser {
             .joined(separator: "\n")
     }
 
-    private func parseSources(in block: String, baseURL: URL, matchID: String) -> [MatchSource] {
+    /// Decodes the homepage's `window.PLAY_HOSTS = { line1: atob("…"), … }`
+    /// table into `["line1": "http://play.example", …]`.
+    static func playHosts(inHomepage html: String) -> [String: String] {
+        html.regexCaptures(#"(?s)(\w+)\s*:\s*atob\(\s*["']([A-Za-z0-9+/=]+)["']\s*\)"#)
+            .reduce(into: [:]) { hosts, captures in
+                guard captures.count >= 3,
+                      let data = Data(base64Encoded: captures[2]),
+                      let host = String(data: data, encoding: .utf8)?
+                          .trimmingCharacters(in: .whitespacesAndNewlines),
+                      !host.isEmpty
+                else { return }
+                hosts[captures[1]] = host
+            }
+    }
+
+    private func parseSources(
+        in block: String,
+        baseURL: URL,
+        matchID: String,
+        playHosts: [String: String]
+    ) -> [MatchSource] {
         let anchors = block.regexCaptures(
             #"(?is)<a\s+([^>]*class="[^"]*\bok\b[^"]*"[^>]*)>(.*?)</a>"#
         )
@@ -80,12 +117,22 @@ struct JRSListingParser {
             let attributes = captures[1]
             let innerHTML = captures[2]
             let dataPlay = attribute("data-play", in: attributes)
-            let href = attribute("href", in: attributes)
+            let href: String?
+            if attributes.contains("getPlayUrl:") {
+                // A generated link whose line has no host on the homepage is
+                // the site's own dead entry; its `data-play` is just ".html".
+                guard let generated = generatedPlayURL(in: attributes, playHosts: playHosts) else {
+                    return nil
+                }
+                href = generated
+            } else {
+                href = attribute("href", in: attributes)
+            }
             // The public link is the route that can be opened independently.
             // `data-play` is often an older mirror consumed only by site JS.
             let rawURL = [href, dataPlay]
                 .compactMap { $0 }
-                .first { !$0.isEmpty && !$0.hasPrefix("javascript:") }
+                .first { !$0.isEmpty && !$0.hasPrefix("javascript:") && !$0.contains("getPlayUrl") }
 
             guard
                 let rawURL,
@@ -105,6 +152,21 @@ struct JRSListingParser {
                 pageURL: pageURL
             )
         }
+    }
+
+    /// `href="getPlayUrl:line1:821720"` (the folded form of the site's
+    /// `getPlayUrl("line1", "821720")`) → `<host>/play/steam821720.html`.
+    private func generatedPlayURL(in attributes: String, playHosts: [String: String]) -> String? {
+        guard
+            let captures = attributes.regexCaptures(
+                #"getPlayUrl:(\w+):([A-Za-z0-9_-]+)"#
+            ).first,
+            captures.count >= 3,
+            let host = playHosts[captures[1]]
+        else {
+            return nil
+        }
+        return "\(host)/play/steam\(captures[2]).html"
     }
 
     private func attribute(_ name: String, in attributes: String) -> String? {
@@ -158,9 +220,14 @@ struct SourcePageParser {
             guard captures.count >= 3 else { return nil }
             let attributes = captures[1]
             let innerHTML = captures[2]
+            // Placeholder anchors carry `data-play="=&id2="` — query fragments
+            // with no path, which would otherwise resolve to a bogus page URL.
             let rawURL = [attribute("data-play", in: attributes), attribute("href", in: attributes)]
                 .compactMap { $0 }
-                .first { !$0.isEmpty && $0 != "=" && !$0.hasPrefix("javascript:") }
+                .first {
+                    !$0.isEmpty && !$0.hasPrefix("=") && !$0.hasPrefix("&")
+                        && !$0.hasPrefix("javascript:")
+                }
             guard
                 let rawURL,
                 let resolvedURL = resolve(rawURL, relativeTo: pageURL),
@@ -178,6 +245,21 @@ struct SourcePageParser {
                 pageURL: resolvedURL
             )
         }
+    }
+
+    /// `href="getPlayUrl:line1:821720"` (the folded form of the site's
+    /// `getPlayUrl("line1", "821720")`) → `<host>/play/steam821720.html`.
+    private func generatedPlayURL(in attributes: String, playHosts: [String: String]) -> String? {
+        guard
+            let captures = attributes.regexCaptures(
+                #"getPlayUrl:(\w+):([A-Za-z0-9_-]+)"#
+            ).first,
+            captures.count >= 3,
+            let host = playHosts[captures[1]]
+        else {
+            return nil
+        }
+        return "\(host)/play/steam\(captures[2]).html"
     }
 
     private func attribute(_ name: String, in attributes: String) -> String? {
