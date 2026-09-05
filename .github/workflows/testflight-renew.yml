@@ -2,7 +2,8 @@
 # 归档不签名，导出阶段用 App Store Connect API 密钥云端签名，runner 上不需要证书。
 #
 # 仓库 Secrets：
-#   ASC_KEY_P8       密钥文件内容（App Manager 角色即可，不要用 Admin）
+#   ASC_KEY_P8       密钥文件内容。云端签名只有 Admin 角色能用（App Manager 会报
+#                    "Cloud signing permission error"），所以用一把 CI 专用、可单独吊销的 Admin 密钥
 #   ASC_KEY_ID       密钥 ID
 #   ASC_ISSUER_ID    Issuer ID
 name: TestFlight renew

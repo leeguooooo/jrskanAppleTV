@@ -97,7 +97,7 @@ Scripts/testflight.sh all 202609051   # 两端一起，指定构建号（缺省�
 python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploadedDate&limit=3"
 ```
 
-**到期自动续传**：TestFlight 构建 90 天过期。`.github/workflows/testflight-renew.yml` 每周一 02:00 UTC 跑 `Scripts/renew-if-expiring.sh`，查 ASC 两端最新构建的到期日，剩余不足 14 天才重新归档上传，其余时候直接退出；也可在 Actions 页手动触发（`force` 选 `all` / `ios` / `tvos` 立即上传）。runner 上不需要证书，签名靠仓库 Secrets 里的 App Manager 角色密钥（`ASC_KEY_P8` / `ASC_KEY_ID` / `ASC_ISSUER_ID`），用完即删。
+**到期自动续传**：TestFlight 构建 90 天过期。`.github/workflows/testflight-renew.yml` 每周一 02:00 UTC 跑 `Scripts/renew-if-expiring.sh`，查 ASC 两端最新构建的到期日，剩余不足 14 天才重新归档上传，其余时候直接退出；也可在 Actions 页手动触发（`force` 选 `all` / `ios` / `tvos` 立即上传）。runner 上不需要证书，签名靠仓库 Secrets 里的 CI 专用 Admin 密钥（`ASC_KEY_P8` / `ASC_KEY_ID` / `ASC_ISSUER_ID`；云端签名只有 Admin 角色能用，App Manager 不行），用完即删。
 
 > 模拟器测试和成功上传都不等于真机验收。完成标准是：在指定实体 Apple TV 上装上 TestFlight 构建，用遥控器打开应用、加载比赛列表、进入赛事并确认至少一条公开线路开始播放。
 
