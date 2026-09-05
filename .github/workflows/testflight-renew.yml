@@ -1,0 +1,69 @@
+# TestFlight 构建 90 天过期；每周查一次到期日，快到期才重新归档上传。
+# 归档不签名，导出阶段用 App Store Connect API 密钥云端签名，runner 上不需要证书。
+#
+# 仓库 Secrets：
+#   ASC_KEY_P8       密钥文件内容（App Manager 角色即可，不要用 Admin）
+#   ASC_KEY_ID       密钥 ID
+#   ASC_ISSUER_ID    Issuer ID
+name: TestFlight renew
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # 每周一 02:00 UTC（北京 10:00）
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 不看到期日直接上传（none / all / ios / tvos）
+        default: none
+        type: choice
+        options: [none, all, ios, tvos]
+
+concurrency:
+  group: testflight-renew
+  cancel-in-progress: false
+
+jobs:
+  renew:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选最新 Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$latest"
+          xcodebuild -version
+
+      - name: 安装 xcodegen 与 cryptography
+        run: |
+          brew install xcodegen
+          python3 -c 'import cryptography' 2>/dev/null || python3 -m pip install --user cryptography --break-system-packages
+
+      - name: 写入 ASC 密钥
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: 到期检查并按需上传
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          FORCE: ${{ github.event.inputs.force || 'none' }}
+        run: Scripts/renew-if-expiring.sh
+
+      - name: 保留日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testflight-logs
+          path: build/testflight/*.log*
+          if-no-files-found: ignore
+
+      - name: 清理密钥
+        if: always()
+        run: rm -rf ~/.appstoreconnect

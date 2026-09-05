@@ -5,12 +5,13 @@
       python3 Scripts/asc_api.py POST /v1/betaGroups '{"data":{...}}'
 
 密钥读 ~/.appstoreconnect/private_keys/AuthKey_<KID>.p8，只依赖 cryptography，不用装 PyJWT。
+ASC_KEY_ID / ASC_ISSUER_ID 环境变量可覆盖默认密钥（CI 用 App Manager 权限的那把）。
 """
 import json, sys, time, base64, urllib.request, os
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
-KID="U4QUAH53N9"; ISS="8f41f165-4ec4-46b7-a529-634b024931f6"
+KID=os.environ.get("ASC_KEY_ID","U4QUAH53N9"); ISS=os.environ.get("ASC_ISSUER_ID","8f41f165-4ec4-46b7-a529-634b024931f6")
 key=serialization.load_pem_private_key(open(os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{KID}.p8"),"rb").read(),None)
 b64=lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
 h=b64(json.dumps({"alg":"ES256","kid":KID,"typ":"JWT"}).encode()); now=int(time.time())
