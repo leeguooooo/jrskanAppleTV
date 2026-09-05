@@ -2,19 +2,6 @@ import AVFoundation
 import AVKit
 import SwiftUI
 
-/// A stream that has already been resolved to a playable URL.
-///
-/// Resolution deliberately happens *before* the player appears. Presenting an
-/// empty player and resolving behind it meant the viewer stared at a black
-/// screen with no feedback, and it forced the player to own error states it had
-/// no good way to show.
-struct PlaybackRequest: Identifiable {
-    let id = UUID()
-    let url: URL
-    let sourceName: String
-    let index: Int
-}
-
 /// Presents `AVPlayerViewController` modally from the enclosing screen's own
 /// view controller.
 ///

@@ -1,5 +1,9 @@
 import XCTest
+#if os(tvOS)
 @testable import JRKANTV
+#else
+@testable import JRKANiOS
+#endif
 
 final class JRSListingParserTests: XCTestCase {
     func testParsesMatchAndPlayableSources() throws {

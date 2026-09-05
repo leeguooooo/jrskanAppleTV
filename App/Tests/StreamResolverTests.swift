@@ -1,5 +1,9 @@
 import XCTest
+#if os(tvOS)
 @testable import JRKANTV
+#else
+@testable import JRKANiOS
+#endif
 
 final class StreamResolverTests: XCTestCase {
     private let resolver = StreamResolver()

@@ -15,12 +15,13 @@
 # App Store Connect 里必须已存在 Bundle ID 为 com.leeguoo.jrskan.tv 的 App 记录，
 # xcodebuild 不会替你建。
 #
-# 用法：Scripts/testflight.sh [build-number]
-#   build-number 缺省用当前时间戳，保证每次上传都递增。
+# 用法：Scripts/testflight.sh <tvos|ios|all> [build-number]
+#   build-number 缺省用当前时间戳，保证每次上传都递增；同一批两端用同一个号。
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-BUILD_NUMBER="${1:-$(date +%Y%m%d%H%M)}"
+PLATFORM="${1:?用法: testflight.sh <tvos|ios|all> [build-number]}"
+BUILD_NUMBER="${2:-$(date +%Y%m%d%H%M)}"
 
 KEY_DIR="$HOME/.appstoreconnect/private_keys"
 if [ -z "${ASC_KEY_ID:-}" ]; then
@@ -37,30 +38,37 @@ AUTH=(-allowProvisioningUpdates
       -authenticationKeyID "$ASC_KEY_ID"
       -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 OUT="${TF_OUT:-build/testflight}"
-SCHEME=JRKANTV
-ARCHIVE="$OUT/$SCHEME.xcarchive"
-LOG="$OUT/$SCHEME.log"
+
+upload_one() {
+  local scheme="$1" dest="$2"
+  local archive="$OUT/$scheme.xcarchive" log="$OUT/$scheme.log"
+  rm -rf "$archive" "$OUT/$scheme-export"
+  mkdir -p "$OUT"
+  echo "==> [$scheme] 归档 (build $BUILD_NUMBER, 未签名)"
+  if ! xcodebuild -project JRKANApple.xcodeproj -scheme "$scheme" -configuration Release \
+      -destination "$dest" -archivePath "$archive" \
+      CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+      CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO archive > "$log" 2>&1; then
+    grep -E 'error:' "$log" >&2; echo "[$scheme] 归档失败，完整日志 $log" >&2; return 1
+  fi
+  echo "==> [$scheme] 签名并上传 TestFlight"
+  if ! xcodebuild -exportArchive -archivePath "$archive" \
+      -exportOptionsPlist Scripts/ExportOptions-TestFlight.plist \
+      -exportPath "$OUT/$scheme-export" "${AUTH[@]}" > "$log.export" 2>&1; then
+    grep -E '^error:|error: exportArchive' "$log.export" | cut -c1-300 >&2
+    echo "[$scheme] 上传失败，完整日志 $log.export" >&2; return 1
+  fi
+  grep -E 'Upload succeeded' "$log.export" | tail -1
+}
 
 echo "==> 生成工程"
 xcodegen generate >/dev/null
 
-rm -rf "$ARCHIVE" "$OUT/export"
-mkdir -p "$OUT"
-
-echo "==> 归档 (build $BUILD_NUMBER, 未签名)"
-if ! xcodebuild -project JRKANApple.xcodeproj -scheme "$SCHEME" -configuration Release \
-    -destination 'generic/platform=tvOS' -archivePath "$ARCHIVE" \
-    CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO archive > "$LOG" 2>&1; then
-  grep -E 'error:' "$LOG" >&2; echo "归档失败，完整日志 $LOG" >&2; exit 1
-fi
-
-echo "==> 签名并上传 TestFlight"
-if ! xcodebuild -exportArchive -archivePath "$ARCHIVE" \
-    -exportOptionsPlist Scripts/ExportOptions-TestFlight.plist \
-    -exportPath "$OUT/export" "${AUTH[@]}" > "$LOG.export" 2>&1; then
-  grep -E '^error:|error: exportArchive' "$LOG.export" | cut -c1-300 >&2
-  echo "上传失败，完整日志 $LOG.export" >&2; exit 1
-fi
-grep -E 'Upload succeeded' "$LOG.export" | tail -1
+case "$PLATFORM" in
+  tvos) upload_one JRKANTV  'generic/platform=tvOS' ;;
+  ios)  upload_one JRKANiOS 'generic/platform=iOS' ;;
+  all)  upload_one JRKANTV  'generic/platform=tvOS'
+        upload_one JRKANiOS 'generic/platform=iOS' ;;
+  *) echo "未知平台 $PLATFORM" >&2; exit 1 ;;
+esac
 echo "完成。到 App Store Connect → JRKAN → TestFlight 看处理进度（一般几分钟）。"

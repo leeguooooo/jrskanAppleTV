@@ -1,5 +1,9 @@
 import XCTest
+#if os(tvOS)
 @testable import JRKANTV
+#else
+@testable import JRKANiOS
+#endif
 
 final class MatchScheduleTests: XCTestCase {
     private let beijing = TimeZone(identifier: "Asia/Shanghai")!

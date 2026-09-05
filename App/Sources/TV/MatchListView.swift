@@ -157,7 +157,7 @@ struct MatchListView: View {
                     )
                     ForEach(section.matches) { match in
                         NavigationLink {
-                            MatchDetailView(match: match)
+                            MatchDetailView(match: match, preferences: preferences)
                         } label: {
                             MatchCard(match: match, now: now)
                         }
@@ -217,6 +217,7 @@ struct MatchListView: View {
 
 private struct SearchMatchesView: View {
     @EnvironmentObject private var model: MatchListModel
+    @EnvironmentObject private var preferences: Preferences
 
     @Environment(\.dismiss) private var dismiss
 
@@ -228,7 +229,7 @@ private struct SearchMatchesView: View {
                 LazyVStack(spacing: 18) {
                     ForEach(model.visibleMatches) { match in
                         NavigationLink {
-                            MatchDetailView(match: match)
+                            MatchDetailView(match: match, preferences: preferences)
                         } label: {
                             MatchCard(match: match)
                         }

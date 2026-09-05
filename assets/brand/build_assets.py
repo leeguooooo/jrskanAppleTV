@@ -26,6 +26,7 @@ SRC = ROOT / "assets" / "brand" / "src"
 OUT = ROOT / "assets" / "brand" / "out"
 CATALOG = ROOT / "App" / "Resources" / "Assets.xcassets"
 BRAND = CATALOG / "App Icon & Top Shelf Image.brandassets"
+IOS_CATALOG = ROOT / "App" / "Resources" / "iOSAssets.xcassets"
 
 AMBER = (255, 176, 46)
 INFO = {"author": "xcode", "version": 1}
@@ -260,8 +261,8 @@ write_imageset(BRAND / "Top Shelf Image Wide.imageset",
 # --------------------------------------------------------------------------
 
 def write_plain_imageset(imageset_dir: Path, images: list[tuple[str, Image.Image]],
-                         basename: str) -> None:
-    """images: [(scale, rendered)] — a regular (non-brand) tv imageset."""
+                         basename: str, idiom: str = "tv") -> None:
+    """images: [(scale, rendered)] — a regular (non-brand) imageset."""
     if imageset_dir.exists():
         shutil.rmtree(imageset_dir)
     imageset_dir.mkdir(parents=True, exist_ok=True)
@@ -269,7 +270,7 @@ def write_plain_imageset(imageset_dir: Path, images: list[tuple[str, Image.Image
     for scale, rendered in images:
         filename = f"{basename}{'' if scale == '1x' else '@' + scale}.png"
         rendered.save(imageset_dir / filename)
-        manifest.append({"filename": filename, "idiom": "tv", "scale": scale})
+        manifest.append({"filename": filename, "idiom": idiom, "scale": scale})
     write_json(imageset_dir / "Contents.json", {"images": manifest, "info": INFO})
 
 
@@ -289,24 +290,74 @@ write_plain_imageset(CATALOG / "BrandMark.imageset", [
 ], "mark")
 
 
-def illustration(name: str, height: int) -> list[tuple[str, Image.Image]]:
+def illustration(name: str, height: int, scales: tuple[int, ...] = (1, 2)) -> list[tuple[str, Image.Image]]:
     """Amber-on-black line art -> RGBA cutout, padded so the glow is not
-    clipped, at 1x and 2x. Sized so a 250pt frame in StatusState renders
-    sharp on a 4K panel."""
+    clipped, at the requested scales. `height` is the 1x pixel height."""
     cutout = autocrop_alpha(key_out_black(Image.open(SRC / f"{name}.png"), lo=18, hi=170))
     pad = int(cutout.height * 0.06)
     padded = Image.new("RGBA", (cutout.width + 2 * pad, cutout.height + 2 * pad), (0, 0, 0, 0))
     padded.paste(cutout, (pad, pad), cutout)
-    return [("1x", fit_height(padded, height)), ("2x", fit_height(padded, height * 2))]
+    return [(f"{scale}x", fit_height(padded, height * scale)) for scale in scales]
 
 
-for source_name, asset_name in [
+ILLUSTRATIONS = [
     ("empty-nomatch", "EmptyNoMatch"),
     ("empty-offline", "EmptyOffline"),
     ("empty-nochannel", "EmptyNoChannel"),
     ("empty-search", "EmptySearch"),
-]:
+]
+
+for source_name, asset_name in ILLUSTRATIONS:
     write_plain_imageset(CATALOG / f"{asset_name}.imageset", illustration(source_name, 300), asset_name.lower())
+
+
+# --------------------------------------------------------------------------
+# iOS catalog: single-size app icon, launch colour + mark, universal imagesets
+# --------------------------------------------------------------------------
+
+def write_ios_catalog() -> None:
+    if IOS_CATALOG.exists():
+        shutil.rmtree(IOS_CATALOG)
+    write_json(IOS_CATALOG / "Contents.json", {"info": INFO})
+
+    icon_dir = IOS_CATALOG / "AppIcon.appiconset"
+    icon_dir.mkdir(parents=True)
+    # iOS icons must be opaque; flatten_icon() returns RGB. The tv icon is
+    # 5:3, so take a centred square of the composed art with the mark
+    # scaled to the same proportion.
+    square = flatten_icon((1024, 1024))
+    square.save(icon_dir / "icon-1024.png")
+    write_json(icon_dir / "Contents.json", {
+        "images": [{"filename": "icon-1024.png", "idiom": "universal",
+                    "platform": "ios", "size": "1024x1024"}],
+        "info": INFO,
+    })
+
+    colour_dir = IOS_CATALOG / "LaunchBackground.colorset"
+    colour_dir.mkdir(parents=True)
+    write_json(colour_dir / "Contents.json", {
+        "colors": [{"idiom": "universal", "color": {
+            "color-space": "srgb",
+            "components": {"red": "0.015", "green": "0.020", "blue": "0.035", "alpha": "1.000"},
+        }}],
+        "info": INFO,
+    })
+
+    write_plain_imageset(IOS_CATALOG / "BrandMark.imageset", [
+        ("1x", fit_height(mark_src, 120)),
+        ("2x", fit_height(mark_src, 240)),
+        ("3x", fit_height(mark_src, 360)),
+    ], "mark", idiom="universal")
+
+    write_plain_imageset(IOS_CATALOG / "LaunchArt.imageset", [
+        ("1x", cover(launch_src, (1080, 720))),
+        ("2x", cover(launch_src, (2160, 1440))),
+    ], "launch", idiom="universal")
+
+    for source_name, asset_name in ILLUSTRATIONS:
+        write_plain_imageset(IOS_CATALOG / f"{asset_name}.imageset",
+                             illustration(source_name, 160, scales=(1, 2, 3)),
+                             asset_name.lower(), idiom="universal")
 
 
 # --------------------------------------------------------------------------
@@ -341,10 +392,13 @@ def flatten_icon(size: tuple[int, int]) -> Image.Image:
     return out.convert("RGB")
 
 
+write_ios_catalog()
+
 flatten_icon((1280, 768)).save(OUT / "app-store-icon-1280x768.png")
 flatten_icon((1024, 1024)).save(OUT / "marketing-icon-1024.png")
 build_topshelf((2320, 720)).save(OUT / "topshelf-wide-2320x720.png")
 cover(launch_src, (1920, 1080)).save(OUT / "launch-1920x1080.png")
 
 print(f"catalog  -> {CATALOG.relative_to(ROOT)}")
+print(f"ios      -> {IOS_CATALOG.relative_to(ROOT)}")
 print(f"previews -> {OUT.relative_to(ROOT)}")

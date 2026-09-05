@@ -4,7 +4,9 @@ options:
   bundleIdPrefix: com.leeguoo
   deploymentTarget:
     tvOS: "17.0"
+    iOS: "17.0"
   xcodeVersion: "26.0"
+  createIntermediateGroups: true
 
 settings:
   base:
@@ -16,12 +18,16 @@ settings:
     # 付费开发者团队（LI GUO，App Store Connect API 密钥所属团队）。
     DEVELOPMENT_TEAM: 6ZPXG4KVVS
 
+# App/Sources/Shared 是纯业务层（网络 / 解析 / 模型 / 偏好 / 播放状态）加与平台无关的
+# 设计元件，tvOS 与 iOS 共用；TV 和 iOS 目录只放各自的界面层。
+# 两个目标共用一个 Bundle ID：App Store Connect 里同一条 App 记录挂 tvOS / iOS 两个平台。
 targets:
   JRKANTV:
     type: application
     platform: tvOS
     sources:
-      - path: App/Sources
+      - path: App/Sources/Shared
+      - path: App/Sources/TV
       - path: App/Resources/Assets.xcassets
       - path: App/Resources/LaunchScreen.storyboard
       - path: App/Resources/PrivacyInfo.xcprivacy
@@ -36,13 +42,55 @@ targets:
         UILaunchStoryboardName: LaunchScreen
         # 只用 HTTPS/HTTP 标准传输，属出口合规豁免；省掉每次上传的问卷。
         ITSAppUsesNonExemptEncryption: false
-        # 第三方线路页面与 HLS 地址仍有 HTTP，正式提审前收紧到 NSExceptionDomains。
+        # 第三方线路页面与 HLS 地址仍有 HTTP。
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
         ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
+
+  JRKANiOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources/Shared
+      - path: App/Sources/iOS
+      - path: App/Resources/iOSAssets.xcassets
+      - path: App/Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: App/Info-iOS.plist
+      properties:
+        CFBundleDisplayName: JRKAN
+        CFBundleName: JRKAN
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: BrandMark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIUserInterfaceStyle: Dark
+        # 画中画 / 锁屏继续出声都需要
+        UIBackgroundModes:
+          - audio
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   JRKANTVTests:
     type: bundle.unit-test
@@ -56,6 +104,18 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv.tests
         CODE_SIGNING_ALLOWED: NO
 
+  JRKANiOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: App/Tests
+    dependencies:
+      - target: JRKANiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv.iostests
+        CODE_SIGNING_ALLOWED: NO
+
 schemes:
   JRKANTV:
     build:
@@ -65,6 +125,15 @@ schemes:
     test:
       targets:
         - JRKANTVTests
+
+  JRKANiOS:
+    build:
+      targets:
+        JRKANiOS: all
+        JRKANiOSTests: [test]
+    test:
+      targets:
+        - JRKANiOSTests
 
   JRKANLiveContract:
     build:
