@@ -13,7 +13,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 APP_ID=6808947990
 THRESHOLD_DAYS="${THRESHOLD_DAYS:-14}"
 FORCE="${FORCE:-none}"
-BUILD_NUMBER="$(date +%Y%m%d%H%M)"
+BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"
 
 # 打印剩余天数；没有可用构建打印 -1
 days_left() {

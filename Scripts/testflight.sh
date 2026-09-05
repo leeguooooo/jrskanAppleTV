@@ -16,12 +16,12 @@
 # xcodebuild 不会替你建。
 #
 # 用法：Scripts/testflight.sh <tvos|ios|all> [build-number]
-#   build-number 缺省用当前时间戳，保证每次上传都递增；同一批两端用同一个号。
+#   build-number 缺省用当前 UTC 时间戳（本机与 CI 一致，避免时区导致倒退）；同一批两端用同一个号。
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 PLATFORM="${1:?用法: testflight.sh <tvos|ios|all> [build-number]}"
-BUILD_NUMBER="${2:-$(date +%Y%m%d%H%M)}"
+BUILD_NUMBER="${2:-$(date -u +%Y%m%d%H%M)}"
 
 KEY_DIR="$HOME/.appstoreconnect/private_keys"
 if [ -z "${ASC_KEY_ID:-}" ]; then
