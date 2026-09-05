@@ -98,4 +98,6 @@ python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploaded
 
 当前为兼容第三方 HTTP 页面启用了宽松网络策略（`NSAllowsArbitraryLoads`）。正式发布前应由自有 HTTPS 后端完成解析，并收紧 App Transport Security。
 
-> **这一版可以上 TestFlight 内部测试，但不能提交 App Store。** 实测当前播放链路输出的第三方流内嵌境外赌博站推广，且转播的是持权赛事信号；这属于开发者账号封停级别的组合，不是文案或素材能绕过的。详细取证与合规路线见 [`docs/app-store-submission.html`](docs/app-store-submission.html)。
+> **产品决定（2026-09-05）：只做 TestFlight 内部测试，永不提交 App Store。** 原因是当前播放链路输出的第三方流内嵌境外博彩推广，且转播的是持权赛事信号，这是开发者账号封停级别的组合。取证与曾经评估过的合规路线保留在 [`docs/app-store-submission.html`](docs/app-store-submission.html)，仅作记录。
+>
+> 内部测试的运行规则：只加团队成员进「内部测试」组，不建外部测试组、不开公开链接（外部分发会触发 Beta 审核，标准与提审相同）；TestFlight 构建 90 天过期，到期前跑一次 `Scripts/testflight.sh` 重新上传即可。
