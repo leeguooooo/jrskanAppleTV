@@ -1,8 +1,8 @@
 # JRKAN Apple TV
 
-面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad 版。macOS 不在产品范围内。
+面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad / Mac 版。
 
-tvOS 17+ · iOS 17+ · SwiftUI · AVFoundation · XcodeGen
+tvOS 17+ · iOS 17+ · macOS 14+（Mac Catalyst）· SwiftUI · AVFoundation · XcodeGen
 
 ---
 
@@ -20,12 +20,14 @@ tvOS 17+ · iOS 17+ · SwiftUI · AVFoundation · XcodeGen
 
 ![设置](assets/store/ui/settings-web.png)
 
-iPhone 版。同一套数据与播放逻辑，界面按触屏重排：分组列表、分类 chip、下拉刷新、搜索补全；详情页关注与线路；全屏播放带关闭与线路菜单，支持画中画与 AirPlay。
+iPhone 版。同一套数据与播放逻辑，界面按触屏重排：分组列表、分类 chip、下拉刷新、搜索补全；详情页关注与线路；全屏播放带关闭与线路菜单，支持画中画与 AirPlay。播放时自动转横屏，关闭后转回。
 
 <p>
   <img src="assets/store/ui/ios-list-web.png" width="300" alt="iPhone 赛事列表">
   <img src="assets/store/ui/ios-detail-web.png" width="300" alt="iPhone 比赛详情">
 </p>
+
+iPad 与 Mac 共用一套宽屏布局：左侧分类、中间赛程、右侧比赛详情。Mac 版走 Mac Catalyst，就是这套 iPad 界面加原生窗口与菜单栏，不是另写一遍。窗口变窄（iPhone、iPad 分屏、窄 Mac 窗口）自动切回紧凑堆栈。
 
 Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 
@@ -51,7 +53,8 @@ Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 | 自动换线 | 解析失败或 20 秒无画面时自动尝试下一条，可在设置里关闭 |
 | 播放 | 解析公开 iframe 与加密播放器链路，发现 HLS 后交给 AVPlayer 全屏播放；传输栏内可切换线路 |
 | 刷新 | 列表每 5 分钟自动刷新、回到前台检查过期；刷新失败保留上次数据并提示 |
-| 平台 | tvOS 17+ 与 iOS 17+ 两个目标共用 `App/Sources/Shared`；启动画面、空态插画、隐私清单齐备，最终验收设备为实体 Apple TV 与 iPhone |
+| 状态判定 | 按项目区分「进行中」窗口（足球 2h15m、篮球 2h45m）。窗口过长会把已结束的比赛标成 LIVE，而站点赛后就撤线路，点进去只会看到一片失败 |
+| 平台 | tvOS / iOS 两个目标共用 `App/Sources/Shared`，iOS 目标同时产出 iPhone、iPad 与 Mac Catalyst 三种形态；启动画面、空态插画、隐私清单齐备，最终验收设备为实体 Apple TV、iPhone 与 Mac |
 
 ## 构建与测试
 
@@ -88,7 +91,8 @@ python3 assets/brand/build_assets.py
 ```bash
 Scripts/testflight.sh tvos            # 归档 → 用 ASC API 密钥云端签名 → 上传
 Scripts/testflight.sh ios             # iPhone / iPad 版
-Scripts/testflight.sh all 202609051   # 两端一起，指定构建号（缺省为时间戳）
+Scripts/testflight.sh mac             # Mac Catalyst 版（必须签名归档，见脚本注释）
+Scripts/testflight.sh all 202609051   # 三端一起，指定构建号（缺省为 UTC 时间戳）
 ```
 
 前提：`~/.appstoreconnect/private_keys/AuthKey_<ID>.p8`（Admin / App Manager 角色），App Store Connect 里已有 Bundle ID 为 `com.leeguoo.jrskan.tv` 的 App 记录（App ID 6808947990，名称 JRKAN，SKU `JRKANTV-2026`，tvOS 与 iOS 两个平台挂同一条记录）。查构建处理状态：
@@ -107,7 +111,7 @@ python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploaded
 | --- | --- |
 | `App/Sources/Shared/` | 两端共用：模型、网络、解析、`MatchListModel`、`MatchPlaybackModel`（线路与播放状态）、`Preferences`、`DesignSystem` |
 | `App/Sources/TV/` | tvOS 界面与 `AVPlayerViewController` 模态播放 |
-| `App/Sources/iOS/` | iPhone / iPad 界面与全屏播放 |
+| `App/Sources/iOS/` | iPhone / iPad / Mac 界面：`RootScreen` 按尺寸类在紧凑与分栏之间分流，`Touch*` 是三种形态共用的组件 |
 | `App/Resources/` | tvOS 与 iOS 两套资源目录、启动画面 storyboard、隐私清单 |
 | `assets/brand/` | 图标与插画原始素材、生成脚本、合成脚本 |
 | `assets/store/` | 商店截图（3840×2160）与 README 用的缩略版 |
