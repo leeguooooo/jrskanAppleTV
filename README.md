@@ -33,7 +33,7 @@ Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 
 ![Top Shelf 横幅](assets/store/ui/topshelf-web.png)
 
-应用图标（1280×768，三层视差合成预览）。琥珀主色贯穿图标、横幅、启动画面与界面。
+应用图标（1280×768，三层视差合成预览）。沿用 leeguoo.com 的红蓝手绘风格，`lg` 标记中融入播放符号。
 
 ![应用图标](assets/store/ui/icon-web.png)
 
@@ -86,7 +86,7 @@ xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route detail:0    # 当前分�
 python3 assets/brand/build_assets.py
 ```
 
-原始素材由 `chatgpt-imagegen` 生成（`assets/brand/gen_art.sh`，状态插画要求纯黑底，脚本用亮度抠成透明；iOS 图标单独用 `assets/brand/src/ios-icon.png`）。
+原始素材由 imagegen 生成，保存在 `assets/brand/src/`。标记和状态插画使用原生透明背景，打包脚本保留其透明度，不再用黑底抠图；iOS 与 Mac Catalyst 使用独立方形图标。
 
 ## TestFlight
 

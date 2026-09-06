@@ -236,7 +236,7 @@ struct CategoryBar: View {
 }
 
 /// Three distinct looks, because focus and selection are independent on tvOS:
-/// focused wins (solid amber), then selected (amber text on a lifted surface),
+/// focused wins (solid accent), then selected (accent text on a lifted surface),
 /// then resting. A selected chip must stay legible once focus moves into the
 /// list below it.
 private struct CategoryChip: View {

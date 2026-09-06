@@ -12,7 +12,7 @@ struct MatchListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppBackground(showsArtwork: true)
+                AppBackground()
                 content
             }
             .toolbar(.hidden, for: .navigationBar)

@@ -30,12 +30,10 @@ enum PlayerWatermark {
 
 // MARK: - Palette
 
-/// The app's colour vocabulary. The amber accent is the same hue as the app
-/// icon's play mark, so the icon, the Top Shelf banner and the UI read as one
-/// brand once the app is focused on the Home screen.
+/// leeguoo's cobalt/coral identity, lightened for readable controls on dark surfaces.
 enum Palette {
-    static let accent = Color(red: 1.00, green: 0.69, blue: 0.18)
-    static let live = Color(red: 0.95, green: 0.26, blue: 0.21)
+    static let accent = Color(red: 0.50, green: 0.58, blue: 1.00)
+    static let live = Color(red: 1.00, green: 0.33, blue: 0.28)
 
     static let backgroundTop = Color(red: 0.055, green: 0.075, blue: 0.11)
     static let backgroundBottom = Color(red: 0.015, green: 0.02, blue: 0.035)
@@ -69,30 +67,11 @@ enum Metrics {
 
 // MARK: - Background
 
-/// Full-bleed gradient plus a soft amber bloom in the top-left, echoing the
-/// floodlight glow in the icon artwork.
+/// A quiet dark canvas with the blue brand accent, keeping artwork and labels separate.
 struct AppBackground: View {
-    /// Show the stadium artwork under the gradient. On the browse screen it
-    /// carries the launch screen straight into the app; on busy screens it
-    /// stays off so text never sits on texture.
-    var showsArtwork = false
-
     var body: some View {
         ZStack {
             Palette.background
-            if showsArtwork {
-                Image("LaunchArt")
-                    .resizable()
-                    .scaledToFill()
-                    .opacity(0.42)
-                    .overlay(
-                        LinearGradient(
-                            colors: [Palette.backgroundTop.opacity(0.35), Palette.backgroundBottom],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            }
             RadialGradient(
                 colors: [Palette.accent.opacity(0.16), .clear],
                 center: .init(x: 0.12, y: -0.05),
@@ -107,7 +86,7 @@ struct AppBackground: View {
 // MARK: - Focus card
 
 /// Card treatment for focusable rows and tiles: lifts, brightens and picks up
-/// an amber rim when focused. Reading focus from the environment inside the
+/// a blue rim when focused. Reading focus from the environment inside the
 /// style's body is what makes this work — `ButtonStyleConfiguration` only
 /// reports `isPressed`.
 struct FocusCardButtonStyle: ButtonStyle {
