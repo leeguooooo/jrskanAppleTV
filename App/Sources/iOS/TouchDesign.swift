@@ -89,9 +89,12 @@ struct TouchMatchRow: View {
                     .minimumScaleFactor(0.75)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("VS")
-                    .font(.caption2.weight(.heavy))
-                    .foregroundStyle(Palette.tertiaryText)
+                Text(match.scoreText ?? "VS")
+                    .font(.subheadline.monospacedDigit().weight(.bold))
+                    .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: 72)
 
                 Text(match.awayTeam)
                     .font(.subheadline.weight(.semibold))

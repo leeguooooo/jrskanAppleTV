@@ -128,6 +128,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             controller.playbackControlsIncludeInfoViews = true
             controller.transportBarCustomMenuItems = menuItems
             controller.delegate = self
+            PlayerWatermark.install(on: controller)
             self.controller = controller
 
             host.present(controller, animated: true) {

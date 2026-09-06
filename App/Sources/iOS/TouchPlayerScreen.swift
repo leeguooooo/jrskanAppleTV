@@ -139,6 +139,7 @@ private struct PlayerContainer: UIViewControllerRepresentable {
         controller.canStartPictureInPictureAutomaticallyFromInline = true
         controller.updatesNowPlayingInfoCenter = true
         controller.videoGravity = gravity
+        PlayerWatermark.install(on: controller)
         return controller
     }
 

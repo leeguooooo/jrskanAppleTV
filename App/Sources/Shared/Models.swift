@@ -11,6 +11,8 @@ struct LiveMatch: Identifiable, Hashable, Sendable {
     let isHot: Bool
     let sources: [MatchSource]
     var providerState: ProviderMatchState? = nil
+
+    var scoreText: String? { providerState?.scoreText }
 }
 
 struct MatchSource: Identifiable, Hashable, Sendable {
@@ -26,6 +28,14 @@ struct ProviderMatchState: Hashable, Sendable {
     let periodStartedAt: Date
     let updatedAt: Date
     var matchType = 0
+    var homeScore: Int? = nil
+    var awayScore: Int? = nil
+
+    var scoreText: String? {
+        guard code != 0, let homeScore, let awayScore,
+              homeScore >= 0, awayScore >= 0 else { return nil }
+        return "\(homeScore) - \(awayScore)"
+    }
 
     func status(now: Date) -> MatchStatus? {
         // Do not keep an old live label indefinitely after a refresh failure.

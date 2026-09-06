@@ -99,9 +99,9 @@ struct MatchDetailView: View {
     private var kickoffColumn: some View {
         let shown = MatchSchedule.displayTime(for: match.time, now: now)
         return VStack(spacing: 10) {
-            Text("VS")
-                .font(.title.weight(.heavy))
-                .foregroundStyle(Palette.tertiaryText)
+            Text(match.scoreText ?? "VS")
+                .font(.title.monospacedDigit().weight(.heavy))
+                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
 
             Text(shown.day.isEmpty ? shown.clock : "\(shown.day) \(shown.clock)")
                 .font(.title3.monospacedDigit().weight(.medium))

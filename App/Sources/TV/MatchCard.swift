@@ -63,9 +63,11 @@ struct MatchCard: View {
                 .minimumScaleFactor(0.55)
                 .frame(width: 270, alignment: .trailing)
 
-            Text("VS")
-                .font(.caption.weight(.heavy))
-                .foregroundStyle(Palette.tertiaryText)
+            Text(match.scoreText ?? "VS")
+                .font(.callout.monospacedDigit().weight(.bold))
+                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+                .fixedSize()
+                .frame(width: 120)
 
             Text(match.awayTeam)
                 .font(.title3.weight(.semibold))
@@ -124,7 +126,8 @@ struct MatchCard: View {
         case .finished: state = "已结束"
         case .unknown: state = match.time
         }
-        return "\(match.league)，\(match.homeTeam) 对 \(match.awayTeam)，\(state)，\(match.sources.count) 条线路"
+        let score = match.scoreText.map { "，比分 \($0)" } ?? ""
+        return "\(match.league)，\(match.homeTeam) 对 \(match.awayTeam)\(score)，\(state)，\(match.sources.count) 条线路"
     }
 }
 

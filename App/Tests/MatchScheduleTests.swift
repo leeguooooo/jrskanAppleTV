@@ -123,6 +123,29 @@ final class EventSnapshotTests: XCTestCase {
             sources: [MatchSource(id: "one", name: "Channel", pageURL: URL(string: "https://fixture.example/play")!)])
     }
 
+    func testScoresRefreshWithTheEventSnapshotAndDoNotInventZeros() throws {
+        func snapshot(home: Any, away: Any, code: Int = 3) throws -> EventSnapshot {
+            let data = try JSONSerialization.data(withJSONObject: [
+                "success": true, "time": now.timeIntervalSince1970,
+                "list": ["fields": ["id", "sportid", "status", "st_first", "st_second", "s1", "s2"],
+                         "values": [[101, 1, code, 1_788_658_800_000, 1_788_662_771_000, home, away]]]
+            ])
+            return try EventSnapshot.parse(String(decoding: data, as: UTF8.self), now: now)
+        }
+        let input = [match("101,1,101")]
+        let first = try snapshot(home: 0, away: 0).applying(to: input)
+        XCTAssertEqual(first[0].scoreText, "0 - 0")
+        let updated = try snapshot(home: 1, away: 2).applying(to: first)
+        XCTAssertEqual(updated[0].scoreText, "1 - 2")
+        XCTAssertEqual(try snapshot(home: 1, away: 2, code: 7).applying(to: input)[0].scoreText, "1 - 2")
+        XCTAssertNil(try snapshot(home: 0, away: 0, code: 0).applying(to: input)[0].scoreText)
+        XCTAssertNil(try snapshot(home: NSNull(), away: 2).applying(to: input)[0].scoreText)
+        XCTAssertNil(try snapshot(home: -1, away: 2).applying(to: input)[0].scoreText)
+        let basketball = ProviderMatchState(sportID: 2, code: 7,
+            periodStartedAt: now, updatedAt: now, homeScore: 112, awayScore: 105)
+        XCTAssertEqual(basketball.scoreText, "112 - 105")
+    }
+
     func testEventSnapshotMatchesCompositeIDsAndKeepsChannelChoices() throws {
         let response = try payload(rows: [
             [101, 1, 3, 1_788_658_800_000, 1_788_662_771_000],

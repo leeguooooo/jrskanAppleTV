@@ -1,4 +1,32 @@
 import SwiftUI
+import AVKit
+
+/// Display-only branding below the native playback controls.
+enum PlayerWatermark {
+    static func install(on controller: AVPlayerViewController) {
+        controller.loadViewIfNeeded()
+        guard let overlay = controller.contentOverlayView else { return }
+
+        let label = UILabel()
+        label.text = "leeguoo.com"
+        #if os(tvOS)
+        label.font = .systemFont(ofSize: 24, weight: .semibold)
+        #else
+        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        #endif
+        label.textColor = .white.withAlphaComponent(0.55)
+        label.shadowColor = .black.withAlphaComponent(0.5)
+        label.shadowOffset = CGSize(width: 0, height: 1)
+        label.isUserInteractionEnabled = false
+        label.isAccessibilityElement = false
+        label.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.trailingAnchor.constraint(equalTo: overlay.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            label.bottomAnchor.constraint(equalTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
+    }
+}
 
 // MARK: - Palette
 

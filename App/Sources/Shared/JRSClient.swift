@@ -164,7 +164,9 @@ struct EventSnapshot {
             events["\(sport),\(id)"] = Event(kickoff: Date(timeIntervalSince1970: kickoff / 1000),
                 state: ProviderMatchState(sportID: sport, code: code,
                     periodStartedAt: Date(timeIntervalSince1970: period / 1000), updatedAt: updatedAt,
-                    matchType: values["mtype"] as? Int ?? 0))
+                    matchType: values["mtype"] as? Int ?? 0,
+                    homeScore: values["s1"] as? Int,
+                    awayScore: values["s2"] as? Int))
         }
         return EventSnapshot(events: events)
     }
