@@ -70,6 +70,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        # Mac App Store 强制要求类目，缺这一项导出时直接被服务端拒收。
+        LSApplicationCategoryType: public.app-category.sports
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: BrandMark
