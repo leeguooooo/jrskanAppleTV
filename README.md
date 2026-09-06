@@ -45,7 +45,7 @@ Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 
 | 能力 | 实现 |
 | --- | --- |
-| 比赛列表 | 读取目标站点公开首页与动态列表脚本；线路地址按首页 `PLAY_HOSTS` 表还原 |
+| 比赛列表 | 读取目标站点公开首页与动态列表脚本，并接入站点同源的实时赛事事件源；线路地址按首页 `PLAY_HOSTS` 表还原 |
 | 状态与排序 | 用开赛时间推导「进行中 / 即将开始 / 已结束」，进行中且有线路的排最前；每分钟自动重算 |
 | 浏览 | 分类 chip（全部 / 关注 / 热门 / 篮球 / 足球），搜索带联赛名一键补全 |
 | 关注 | 在详情页关注球队，列表出现「关注」分类与标记；只存本机 |
@@ -53,7 +53,7 @@ Top Shelf 横幅（2320×720），应用在主屏聚焦时显示。
 | 自动换线 | 解析失败或 20 秒无画面时自动尝试下一条，可在设置里关闭 |
 | 播放 | 解析公开 iframe 与加密播放器链路，发现 HLS 后交给 AVPlayer 全屏播放；传输栏内可切换线路 |
 | 刷新 | 列表每 5 分钟自动刷新、回到前台检查过期；刷新失败保留上次数据并提示 |
-| 状态判定 | 按项目区分「进行中」窗口（足球 2h15m、篮球 2h45m）。窗口过长会把已结束的比赛标成 LIVE，而站点赛后就撤线路，点进去只会看到一片失败 |
+| 赛事状态 | 取站点同源的实时事件源（半场、加时、点球、延期、完赛），比赛分钟按事件里的比赛用时算，不用墙钟推断；成功取到快照时，快照里已消失的比赛与网页一样移出列表。事件源取不到或数据过期时，保留静态赛程与线路入口，既不猜 LIVE 也不猜完赛 |
 | 平台 | tvOS / iOS 两个目标共用 `App/Sources/Shared`，iOS 目标同时产出 iPhone、iPad 与 Mac Catalyst 三种形态；启动画面、空态插画、隐私清单齐备，最终验收设备为实体 Apple TV、iPhone 与 Mac |
 
 ## 构建与测试
@@ -102,6 +102,13 @@ python3 Scripts/asc_api.py GET "/v1/builds?filter[app]=6808947990&sort=-uploaded
 ```
 
 **到期自动续传**：TestFlight 构建 90 天过期。`.github/workflows/testflight-renew.yml` 每周一 02:00 UTC 跑 `Scripts/renew-if-expiring.sh`，查 ASC 两端最新构建的到期日，剩余不足 14 天才重新归档上传，其余时候直接退出；也可在 Actions 页手动触发（`force` 选 `all` / `ios` / `tvos` 立即上传）。runner 上不需要证书，签名靠仓库 Secrets 里的 CI 专用 Admin 密钥（`ASC_KEY_P8` / `ASC_KEY_ID` / `ASC_ISSUER_ID`；云端签名只有 Admin 角色能用，App Manager 不行），用完即删。
+
+站点改字段是最容易让状态整体失真的事，`JRKANLiveContract` scheme 里的实站契约测试专门断言事件源的字段与取值，站点一改跑它就能立刻定位：
+
+```bash
+xcodebuild -project JRKANApple.xcodeproj -scheme JRKANLiveContract \
+  -destination 'platform=tvOS Simulator,name=Apple TV 4K' test
+```
 
 > 模拟器测试和成功上传都不等于真机验收。完成标准是：在指定实体 Apple TV 上装上 TestFlight 构建，用遥控器打开应用、加载比赛列表、进入赛事并确认至少一条公开线路开始播放。
 
