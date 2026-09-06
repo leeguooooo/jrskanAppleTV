@@ -38,6 +38,11 @@ final class MatchPlaybackModel: ObservableObject {
     private let resolver: StreamResolver
     private let sourcePages: SourcePageClient
     private var requestGeneration = 0
+    private var confirmedRequestID: UUID?
+    private var handledFailureID: UUID?
+    private var lastReconnect: [Int: Date] = [:]
+    private var recoveryTask: Task<Void, Never>?
+    private var resolutionDuration: TimeInterval = 0
 
     init(
         match: LiveMatch,
@@ -63,13 +68,19 @@ final class MatchPlaybackModel: ObservableObject {
     var isLoadingChannels: Bool { channels == nil }
 
     var rememberedChannel: MatchSource? {
-        guard let remembered = preferences.lastChannel(for: match.id) else { return nil }
-        return resolvedChannels.first { $0.name == remembered.name }
+        guard let remembered = preferences.recentWatches.first(where: { $0.id == match.id }) else { return nil }
+        return resolvedChannels.first { $0.name == remembered.channelName }
     }
 
     /// Where focus or the first tap should land: last time's channel, else the first.
     var suggestedChannel: MatchSource? {
-        rememberedChannel ?? resolvedChannels.first
+        guard let index = preferences.rankedIndices(for: resolvedChannels, matchID: match.id).first else { return nil }
+        return resolvedChannels[index]
+    }
+
+    func startSuggestedPlayback() async {
+        guard let source = suggestedChannel, let index = resolvedChannels.firstIndex(of: source) else { return }
+        await startPlayback(at: index)
     }
 
     var automaticFallbackEnabled: Bool {
@@ -80,18 +91,21 @@ final class MatchPlaybackModel: ObservableObject {
         if resolvingIndex == index { return "正在解析线路…" }
         if stalledIndices.contains(index) { return "刚才没有画面" }
         if failedResolutionIndices.contains(index) { return "刚才未能播放" }
+        if suggestedChannel?.id == source.id,
+           (preferences.channelPerformance[source.pageURL.absoluteString]?.successes ?? 0) > 0 {
+            return "推荐 · 曾播放成功"
+        }
         if channels?.isEmpty ?? true { return "备用入口 · 直接尝试播放" }
         if source.name.localizedCaseInsensitiveContains("高清") { return "高清频道" }
         return "主播解说"
     }
 
-    /// The next channel that has not already failed this visit, walking
-    /// forward and wrapping around. `nil` when everything has been tried.
+    /// The highest-ranked remaining channel. `nil` when this visit has
+    /// exhausted every alternative.
     func nextUntriedIndex(after index: Int) -> Int? {
         let count = resolvedChannels.count
         guard count > 0 else { return nil }
-        for offset in 1...count {
-            let candidate = (index + offset) % count
+        for candidate in preferences.rankedIndices(for: resolvedChannels, matchID: match.id) {
             if candidate != index, !stalledIndices.contains(candidate),
                !failedResolutionIndices.contains(candidate) { return candidate }
         }
@@ -147,6 +161,8 @@ final class MatchPlaybackModel: ObservableObject {
         requestGeneration += 1
         let generation = requestGeneration
         if resetStalls {
+            recoveryTask?.cancel()
+            lastReconnect = [:]
             stalledIndices = []
             failedResolutionIndices = []
         }
@@ -165,10 +181,13 @@ final class MatchPlaybackModel: ObservableObject {
         while channels.indices.contains(index), attempts < channels.count {
             let source = channels[index]
             resolvingIndex = index
+            let started = Date()
             do {
                 let url = try await resolver.resolve(sourcePageURL: source.pageURL)
                 guard generation == requestGeneration, !Task.isCancelled else { return }
-                preferences.rememberChannel(matchID: match.id, name: source.name, index: index)
+                resolutionDuration = Date().timeIntervalSince(started)
+                confirmedRequestID = nil
+                handledFailureID = nil
                 if index != startIndex {
                     notice = "线路 \(startIndex + 1) 暂不可用，已自动改用线路 \(index + 1)「\(source.name)」。"
                 }
@@ -177,12 +196,15 @@ final class MatchPlaybackModel: ObservableObject {
             } catch {
                 guard generation == requestGeneration, !Task.isCancelled else { return }
                 failedResolutionIndices.insert(index)
+                preferences.recordPlaybackFailure(source: source)
                 failures.append("线路 \(index + 1)：\(error.localizedDescription)")
                 attempts += 1
                 guard tryOthers, let next = nextUntriedIndex(after: index) else { break }
                 index = next
             }
         }
+
+        playback = nil
 
         if !stalledIndices.isEmpty {
             errorMessage = "当前线路都未能播放：\(stalledIndices.count) 条没有画面，"
@@ -194,34 +216,51 @@ final class MatchPlaybackModel: ObservableObject {
         }
     }
 
-    /// The player connected but never showed a picture. Remember the channel,
-    /// close the player, and either hop to the next one or explain and hand
-    /// control back.
-    func handleStall(_ message: String) {
-        let stalled = playback?.index
-        if let stalled { stalledIndices.insert(stalled) }
-        playback = nil
+    func confirmPlayback(requestID: UUID, startupSeconds: TimeInterval) {
+        guard let request = playback, request.id == requestID, confirmedRequestID != requestID,
+              resolvedChannels.indices.contains(request.index) else { return }
+        confirmedRequestID = requestID
+        preferences.recordPlaybackSuccess(match: match, source: resolvedChannels[request.index],
+            index: request.index, startup: resolutionDuration + startupSeconds)
+        notice = nil
+    }
 
-        guard preferences.autoNextChannel,
-              let stalled,
-              let next = nextUntriedIndex(after: stalled)
-        else {
-            errorMessage = message
-            return
+    /// Keep the controller on screen during recovery. A confirmed stream gets
+    /// one same-channel reconnect per two minutes before trying other sources.
+    func handleStall(_ message: String, requestID: UUID? = nil, now: Date = Date()) {
+        guard let request = playback, requestID == nil || request.id == requestID,
+              handledFailureID != request.id, resolvedChannels.indices.contains(request.index) else { return }
+        handledFailureID = request.id
+        let index = request.index
+        preferences.recordPlaybackFailure(source: resolvedChannels[index], now: now)
+        let shouldReconnect = confirmedRequestID == request.id
+            && lastReconnect[index].map { now.timeIntervalSince($0) >= 120 } != false
+        let next: Int
+        if shouldReconnect {
+            lastReconnect[index] = now
+            next = index
+            notice = "直播中断，正在重新连接线路 \(index + 1)…"
+        } else {
+            stalledIndices.insert(index)
+            guard preferences.autoNextChannel, let candidate = nextUntriedIndex(after: index) else {
+                playback = nil
+                errorMessage = message
+                return
+            }
+            next = candidate
+            notice = "线路 \(index + 1) 中断，正在尝试线路 \(next + 1)…"
         }
-
-        notice = "线路 \(stalled + 1) 没有画面，正在自动尝试线路 \(next + 1)…"
         let generation = requestGeneration
-        Task {
-            // The stalled player is still animating out; presenting on top of
-            // that dismissal is refused by UIKit.
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            guard generation == requestGeneration, !Task.isCancelled else { return }
-            await startPlayback(at: next, resetStalls: false)
+        recoveryTask?.cancel()
+        recoveryTask = Task { [weak self] in
+            guard let self, generation == self.requestGeneration, !Task.isCancelled else { return }
+            await self.startPlayback(at: next, resetStalls: false)
         }
     }
 
     func stopPlayback() {
+        recoveryTask?.cancel()
+        recoveryTask = nil
         requestGeneration += 1
         resolvingIndex = nil
         playback = nil

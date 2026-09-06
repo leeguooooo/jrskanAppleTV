@@ -16,7 +16,9 @@ struct PlayerPresenter: UIViewControllerRepresentable {
     let match: LiveMatch
     let channels: [MatchSource]
     let onSelectChannel: (Int) -> Void
-    let onStall: (String) -> Void
+    let onStall: (UUID, String) -> Void
+    let onConfirmed: (UUID, TimeInterval) -> Void
+    let onStop: () -> Void
 
     func makeUIViewController(context: Context) -> UIViewController {
         UIViewController()
@@ -26,7 +28,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         let coordinator = context.coordinator
         coordinator.onSelectChannel = onSelectChannel
         coordinator.onStall = onStall
-        coordinator.onDismiss = { request = nil }
+        coordinator.onConfirmed = onConfirmed
+        coordinator.onDismiss = onStop
 
         guard let request else {
             coordinator.dismissIfPresenting(from: host)
@@ -89,12 +92,14 @@ struct PlayerPresenter: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
         var onSelectChannel: (Int) -> Void = { _ in }
-        var onStall: (String) -> Void = { _ in }
+        var onStall: (UUID, String) -> Void = { _, _ in }
+        var onConfirmed: (UUID, TimeInterval) -> Void = { _, _ in }
         var onDismiss: () -> Void = {}
 
         private weak var controller: AVPlayerViewController?
         private var shownRequestID: UUID?
         private var stallWatchdog: Task<Void, Never>?
+        private let endObserver = PlaybackEndObserver()
 
         func show(
             _ request: PlaybackRequest,
@@ -119,7 +124,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
                 controller.player = player
                 controller.transportBarCustomMenuItems = menuItems
                 player.play()
-                startStallWatchdog(for: player)
+                startStallWatchdog(for: player, requestID: request.id)
                 return
             }
 
@@ -133,11 +138,12 @@ struct PlayerPresenter: UIViewControllerRepresentable {
 
             host.present(controller, animated: true) {
                 player.play()
-                self.startStallWatchdog(for: player)
+                self.startStallWatchdog(for: player, requestID: request.id)
             }
         }
 
         func dismissIfPresenting(from host: UIViewController) {
+            endObserver.stop()
             stallWatchdog?.cancel()
             stallWatchdog = nil
             shownRequestID = nil
@@ -152,42 +158,42 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             host.dismiss(animated: true)
         }
 
-        /// A resolved URL is not a working stream. These links go stale
-        /// constantly — the match ends, the host rotates — and `AVPlayer`
-        /// reports that by simply buffering forever. Without this the viewer
-        /// stares at a spinner with no error and no way to another channel.
-        private func startStallWatchdog(for player: AVPlayer) {
+        private func startStallWatchdog(for player: AVPlayer, requestID: UUID) {
             stallWatchdog?.cancel()
-            stallWatchdog = Task { @MainActor [weak self, weak player] in
-                let seconds = 20
-                for _ in 0..<(seconds * 2) {
-                    try? await Task.sleep(nanoseconds: 500_000_000)
-                    if Task.isCancelled { return }
-                    guard let player, self?.controller?.player === player else { return }
-
-                    if player.currentItem?.status == .failed {
-                        self?.reportStall(
-                            player.currentItem?.error?.localizedDescription
-                                ?? "线路返回的地址无法播放。"
-                        )
-                        return
-                    }
-                    if player.timeControlStatus == .playing,
-                       self?.controller?.isReadyForDisplay == true { return }
+            if let item = player.currentItem {
+                endObserver.observe(item) { [weak self, weak player] in
+                    guard let self, let player, self.controller?.player === player,
+                          self.shownRequestID == requestID else { return }
+                    self.onStall(requestID, "播放已停止，请重试或切换线路。")
                 }
-                self?.reportStall("线路连上了，但 20 秒内没有画面，多半已经失效。换一条试试。")
             }
-        }
-
-        @MainActor
-        private func reportStall(_ message: String) {
-            onStall(message)
-            onDismiss()
+            stallWatchdog = Task { @MainActor [weak self, weak player] in
+                var health = PlaybackHealthMonitor(now: ProcessInfo.processInfo.systemUptime)
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    guard !Task.isCancelled, let self, let player,
+                          self.controller?.player === player, self.shownRequestID == requestID else { return }
+                    let event = health.sample(now: ProcessInfo.processInfo.systemUptime,
+                        mediaTime: player.currentTime().seconds, playing: player.timeControlStatus == .playing,
+                        paused: player.timeControlStatus == .paused && player.currentItem?.status != .unknown,
+                        ready: self.controller?.isReadyForDisplay == true,
+                        itemFailed: player.currentItem?.status == .failed)
+                    switch event {
+                    case .confirmed(let startup): self.onConfirmed(requestID, startup)
+                    case .stalled:
+                        self.onStall(requestID, player.currentItem?.error?.localizedDescription
+                            ?? (health.confirmed ? "播放中断，暂时无法恢复。" : "20 秒内没有出现画面。"))
+                        return
+                    case nil: break
+                    }
+                }
+            }
         }
 
         func playerViewControllerDidEndDismissalTransition(
             _ playerViewController: AVPlayerViewController
         ) {
+            endObserver.stop()
             stallWatchdog?.cancel()
             stallWatchdog = nil
             playerViewController.player?.pause()

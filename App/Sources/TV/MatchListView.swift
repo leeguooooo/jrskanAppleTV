@@ -46,6 +46,11 @@ struct MatchListView: View {
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 40)
 
+            ScoreFreshnessLine(now: now)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 6)
+
             controlRow
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 26)
@@ -54,7 +59,7 @@ struct MatchListView: View {
 
             if let errorMessage = model.errorMessage {
                 NoticeBanner(
-                    message: "刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
+                    message: "赛程刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
                     tone: .warning,
                     actionTitle: "重试",
                     action: { Task { await model.refresh() } }
@@ -96,7 +101,7 @@ struct MatchListView: View {
         if live > 0 { parts.append("\(live) 场进行中") }
         if model.hotCount > 0 { parts.append("\(model.hotCount) 场热门") }
         if let updated = model.lastUpdated {
-            parts.append("更新于 \(Self.clockFormatter.string(from: updated))")
+            parts.append("赛程 \(Self.clockFormatter.string(from: updated))")
         }
         return parts.joined(separator: " · ")
     }
@@ -149,6 +154,12 @@ struct MatchListView: View {
     private var matchList: some View {
         ScrollView {
             LazyVStack(spacing: 18) {
+                if model.filter != .recent, let match = model.continueMatch {
+                    NavigationLink {
+                        MatchDetailView(match: match, preferences: preferences, autoplay: true)
+                    } label: { ContinueWatchingLabel(match: match) }
+                    .buttonStyle(FocusCardButtonStyle())
+                }
                 ForEach(model.sections) { section in
                     SectionHeader(
                         title: section.title,

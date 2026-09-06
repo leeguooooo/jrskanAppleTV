@@ -10,16 +10,16 @@ struct SettingsScreen: View {
             Section {
                 Toggle(isOn: $preferences.autoNextChannel) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("线路失效时自动换下一条")
-                        Text("解析失败或 20 秒没有画面时，直接尝试下一条线路。")
+                        Text("线路失效时自动换线")
+                        Text("无画面或恢复失败时自动换线，正常暂停不受影响。")
                             .font(.caption)
                             .foregroundStyle(Palette.secondaryText)
                     }
                 }
                 Toggle(isOn: $preferences.autoRefresh) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("自动刷新赛程")
-                        Text("列表停留时每 5 分钟更新一次，回到前台也会检查。")
+                        Text("自动刷新赛程与比分")
+                        Text("赛程每 5 分钟、比分每 30 秒检查；回到前台也会检查。")
                             .font(.caption)
                             .foregroundStyle(Palette.secondaryText)
                     }

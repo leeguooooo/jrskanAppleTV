@@ -10,8 +10,14 @@ struct RegularMatchListScreen: View {
 
     @State private var now = Date()
     @State private var selection: LiveMatch?
+    @State private var selectionAutoplay = false
+    @State private var selectionToken = UUID()
     @State private var showsSettings = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
+    #if DEBUG
+    @State private var appliedDebugRoute = false
+    #endif
 
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -40,10 +46,15 @@ struct RegularMatchListScreen: View {
         // disagree about what is selected.
         .onChange(of: model.filter) { _, _ in selection = nil }
         #if DEBUG
-        .onChange(of: model.matches.isEmpty) { _, isEmpty in
-            guard !isEmpty, selection == nil,
-                  let target = DebugRoute.target(in: model.filteredMatches) else { return }
-            selection = target
+        .onChange(of: model.isLoading) { _, loading in
+            guard !loading, !model.matches.isEmpty, !appliedDebugRoute, selection == nil else { return }
+            if DebugRoute.raw == "resume", let match = model.continueMatch {
+                appliedDebugRoute = true
+                select(match, autoplay: true)
+            } else if let target = DebugRoute.target(in: model.filteredMatches) {
+                appliedDebugRoute = true
+                select(target)
+            }
         }
         #endif
     }
@@ -72,7 +83,7 @@ struct RegularMatchListScreen: View {
             }
         }
         .navigationTitle("JRKAN")
-        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
         .toolbar {
             ToolbarItem {
                 Button {
@@ -94,7 +105,7 @@ struct RegularMatchListScreen: View {
         .navigationTitle(model.filter == .all ? "今日比赛" : model.filter.rawValue)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationSplitViewColumnWidth(min: 380, ideal: 520)
+        .navigationSplitViewColumnWidth(min: 300, ideal: 420, max: 620)
         .searchable(text: $model.searchText, placement: .navigationBarDrawer, prompt: "搜索球队或联赛")
         .searchSuggestions {
             if model.searchText.isEmpty {
@@ -140,7 +151,7 @@ struct RegularMatchListScreen: View {
     /// One card per row in a narrow pane, more as it widens. `.adaptive` does
     /// the counting, so multitasking and window resizing need no extra code.
     private var columns: [GridItem] {
-        [GridItem(.adaptive(minimum: 360), spacing: 12, alignment: .top)]
+        [GridItem(.adaptive(minimum: 320), spacing: 12, alignment: .top)]
     }
 
     private var isSearching: Bool { !model.searchText.isEmpty }
@@ -149,10 +160,15 @@ struct RegularMatchListScreen: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
                 summary.padding(.horizontal, 16)
+                ScoreFreshnessLine(now: now).padding(.horizontal, 16)
+                if !isSearching, model.filter != .recent, let match = model.continueMatch {
+                    Button { select(match, autoplay: true) } label: { ContinueWatchingLabel(match: match) }
+                        .buttonStyle(.plain).padding(.horizontal, 16)
+                }
 
                 if let errorMessage = model.errorMessage {
                     TouchNotice(
-                        message: "刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
+                        message: "赛程刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
                         actionTitle: "重试",
                         action: { Task { await model.refresh() } }
                     )
@@ -186,7 +202,7 @@ struct RegularMatchListScreen: View {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(matches) { match in
                     Button {
-                        selection = match
+                        select(match)
                     } label: {
                         TouchMatchRow(match: match, now: now)
                             .overlay(
@@ -234,7 +250,7 @@ struct RegularMatchListScreen: View {
         let live = model.liveCount
         if live > 0 { parts.append("\(live) 场进行中") }
         if let updated = model.lastUpdated {
-            parts.append("更新于 \(Self.clockFormatter.string(from: updated))")
+            parts.append("赛程 \(Self.clockFormatter.string(from: updated))")
         }
         return parts.joined(separator: " · ")
     }
@@ -263,16 +279,22 @@ struct RegularMatchListScreen: View {
         }
     }
 
+    private func select(_ match: LiveMatch, autoplay: Bool = false) {
+        selectionAutoplay = autoplay
+        selectionToken = UUID()
+        selection = match
+    }
+
     // MARK: - Detail
 
     @ViewBuilder
     private var detail: some View {
         if let selection {
-            MatchDetailScreen(match: selection, preferences: preferences)
+            MatchDetailScreen(match: selection, preferences: preferences, autoplay: selectionAutoplay)
                 // Rebuild the screen (and its playback model) when the viewer
                 // picks a different match; without an identity the pane keeps
                 // the first match's channels.
-                .id(selection.id)
+                .id(selectionToken)
         } else {
             ZStack {
                 TouchBackground()

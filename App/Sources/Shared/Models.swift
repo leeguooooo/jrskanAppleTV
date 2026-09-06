@@ -1,6 +1,6 @@
 import Foundation
 
-struct LiveMatch: Identifiable, Hashable, Sendable {
+struct LiveMatch: Identifiable, Hashable, Sendable, Codable {
     let id: String
     let league: String
     let time: String
@@ -15,14 +15,14 @@ struct LiveMatch: Identifiable, Hashable, Sendable {
     var scoreText: String? { providerState?.scoreText }
 }
 
-struct MatchSource: Identifiable, Hashable, Sendable {
+struct MatchSource: Identifiable, Hashable, Sendable, Codable {
     let id: String
     let name: String
     let pageURL: URL
 }
 
 /// Status codes and period clocks used by jrs03.com's page.live script.
-struct ProviderMatchState: Hashable, Sendable {
+struct ProviderMatchState: Hashable, Sendable, Codable {
     let sportID: Int
     let code: Int
     let periodStartedAt: Date
@@ -30,6 +30,34 @@ struct ProviderMatchState: Hashable, Sendable {
     var matchType = 0
     var homeScore: Int? = nil
     var awayScore: Int? = nil
+    var homeHalfScore: Int? = nil
+    var awayHalfScore: Int? = nil
+    var homeCorners: Int? = nil
+    var awayCorners: Int? = nil
+
+    var halftimeText: String? {
+        // hs1/hs2 are football fields. The site's basketball columns show
+        // score difference and total, not the zero-filled hs placeholders.
+        guard sportID == 1, (2...7).contains(code) else { return nil }
+        return pair(homeHalfScore, awayHalfScore)
+    }
+
+    var basketballSummary: (difference: Int, total: Int)? {
+        guard sportID == 2, scoreText != nil, let homeScore, let awayScore else { return nil }
+        let (total, overflow) = homeScore.addingReportingOverflow(awayScore)
+        guard !overflow else { return nil }
+        return (abs(homeScore - awayScore), total)
+    }
+
+    var cornersText: String? {
+        guard sportID == 1, code != 0 else { return nil }
+        return pair(homeCorners, awayCorners)
+    }
+
+    private func pair(_ home: Int?, _ away: Int?) -> String? {
+        guard let home, let away, home >= 0, away >= 0 else { return nil }
+        return "\(home) - \(away)"
+    }
 
     var scoreText: String? {
         guard code != 0, let homeScore, let awayScore,
@@ -233,6 +261,7 @@ enum MatchSchedule {
 
 enum SportFilter: String, CaseIterable, Identifiable {
     case all = "全部"
+    case recent = "最近观看"
     case followed = "关注"
     case hot = "热门"
     case basketball = "篮球"
@@ -243,6 +272,7 @@ enum SportFilter: String, CaseIterable, Identifiable {
     var systemImage: String? {
         switch self {
         case .all: return nil
+        case .recent: return "clock.arrow.circlepath"
         case .followed: return "star.fill"
         case .hot: return "flame.fill"
         case .basketball: return "basketball.fill"
@@ -254,6 +284,8 @@ enum SportFilter: String, CaseIterable, Identifiable {
         switch self {
         case .all:
             return true
+        case .recent:
+            return false // MatchListModel uses the saved match snapshots for this filter.
         case .followed:
             return favorites.contains(match.homeTeam) || favorites.contains(match.awayTeam)
         case .hot:

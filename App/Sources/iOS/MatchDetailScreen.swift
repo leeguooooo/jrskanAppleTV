@@ -8,7 +8,10 @@ struct MatchDetailScreen: View {
     @State private var now = Date()
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    init(match: LiveMatch, preferences: Preferences) {
+    private let autoplay: Bool
+
+    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = false) {
+        self.autoplay = autoplay
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
 
@@ -43,12 +46,11 @@ struct MatchDetailScreen: View {
         .onReceive(minuteTick) { now = $0 }
         .task(id: match.id) {
             await model.loadChannels()
+            var shouldPlay = autoplay
             #if DEBUG
-            if DebugRoute.autoplay, let target = model.suggestedChannel,
-               let index = model.resolvedChannels.firstIndex(of: target) {
-                await model.startPlayback(at: index)
-            }
+            shouldPlay = shouldPlay || DebugRoute.autoplay
             #endif
+            if shouldPlay { await model.startSuggestedPlayback() }
         }
         .fullScreenCover(isPresented: Binding(
             get: { model.playback != nil },
@@ -74,6 +76,12 @@ struct MatchDetailScreen: View {
                 teamBlock(name: match.homeTeam, logo: match.homeLogoURL)
                 kickoffColumn
                 teamBlock(name: match.awayTeam, logo: match.awayLogoURL)
+            }
+            MatchStatisticsView(match: match)
+            if match.providerState != nil {
+                ScoreFreshnessLine(now: now)
+            } else {
+                Text("本场实时数据暂不可用").font(.caption).foregroundStyle(Palette.secondaryText)
             }
         }
         .touchCard()

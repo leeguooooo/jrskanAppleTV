@@ -66,14 +66,14 @@ struct SettingsView: View {
     private var playbackSection: some View {
         SettingsGroup(title: "播放与刷新") {
             SettingsToggleRow(
-                title: "线路失效时自动换下一条",
-                subtitle: "解析失败或 20 秒没有画面时，直接尝试下一条线路。",
+                title: "线路失效时自动换线",
+                subtitle: "无画面或恢复失败时自动换线，正常暂停不受影响。",
                 systemImage: "arrow.triangle.2.circlepath",
                 isOn: $preferences.autoNextChannel
             )
             SettingsToggleRow(
-                title: "自动刷新赛程",
-                subtitle: "列表停留时每 5 分钟更新一次，回到前台也会检查。",
+                title: "自动刷新赛程与比分",
+                subtitle: "赛程每 5 分钟、比分每 30 秒检查；回到前台也会检查。",
                 systemImage: "clock.arrow.circlepath",
                 isOn: $preferences.autoRefresh
             )
@@ -91,7 +91,7 @@ struct SettingsView: View {
             )
             SettingsActionRow(
                 title: clearedHistory ? "已清除" : "清除关注与观看记录",
-                subtitle: "移除所有关注球队和「上次线路」记忆。",
+                subtitle: "移除关注球队、最近观看和线路偏好。",
                 systemImage: "trash",
                 isDisabled: !preferences.hasHistory
             ) {

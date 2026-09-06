@@ -21,12 +21,16 @@ struct JRKANiOSApp: App {
                 .preferredColorScheme(.dark)
                 .tint(Palette.accent)
                 .task {
-                    await model.loadIfNeeded()
                     model.startAutoRefresh()
+                    await model.loadIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, phase in
-                    guard phase == .active else { return }
-                    Task { await model.refreshIfStale() }
+                    if phase == .active {
+                        model.startAutoRefresh()
+                        Task { await model.refreshIfStale() }
+                    } else if phase == .background {
+                        model.stopAutoRefresh()
+                    }
                 }
         }
     }

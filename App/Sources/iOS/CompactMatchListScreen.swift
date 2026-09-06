@@ -6,6 +6,11 @@ struct CompactMatchListScreen: View {
 
     @State private var now = Date()
     @State private var path = NavigationPath()
+    @State private var resumeMatchID: String?
+    #if DEBUG
+    @State private var appliedDebugRoute = false
+    #endif
+
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -28,7 +33,7 @@ struct CompactMatchListScreen: View {
                 }
             }
             .navigationDestination(for: LiveMatch.self) { match in
-                MatchDetailScreen(match: match, preferences: preferences)
+                MatchDetailScreen(match: match, preferences: preferences, autoplay: resumeMatchID == match.id)
             }
             .searchable(text: $model.searchText, prompt: "搜索球队或联赛")
             .searchSuggestions {
@@ -39,11 +44,19 @@ struct CompactMatchListScreen: View {
                 }
             }
         }
+        .onChange(of: path.count) { _, count in if count == 0 { resumeMatchID = nil } }
         .onReceive(minuteTick) { now = $0 }
         #if DEBUG
-        .onChange(of: model.matches.isEmpty) { _, isEmpty in
-            guard !isEmpty, path.isEmpty, let target = DebugRoute.target(in: model.filteredMatches) else { return }
-            path.append(target)
+        .onChange(of: model.isLoading) { _, loading in
+            guard !loading, !model.matches.isEmpty, !appliedDebugRoute, path.isEmpty else { return }
+            if DebugRoute.raw == "resume", let match = model.continueMatch {
+                appliedDebugRoute = true
+                resumeMatchID = match.id
+                path.append(match)
+            } else if let target = DebugRoute.target(in: model.filteredMatches) {
+                appliedDebugRoute = true
+                path.append(target)
+            }
         }
         #endif
     }
@@ -78,6 +91,12 @@ struct CompactMatchListScreen: View {
                 summary
                     .padding(.horizontal, 16)
 
+                ScoreFreshnessLine(now: now).padding(.horizontal, 16)
+                if !isSearching, model.filter != .recent, let match = model.continueMatch {
+                    Button { resumeMatchID = match.id; path.append(match) } label: { ContinueWatchingLabel(match: match) }
+                        .buttonStyle(.plain).padding(.horizontal, 16)
+                }
+
                 if !isSearching {
                     TouchCategoryBar(
                         selection: $model.filter,
@@ -88,7 +107,7 @@ struct CompactMatchListScreen: View {
 
                 if let errorMessage = model.errorMessage {
                     TouchNotice(
-                        message: "刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
+                        message: "赛程刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
                         actionTitle: "重试",
                         action: { Task { await model.refresh() } }
                     )
@@ -126,7 +145,7 @@ struct CompactMatchListScreen: View {
         let live = model.liveCount
         if live > 0 { parts.append("\(live) 场进行中") }
         if let updated = model.lastUpdated {
-            parts.append("更新于 \(Self.clockFormatter.string(from: updated))")
+            parts.append("赛程 \(Self.clockFormatter.string(from: updated))")
         }
         return parts.joined(separator: " · ")
     }

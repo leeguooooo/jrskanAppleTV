@@ -16,6 +16,10 @@ enum JRSClientError: LocalizedError {
 }
 
 struct JRSClient {
+    struct Schedule {
+        let matches: [LiveMatch]
+        let eventURL: URL?
+    }
     static let defaultHomepage = URL(string: "https://www.jrs03.com/")!
     static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15"
@@ -33,6 +37,16 @@ struct JRSClient {
     }
 
     func fetchMatches() async throws -> [LiveMatch] {
+        let schedule = try await fetchSchedule()
+        guard let eventURL = schedule.eventURL else { return schedule.matches }
+        do { return try await fetchEvents(from: eventURL).applying(to: schedule.matches) }
+        catch {
+            try Task.checkCancellation()
+            return schedule.matches
+        }
+    }
+
+    func fetchSchedule() async throws -> Schedule {
         let homepage = try await fetchText(from: homepageURL)
         guard let scriptURL = listingScriptURL(in: homepage) else {
             throw JRSClientError.missingListingScript
@@ -47,21 +61,25 @@ struct JRSClient {
         // the event snapshot configured by njs.js, including removing stale rows.
         do {
             guard let configURL = EventSnapshot.configURL(in: homepage, baseURL: homepageURL) else {
-                return matches
+                return Schedule(matches: matches, eventURL: nil)
             }
             let config = try await fetchText(from: configURL)
             guard let eventURL = EventSnapshot.eventURL(in: config, baseURL: configURL) else {
-                return matches
+                return Schedule(matches: matches, eventURL: nil)
             }
-            let snapshot = try EventSnapshot.parse(try await fetchText(from: eventURL))
-            return snapshot.applying(to: matches)
+            return Schedule(matches: matches, eventURL: eventURL)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
             // A missing/broken event feed must not erase the schedule or invent
             // live/final status. The static list remains usable without badges.
-            return matches
+            try Task.checkCancellation()
+            return Schedule(matches: matches, eventURL: nil)
         }
+    }
+
+    func fetchEvents(from url: URL) async throws -> EventSnapshot {
+        try EventSnapshot.parse(try await fetchText(from: url))
     }
 
     private func listingScriptURL(in html: String) -> URL? {
@@ -100,6 +118,7 @@ struct EventSnapshot {
         let state: ProviderMatchState
     }
     let events: [String: Event]
+    let updatedAt: Date
 
     static func configURL(in html: String, baseURL: URL) -> URL? {
         guard let raw = html.regexCaptures(
@@ -166,9 +185,13 @@ struct EventSnapshot {
                     periodStartedAt: Date(timeIntervalSince1970: period / 1000), updatedAt: updatedAt,
                     matchType: values["mtype"] as? Int ?? 0,
                     homeScore: values["s1"] as? Int,
-                    awayScore: values["s2"] as? Int))
+                    awayScore: values["s2"] as? Int,
+                    homeHalfScore: values["hs1"] as? Int,
+                    awayHalfScore: values["hs2"] as? Int,
+                    homeCorners: values["corner1"] as? Int,
+                    awayCorners: values["corner2"] as? Int))
         }
-        return EventSnapshot(events: events)
+        return EventSnapshot(events: events, updatedAt: updatedAt)
     }
 
     func applying(to matches: [LiveMatch]) -> [LiveMatch] {

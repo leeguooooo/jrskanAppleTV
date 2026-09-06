@@ -10,6 +10,29 @@ final class Preferences: ObservableObject {
         let watchedAt: Date
     }
 
+    struct RecentWatch: Codable, Identifiable {
+        let match: LiveMatch
+        let channelName: String
+        let watchedAt: Date
+        var id: String { match.id }
+    }
+
+    struct ChannelPerformance: Codable {
+        var successes = 0
+        var failures = 0
+        var averageStartup: TimeInterval = 20
+        var lastFailure: Date?
+        var updatedAt = Date()
+        var reliability: Double { Double(successes + 1) / Double(successes + failures + 2) }
+    }
+
+    @Published private(set) var recentWatches: [RecentWatch] {
+        didSet { if let data = try? JSONEncoder().encode(recentWatches) { store.set(data, forKey: Keys.recentWatches) } }
+    }
+    @Published private(set) var channelPerformance: [String: ChannelPerformance] {
+        didSet { if let data = try? JSONEncoder().encode(channelPerformance) { store.set(data, forKey: Keys.channelPerformance) } }
+    }
+
     @Published var favoriteTeams: Set<String> {
         didSet { store.set(Array(favoriteTeams).sorted(), forKey: Keys.favoriteTeams) }
     }
@@ -45,6 +68,8 @@ final class Preferences: ObservableObject {
         static let autoNextChannel = "autoNextChannel"
         static let lastFilter = "lastFilter"
         static let lastChannels = "lastChannels"
+        static let recentWatches = "recentWatches"
+        static let channelPerformance = "channelPerformance"
     }
 
     init(store: UserDefaults = .standard) {
@@ -63,6 +88,10 @@ final class Preferences: ObservableObject {
             remembered = decoded.filter { $0.value.watchedAt > cutoff }
         }
         lastChannels = remembered
+        let recent = store.data(forKey: Keys.recentWatches).flatMap { try? JSONDecoder().decode([RecentWatch].self, from: $0) } ?? []
+        recentWatches = Array(recent.filter { Date().timeIntervalSince($0.watchedAt) < 7 * 86400 }.prefix(10))
+        let performance = store.data(forKey: Keys.channelPerformance).flatMap { try? JSONDecoder().decode([String: ChannelPerformance].self, from: $0) } ?? [:]
+        channelPerformance = performance.filter { Date().timeIntervalSince($0.value.updatedAt) < 30 * 86400 }
     }
 
     // MARK: Favorites
@@ -93,13 +122,68 @@ final class Preferences: ObservableObject {
         lastChannels[matchID]
     }
 
+    func recordPlaybackSuccess(match: LiveMatch, source: MatchSource, index: Int,
+                               startup: TimeInterval, now: Date = Date()) {
+        lastChannels[match.id] = LastChannel(name: source.name, index: index, watchedAt: now)
+        var saved = match
+        saved.providerState = nil // History never pretends old live data is current.
+        recentWatches.removeAll { $0.id == match.id || now.timeIntervalSince($0.watchedAt) >= 7 * 86400 }
+        recentWatches.insert(RecentWatch(match: saved, channelName: source.name, watchedAt: now), at: 0)
+        recentWatches = Array(recentWatches.prefix(10))
+        let key = source.pageURL.absoluteString
+        var performance = channelPerformance[key] ?? ChannelPerformance()
+        let elapsed = min(120, max(0, startup))
+        performance.averageStartup = performance.successes == 0 ? elapsed
+            : performance.averageStartup * 0.7 + elapsed * 0.3
+        performance.successes += 1
+        performance.lastFailure = nil
+        performance.updatedAt = now
+        channelPerformance[key] = performance
+        prunePerformance(now: now)
+    }
+
+    func recordPlaybackFailure(source: MatchSource, now: Date = Date()) {
+        let key = source.pageURL.absoluteString
+        var performance = channelPerformance[key] ?? ChannelPerformance()
+        performance.failures += 1
+        performance.lastFailure = now
+        performance.updatedAt = now
+        channelPerformance[key] = performance
+        prunePerformance(now: now)
+    }
+
+    private func prunePerformance(now: Date) {
+        let kept = channelPerformance.filter { now.timeIntervalSince($0.value.updatedAt) < 30 * 86400 }
+            .sorted { $0.value.updatedAt > $1.value.updatedAt }.prefix(300)
+        channelPerformance = Dictionary(uniqueKeysWithValues: kept.map { ($0.key, $0.value) })
+    }
+
+    func rankedIndices(for sources: [MatchSource], matchID: String, now: Date = Date()) -> [Int] {
+        sources.indices.sorted { lhs, rhs in
+            let a = channelPerformance[sources[lhs].pageURL.absoluteString] ?? ChannelPerformance()
+            let b = channelPerformance[sources[rhs].pageURL.absoluteString] ?? ChannelPerformance()
+            let aCooling = a.lastFailure.map { now.timeIntervalSince($0) < 300 } ?? false
+            let bCooling = b.lastFailure.map { now.timeIntervalSince($0) < 300 } ?? false
+            if aCooling != bCooling { return !aCooling }
+            let last = lastChannels[matchID]?.name
+            let aRemembered = a.successes > 0 && sources[lhs].name == last
+            let bRemembered = b.successes > 0 && sources[rhs].name == last
+            if aRemembered != bRemembered { return aRemembered }
+            if a.reliability != b.reliability { return a.reliability > b.reliability }
+            if a.averageStartup != b.averageStartup { return a.averageStartup < b.averageStartup }
+            return lhs < rhs
+        }
+    }
+
     var hasHistory: Bool {
-        !favoriteTeams.isEmpty || !lastChannels.isEmpty
+        !favoriteTeams.isEmpty || !lastChannels.isEmpty || !recentWatches.isEmpty || !channelPerformance.isEmpty
     }
 
     func clearHistory() {
         favoriteTeams = []
         lastChannels = [:]
+        recentWatches = []
+        channelPerformance = [:]
         lastFilter = .all
     }
 }

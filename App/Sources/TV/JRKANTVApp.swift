@@ -11,15 +11,19 @@ struct JRKANApp: App {
                 .environmentObject(model)
                 .environmentObject(model.preferences)
                 .task {
-                    await model.loadIfNeeded()
                     model.startAutoRefresh()
+                    await model.loadIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     // Coming back from the Home screen after a while: the
                     // schedule on screen is stale, and the viewer expects
                     // "now" without having to find the refresh button.
-                    guard phase == .active else { return }
-                    Task { await model.refreshIfStale() }
+                    if phase == .active {
+                        model.startAutoRefresh()
+                        Task { await model.refreshIfStale() }
+                    } else if phase == .background {
+                        model.stopAutoRefresh()
+                    }
                 }
         }
     }

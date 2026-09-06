@@ -18,6 +18,7 @@ struct TouchPlayerScreen: View {
     @State private var shownRequestID: UUID?
     @State private var fillsScreen = false
     @StateObject private var displayState = PlaybackDisplayState()
+    @StateObject private var endObserver = PlaybackEndObserver()
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -27,7 +28,14 @@ struct TouchPlayerScreen: View {
                             displayState: displayState)
                 .ignoresSafeArea()
 
-            overlay
+            VStack(spacing: 8) {
+                overlay
+                if model.resolvingIndex != nil {
+                    Label("正在恢复播放…", systemImage: "arrow.clockwise")
+                        .font(.footnote).foregroundStyle(.white)
+                        .padding(8).background(.black.opacity(0.6), in: Capsule())
+                }
+            }
         }
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
@@ -38,9 +46,11 @@ struct TouchPlayerScreen: View {
         .onChange(of: model.playback?.id) { _, _ in load(model.playback) }
         .onDisappear {
             watchdog?.cancel()
+            endObserver.stop()
             player.pause()
             player.replaceCurrentItem(with: nil)
             Orientation.restoreDefault()
+            model.stopPlayback()
         }
     }
 
@@ -90,28 +100,36 @@ struct TouchPlayerScreen: View {
         let item = AVPlayerItem(url: request.url)
         item.externalMetadata = metadataItems(for: request)
         player.replaceCurrentItem(with: item)
+        endObserver.observe(item) { [weak model] in
+            model?.handleStall("播放已停止，请重试或切换线路。", requestID: request.id)
+        }
         player.allowsExternalPlayback = true
         player.play()
-        startWatchdog()
+        startWatchdog(requestID: request.id)
     }
 
-    /// A resolved URL is not a working stream. These links go stale
-    /// constantly — the match ends, the host rotates — and `AVPlayer` reports
-    /// that by simply buffering forever. Same 20-second rule as the TV.
-    private func startWatchdog() {
+    private func startWatchdog(requestID: UUID) {
         watchdog?.cancel()
         watchdog = Task { @MainActor in
-            for _ in 0..<40 {
+            var health = PlaybackHealthMonitor(now: ProcessInfo.processInfo.systemUptime)
+            while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 500_000_000)
-                if Task.isCancelled { return }
-                if player.currentItem?.status == .failed {
-                    model.handleStall(player.currentItem?.error?.localizedDescription ?? "线路返回的地址无法播放。")
+                guard !Task.isCancelled, model.playback?.id == requestID else { return }
+                let event = health.sample(now: ProcessInfo.processInfo.systemUptime,
+                    mediaTime: player.currentTime().seconds, playing: player.timeControlStatus == .playing,
+                    paused: player.timeControlStatus == .paused && player.currentItem?.status != .unknown,
+                    ready: displayState.controller?.isReadyForDisplay == true,
+                    itemFailed: player.currentItem?.status == .failed)
+                switch event {
+                case .confirmed(let startup):
+                    model.confirmPlayback(requestID: requestID, startupSeconds: startup)
+                case .stalled:
+                    model.handleStall(player.currentItem?.error?.localizedDescription
+                        ?? (health.confirmed ? "播放中断，暂时无法恢复。" : "20 秒内没有出现画面。"), requestID: requestID)
                     return
+                case nil: break
                 }
-                if player.timeControlStatus == .playing,
-                   displayState.controller?.isReadyForDisplay == true { return }
             }
-            model.handleStall("线路连上了，但 20 秒内没有画面，多半已经失效。换一条试试。")
         }
     }
 

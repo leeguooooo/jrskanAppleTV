@@ -15,7 +15,10 @@ struct MatchDetailView: View {
 
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    init(match: LiveMatch, preferences: Preferences) {
+    private let autoplay: Bool
+
+    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = false) {
+        self.autoplay = autoplay
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
 
@@ -48,6 +51,7 @@ struct MatchDetailView: View {
         .task(id: match.id) {
             await model.loadChannels()
             focusSuggestedChannel()
+            if autoplay { await model.startSuggestedPlayback() }
         }
         .background(
             PlayerPresenter(
@@ -57,9 +61,9 @@ struct MatchDetailView: View {
                 onSelectChannel: { index in
                     Task { await model.startPlayback(at: index) }
                 },
-                onStall: { message in
-                    model.handleStall(message)
-                }
+                onStall: { id, message in model.handleStall(message, requestID: id) },
+                onConfirmed: { id, startup in model.confirmPlayback(requestID: id, startupSeconds: startup) },
+                onStop: { model.stopPlayback() }
             )
         )
     }
@@ -93,6 +97,12 @@ struct MatchDetailView: View {
                 teamBlock(name: match.awayTeam, logo: match.awayLogoURL)
             }
             .frame(maxWidth: .infinity)
+            MatchStatisticsView(match: match)
+            if match.providerState != nil {
+                ScoreFreshnessLine(now: now)
+            } else {
+                Text("本场实时数据暂不可用").font(.caption).foregroundStyle(Palette.secondaryText)
+            }
         }
     }
 

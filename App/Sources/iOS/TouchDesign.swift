@@ -78,32 +78,9 @@ struct TouchMatchRow: View {
                 trailingStatus
             }
 
-            HStack(spacing: 10) {
-                TeamCrest(url: match.homeLogoURL, teamName: match.homeTeam, size: TouchMetrics.crest)
-                Text(match.homeTeam)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Palette.primaryText)
-                    .lineLimit(2)
-                    // The card also has to survive an iPad's narrow middle
-                    // column, where a two-word club name would otherwise wrap.
-                    .minimumScaleFactor(0.75)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(match.scoreText ?? "VS")
-                    .font(.subheadline.monospacedDigit().weight(.bold))
-                    .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .frame(width: 72)
-
-                Text(match.awayTeam)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Palette.primaryText)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam, size: TouchMetrics.crest)
+            ViewThatFits(in: .horizontal) {
+                wideFixture.frame(minWidth: 420)
+                narrowFixture
             }
 
             HStack(spacing: 8) {
@@ -118,6 +95,68 @@ struct TouchMatchRow: View {
         }
         .touchCard()
         .accessibilityElement(children: .combine)
+    }
+
+    private var wideFixture: some View {
+        HStack(spacing: 10) {
+            TeamCrest(url: match.homeLogoURL, teamName: match.homeTeam, size: TouchMetrics.crest)
+            Text(match.homeTeam)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Palette.primaryText)
+                .lineLimit(2)
+                // The card also has to survive an iPad's narrow middle
+                // column, where a two-word club name would otherwise wrap.
+                .minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(match.scoreText ?? "VS")
+                .font(.subheadline.monospacedDigit().weight(.bold))
+                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 72)
+
+            Text(match.awayTeam)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Palette.primaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam, size: TouchMetrics.crest)
+            }
+
+    }
+
+
+    private var narrowFixture: some View {
+        VStack(spacing: 12) {
+            narrowTeam(match.homeTeam, logo: match.homeLogoURL,
+                       score: match.scoreText == nil ? nil : match.providerState?.homeScore)
+            narrowTeam(match.awayTeam, logo: match.awayLogoURL,
+                       score: match.scoreText == nil ? nil : match.providerState?.awayScore)
+        }
+        .overlay(alignment: .trailing) {
+            if match.scoreText == nil {
+                Text("VS").font(.caption.weight(.heavy))
+                    .foregroundStyle(Palette.tertiaryText).frame(width: 52)
+            }
+        }
+    }
+
+    private func narrowTeam(_ name: String, logo: URL?, score: Int?) -> some View {
+        HStack(spacing: 10) {
+            TeamCrest(url: logo, teamName: name, size: 36)
+            Text(name).font(.subheadline.weight(.semibold))
+                .foregroundStyle(Palette.primaryText)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(score.map(String.init) ?? " ")
+                .font(.title3.monospacedDigit().weight(.bold))
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .foregroundStyle(Palette.primaryText).frame(width: 52, alignment: .trailing)
+        }
+        .frame(minHeight: 40)
     }
 
     @ViewBuilder

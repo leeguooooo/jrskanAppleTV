@@ -9,6 +9,7 @@ import Foundation
 ///     xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route play:live
 ///
 /// Routes:
+///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter
 ///   play:<n>        open it and start the suggested channel
 ///   play:live       open the most recently started live match that has
