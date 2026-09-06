@@ -5,15 +5,18 @@ enum StreamResolverError: LocalizedError {
     case noPlayableStream
     case invalidResponse
     case tooManyRedirects
+    case unavailableStream
 
     var errorDescription: String? {
         switch self {
         case .noPlayableStream:
-            return "这条线路没有暴露 Apple 原生播放器可用的 HLS 地址。"
+            return "这条线路暂未提供可播放的视频。"
         case .invalidResponse:
             return "线路页面暂时无法访问。"
         case .tooManyRedirects:
             return "线路嵌套层级异常，已停止继续解析。"
+        case .unavailableStream:
+            return "视频源暂不可用或尚未开播，请尝试其他线路。"
         }
     }
 }
@@ -38,37 +41,44 @@ struct StreamResolver {
     }
 
     func extractM3U8URL(in html: String, pageURL: URL) -> URL? {
+        extractM3U8URLs(in: html, pageURL: pageURL).first
+    }
+
+    private func extractM3U8URLs(in html: String, pageURL: URL) -> [URL] {
         let decoded = decodeHTMLEntities(html)
         if let restoredURL = restoredPlayerURL(in: decoded, pageURL: pageURL) {
-            return restoredURL
+            return [restoredURL]
         }
         let directPatterns = [
+            #"(?i)(?:src|file|url|m3u8Url)\s*[:=]\s*["']([^"'<>\s]+\.m3u8[^"'<>\s]*)["']"#,
             #"(?i)(https?://[^"'<>\\\s]+\.m3u8[^"'<>\\\s]*)"#,
             #"(?i)(//[^"'<>\\\s]+\.m3u8[^"'<>\\\s]*)"#
         ]
 
+        var candidates: [URL] = []
         for pattern in directPatterns {
-            if let url = decoded.regexCaptures(pattern)
+            candidates += decoded.regexCaptures(pattern)
                 .compactMap({ $0[safe: 1] })
                 .compactMap({ makeURL(from: $0, relativeTo: pageURL) })
-                .first(where: isM3U8URL)
-            {
-                return url
-            }
+                .filter(isM3U8URL)
         }
+        var seen = Set<URL>()
+        candidates = candidates.filter { seen.insert($0).inserted }
+        if !candidates.isEmpty { return candidates }
 
         // Some player wrappers build the stream as a fixed host plus the
         // current page's `id` query value.
         let hostPatterns = [
-            #"(?is)var\s+purl\s*=\s*["'](//[^"']+)["']\s*\+\s*id"#,
-            #"(?is)(?:const|var)\s+\w*[Uu]rl\s*=\s*["'](//[^"']+)["']\s*\+\s*id"#
+            #"(?is)(?:const|let|var)\s+\w*[Uu]rl\s*=\s*["']((?:https?:)?//[^"']+)["']\s*\+\s*id"#
         ]
         guard
             let components = URLComponents(url: pageURL, resolvingAgainstBaseURL: true),
-            let streamPath = components.queryItems?.first(where: { $0.name == "id" })?.value,
+            let query = components.percentEncodedQuery,
+            let idRange = query.range(of: #"(?:^|&)id="#, options: .regularExpression),
+            let streamPath = String(query[idRange.upperBound...]).removingPercentEncoding,
             streamPath.localizedCaseInsensitiveContains(".m3u8")
         else {
-            return nil
+            return []
         }
 
         for pattern in hostPatterns {
@@ -76,10 +86,10 @@ struct StreamResolver {
                 continue
             }
             if let url = makeURL(from: host + streamPath, relativeTo: pageURL) {
-                return url
+                return [url]
             }
         }
-        return nil
+        return []
     }
 
     /// The msss wrapper reverses the second-level domain in its `id` value.
@@ -149,43 +159,61 @@ struct StreamResolver {
         guard depth <= maximumDepth else {
             throw StreamResolverError.tooManyRedirects
         }
-        if pageURL.path.lowercased().contains(".m3u8") {
-            return pageURL
+        try Task.checkCancellation()
+        if isM3U8URL(pageURL) {
+            return try await validateStream(pageURL)
         }
         guard visited.insert(pageURL).inserted else {
             throw StreamResolverError.noPlayableStream
         }
 
-        let html = try await fetchText(from: pageURL, referer: referer)
-        if let streamURL = extractM3U8URL(in: html, pageURL: pageURL) {
-            return streamURL
+        let (html, effectiveURL) = try await fetchPage(from: pageURL, referer: referer)
+        if html.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#EXTM3U") {
+            guard hasMediaEntries(html) else { throw StreamResolverError.unavailableStream }
+            return effectiveURL
+        }
+        var lastError: Error = StreamResolverError.noPlayableStream
+        for streamURL in extractM3U8URLs(in: html, pageURL: effectiveURL) {
+            do { return try await validateStream(streamURL) }
+            catch {
+                try Task.checkCancellation()
+                lastError = error
+            }
+        }
+        do {
+            if let streamURL = try await encryptedHLSURL(in: html, pageURL: effectiveURL) {
+                return try await validateStream(streamURL)
+            }
+        } catch {
+            try Task.checkCancellation()
+            lastError = error
         }
 
-        if let streamURL = try await encryptedHLSURL(in: html, pageURL: pageURL) {
-            return streamURL
-        }
-
-        var nestedPlayerURLs = iframeURLs(in: html, pageURL: pageURL)
-        if
-            let generatedPlayerURL = try await generatedIframeURL(in: html, pageURL: pageURL),
-            !nestedPlayerURLs.contains(generatedPlayerURL)
-        {
-            nestedPlayerURLs.append(generatedPlayerURL)
+        var nestedPlayerURLs = iframeURLs(in: html, pageURL: effectiveURL)
+        do {
+            if let generatedPlayerURL = try await generatedIframeURL(in: html, pageURL: effectiveURL),
+               !nestedPlayerURLs.contains(generatedPlayerURL) {
+                nestedPlayerURLs.append(generatedPlayerURL)
+            }
+        } catch {
+            try Task.checkCancellation()
+            lastError = error
         }
 
         for iframeURL in nestedPlayerURLs {
             do {
                 return try await resolve(
                     pageURL: iframeURL,
-                    referer: pageURL,
+                    referer: effectiveURL,
                     depth: depth + 1,
                     visited: &visited
                 )
-            } catch StreamResolverError.noPlayableStream {
-                continue
+            } catch {
+                try Task.checkCancellation()
+                lastError = error
             }
         }
-        throw StreamResolverError.noPlayableStream
+        throw lastError
     }
 
     func generatedIframeURL(
@@ -310,6 +338,10 @@ struct StreamResolver {
     }
 
     private func fetchText(from url: URL, referer: URL) async throws -> String {
+        try await fetchPage(from: url, referer: referer).0
+    }
+
+    private func fetchPage(from url: URL, referer: URL) async throws -> (String, URL) {
         var request = URLRequest(url: url)
         request.timeoutInterval = 20
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -324,12 +356,31 @@ struct StreamResolver {
         }
 
         if let text = String(data: data, encoding: .utf8) {
-            return text
+            return (text, response.url ?? url)
         }
         if let text = String(data: data, encoding: .isoLatin1) {
-            return text
+            return (text, response.url ?? url)
         }
         throw StreamResolverError.invalidResponse
+    }
+
+    /// Reject an expired URL or HTML error page before opening a black player.
+    /// Successful parsing alone says nothing about the origin's availability.
+    private func validateStream(_ url: URL) async throws -> URL {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+              let text = String(data: data, encoding: .utf8),
+              text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#EXTM3U"),
+              hasMediaEntries(text)
+        else { throw StreamResolverError.unavailableStream }
+        return response.url ?? url
+    }
+
+    private func hasMediaEntries(_ text: String) -> Bool {
+        text.contains("#EXTINF:") || text.contains("#EXT-X-STREAM-INF:") || text.contains("#EXT-X-PART:")
     }
 
     private func makeURL(from rawValue: String, relativeTo pageURL: URL) -> URL? {
@@ -340,15 +391,19 @@ struct StreamResolver {
         if cleaned.hasPrefix("//") {
             return URL(string: "https:\(cleaned)")
         }
-        return URL(string: cleaned, relativeTo: pageURL)?.absoluteURL
+        guard let url = URL(string: cleaned, relativeTo: pageURL)?.absoluteURL,
+              ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return nil }
+        return url
     }
 
     private func isM3U8URL(_ url: URL) -> Bool {
-        url.path.localizedCaseInsensitiveContains(".m3u8")
+        url.path.lowercased().hasSuffix(".m3u8")
     }
 
     private func decodeHTMLEntities(_ value: String) -> String {
         value
+            .replacingOccurrences(of: #"\/"#, with: "/")
+            .replacingOccurrences(of: #"\u0026"#, with: "&", options: .caseInsensitive)
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&#39;", with: "'")

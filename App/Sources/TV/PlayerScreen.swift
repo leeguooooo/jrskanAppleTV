@@ -172,7 +172,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
                         )
                         return
                     }
-                    if player.timeControlStatus == .playing { return }
+                    if player.timeControlStatus == .playing,
+                       self?.controller?.isReadyForDisplay == true { return }
                 }
                 self?.reportStall("线路连上了，但 20 秒内没有画面，多半已经失效。换一条试试。")
             }

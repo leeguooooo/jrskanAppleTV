@@ -30,7 +30,8 @@ final class LiveSiteContractTests: XCTestCase {
         let matches = try await JRSClient().fetchMatches()
         XCTAssertFalse(matches.isEmpty)
 
-        let candidates = matches.flatMap(\.sources).prefix(12)
+        let liveMatches = matches.filter { MatchSchedule.status(for: $0).isLive }
+        let candidates = (liveMatches.isEmpty ? matches : liveMatches).flatMap(\.sources).prefix(12)
         XCTAssertFalse(candidates.isEmpty)
 
         let resolver = StreamResolver()
@@ -45,8 +46,8 @@ final class LiveSiteContractTests: XCTestCase {
             }
         }
 
-        throw XCTSkip(
-            "The listing contract passed, but sampled third-party routes were unavailable: "
+        XCTFail(
+            "No sampled route returned a valid HLS playlist: "
             + (lastError?.localizedDescription ?? "unknown error")
         )
     }

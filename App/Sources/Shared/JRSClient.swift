@@ -233,7 +233,7 @@ struct SourcePageClient {
             throw SourcePageClientError.invalidResponse
         }
 
-        let channels = parser.parse(html: html, relativeTo: sourcePageURL)
+        let channels = parser.parse(html: html, relativeTo: response.url ?? sourcePageURL)
         guard !channels.isEmpty else {
             throw SourcePageClientError.noChannels
         }

@@ -17,12 +17,14 @@ struct TouchPlayerScreen: View {
     @State private var watchdog: Task<Void, Never>?
     @State private var shownRequestID: UUID?
     @State private var fillsScreen = false
+    @StateObject private var displayState = PlaybackDisplayState()
 
     var body: some View {
         ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
 
-            PlayerContainer(player: player, gravity: fillsScreen ? .resizeAspectFill : .resizeAspect)
+            PlayerContainer(player: player, gravity: fillsScreen ? .resizeAspectFill : .resizeAspect,
+                            displayState: displayState)
                 .ignoresSafeArea()
 
             overlay
@@ -106,7 +108,8 @@ struct TouchPlayerScreen: View {
                     model.handleStall(player.currentItem?.error?.localizedDescription ?? "线路返回的地址无法播放。")
                     return
                 }
-                if player.timeControlStatus == .playing { return }
+                if player.timeControlStatus == .playing,
+                   displayState.controller?.isReadyForDisplay == true { return }
             }
             model.handleStall("线路连上了，但 20 秒内没有画面，多半已经失效。换一条试试。")
         }
@@ -128,9 +131,14 @@ struct TouchPlayerScreen: View {
     }
 }
 
+private final class PlaybackDisplayState: ObservableObject {
+    weak var controller: AVPlayerViewController?
+}
+
 private struct PlayerContainer: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
+    let displayState: PlaybackDisplayState
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
@@ -140,6 +148,7 @@ private struct PlayerContainer: UIViewControllerRepresentable {
         controller.updatesNowPlayingInfoCenter = true
         controller.videoGravity = gravity
         PlayerWatermark.install(on: controller)
+        displayState.controller = controller
         return controller
     }
 

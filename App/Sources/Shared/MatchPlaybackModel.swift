@@ -37,6 +37,7 @@ final class MatchPlaybackModel: ObservableObject {
 
     private let resolver: StreamResolver
     private let sourcePages: SourcePageClient
+    private var requestGeneration = 0
 
     init(
         match: LiveMatch,
@@ -78,7 +79,7 @@ final class MatchPlaybackModel: ObservableObject {
     func subtitle(for source: MatchSource, index: Int) -> String {
         if resolvingIndex == index { return "正在解析线路…" }
         if stalledIndices.contains(index) { return "刚才没有画面" }
-        if failedResolutionIndices.contains(index) { return "刚才解析失败" }
+        if failedResolutionIndices.contains(index) { return "刚才未能播放" }
         if channels?.isEmpty ?? true { return "备用入口 · 直接尝试播放" }
         if source.name.localizedCaseInsensitiveContains("高清") { return "高清频道" }
         return "主播解说"
@@ -143,6 +144,8 @@ final class MatchPlaybackModel: ObservableObject {
     func startPlayback(at startIndex: Int, resetStalls: Bool = true) async {
         let channels = resolvedChannels
         guard channels.indices.contains(startIndex) else { return }
+        requestGeneration += 1
+        let generation = requestGeneration
         if resetStalls {
             stalledIndices = []
             failedResolutionIndices = []
@@ -155,20 +158,24 @@ final class MatchPlaybackModel: ObservableObject {
         var attempts = 0
         var failures: [String] = []
 
-        defer { resolvingIndex = nil }
+        defer {
+            if requestGeneration == generation { resolvingIndex = nil }
+        }
 
         while channels.indices.contains(index), attempts < channels.count {
             let source = channels[index]
             resolvingIndex = index
             do {
                 let url = try await resolver.resolve(sourcePageURL: source.pageURL)
+                guard generation == requestGeneration, !Task.isCancelled else { return }
                 preferences.rememberChannel(matchID: match.id, name: source.name, index: index)
                 if index != startIndex {
-                    notice = "线路 \(startIndex + 1) 无法解析，已自动改用线路 \(index + 1)「\(source.name)」。"
+                    notice = "线路 \(startIndex + 1) 暂不可用，已自动改用线路 \(index + 1)「\(source.name)」。"
                 }
                 playback = PlaybackRequest(url: url, sourceName: source.name, index: index)
                 return
             } catch {
+                guard generation == requestGeneration, !Task.isCancelled else { return }
                 failedResolutionIndices.insert(index)
                 failures.append("线路 \(index + 1)：\(error.localizedDescription)")
                 attempts += 1
@@ -179,10 +186,10 @@ final class MatchPlaybackModel: ObservableObject {
 
         if !stalledIndices.isEmpty {
             errorMessage = "当前线路都未能播放：\(stalledIndices.count) 条没有画面，"
-                + "\(failedResolutionIndices.count) 条解析失败。可以稍后重试。"
+                + "\(failedResolutionIndices.count) 条暂不可用。可以稍后重试。"
         } else {
             errorMessage = failures.count > 1
-                ? "试过 \(failures.count) 条线路都无法解析。\(failures.last ?? "")"
+                ? "试过 \(failures.count) 条线路，暂时都无法播放。\(failures.last ?? "")"
                 : failures.first
         }
     }
@@ -204,15 +211,19 @@ final class MatchPlaybackModel: ObservableObject {
         }
 
         notice = "线路 \(stalled + 1) 没有画面，正在自动尝试线路 \(next + 1)…"
+        let generation = requestGeneration
         Task {
             // The stalled player is still animating out; presenting on top of
             // that dismissal is refused by UIKit.
             try? await Task.sleep(nanoseconds: 700_000_000)
+            guard generation == requestGeneration, !Task.isCancelled else { return }
             await startPlayback(at: next, resetStalls: false)
         }
     }
 
     func stopPlayback() {
+        requestGeneration += 1
+        resolvingIndex = nil
         playback = nil
     }
 }
