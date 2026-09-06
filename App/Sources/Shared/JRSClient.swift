@@ -1,4 +1,5 @@
 import Foundation
+import CommonCrypto
 
 enum JRSClientError: LocalizedError {
     case invalidResponse
@@ -37,11 +38,30 @@ struct JRSClient {
             throw JRSClientError.missingListingScript
         }
         let script = try await fetchText(from: scriptURL)
-        return try parser.parse(
+        let matches = try parser.parse(
             script: script,
             relativeTo: homepageURL,
             playHosts: JRSListingParser.playHosts(inHomepage: homepage)
         )
+        // index.js is only the initial list. The web page subsequently applies
+        // the event snapshot configured by njs.js, including removing stale rows.
+        do {
+            guard let configURL = EventSnapshot.configURL(in: homepage, baseURL: homepageURL) else {
+                return matches
+            }
+            let config = try await fetchText(from: configURL)
+            guard let eventURL = EventSnapshot.eventURL(in: config, baseURL: configURL) else {
+                return matches
+            }
+            let snapshot = try EventSnapshot.parse(try await fetchText(from: eventURL))
+            return snapshot.applying(to: matches)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // A missing/broken event feed must not erase the schedule or invent
+            // live/final status. The static list remains usable without badges.
+            return matches
+        }
     }
 
     private func listingScriptURL(in html: String) -> URL? {
@@ -71,6 +91,101 @@ struct JRSClient {
             throw JRSClientError.invalidResponse
         }
         return text
+    }
+}
+
+struct EventSnapshot {
+    struct Event {
+        let kickoff: Date
+        let state: ProviderMatchState
+    }
+    let events: [String: Event]
+
+    static func configURL(in html: String, baseURL: URL) -> URL? {
+        guard let raw = html.regexCaptures(
+            #"(?i)((?:https?:)?//[^\s\"'<>]+/tmp/njs\.js)"#
+        ).first?[safe: 1] else { return nil }
+        return URL(string: raw.hasPrefix("//") ? "https:" + raw : raw, relativeTo: baseURL)?.absoluteURL
+    }
+
+    static func eventURL(in config: String, baseURL: URL) -> URL? {
+        guard let raw = config.regexCaptures(
+            #"["']base_zqlq_url["']\s*:\s*["']([^"']+)["']"#
+        ).first?[safe: 1],
+            let url = URL(string: raw.hasPrefix("//") ? "https:" + raw : raw, relativeTo: baseURL),
+            var components = URLComponents(url: url.absoluteURL, resolvingAgainstBaseURL: true)
+        else { return nil }
+        var query = components.queryItems ?? []
+        query.removeAll { $0.name == "callback" }
+        query.append(URLQueryItem(name: "callback", value: "jrkanEvents"))
+        components.queryItems = query
+        return components.url
+    }
+
+    static func parse(_ response: String, now: Date = Date()) throws -> EventSnapshot {
+        let text = response.trimmingCharacters(in: .whitespacesAndNewlines)
+        let json = text.regexCaptures(#"(?s)^[A-Za-z_$][\w$]*\s*\((.*)\)\s*;?$"#)
+            .first?[safe: 1] ?? text
+        var object = try JSONSerialization.jsonObject(with: Data(json.utf8))
+        if let envelope = object as? [String], envelope.count == 2,
+           let ciphertext = Data(base64Encoded: envelope[0]) {
+            // The website's public transport encoding (page.live-2.1-min.js).
+            // Decode data only; never execute the returned JavaScript.
+            let key = Array("abcdabcdabcdabcd".utf8)
+            var plaintext = [UInt8](repeating: 0, count: ciphertext.count + kCCBlockSizeAES128)
+            var count = 0
+            let status = ciphertext.withUnsafeBytes { bytes in
+                CCCrypt(CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES),
+                    CCOptions(kCCOptionECBMode | kCCOptionPKCS7Padding), key, key.count,
+                    nil, bytes.baseAddress, ciphertext.count, &plaintext, plaintext.count, &count)
+            }
+            guard status == kCCSuccess else { throw JRSClientError.invalidResponse }
+            object = try JSONSerialization.jsonObject(with: Data(plaintext.prefix(count)))
+        }
+        guard let payload = object as? [String: Any], payload["success"] as? Bool == true,
+              let timestamp = payload["time"] as? Double,
+              let table = payload["list"] as? [String: Any],
+              let fields = table["fields"] as? [String],
+              let rows = table["values"] as? [[Any]],
+              Set(["id", "sportid", "status", "st_first", "st_second"]).isSubset(of: Set(fields)),
+              Set(fields).count == fields.count
+        else { throw JRSClientError.invalidResponse }
+        let updatedAt = Date(timeIntervalSince1970: timestamp)
+        guard now.timeIntervalSince(updatedAt) < 10 * 60,
+              updatedAt.timeIntervalSince(now) < 5 * 60 else { throw JRSClientError.invalidResponse }
+        var events: [String: Event] = [:]
+        for row in rows {
+            guard row.count == fields.count else { throw JRSClientError.invalidResponse }
+            let values = Dictionary(uniqueKeysWithValues: zip(fields, row))
+            guard let id = values["id"] as? Int, let sport = values["sportid"] as? Int,
+                  let code = values["status"] as? Int, let kickoff = values["st_first"] as? Double,
+                  let period = values["st_second"] as? Double
+            else { throw JRSClientError.invalidResponse }
+            events["\(sport),\(id)"] = Event(kickoff: Date(timeIntervalSince1970: kickoff / 1000),
+                state: ProviderMatchState(sportID: sport, code: code,
+                    periodStartedAt: Date(timeIntervalSince1970: period / 1000), updatedAt: updatedAt,
+                    matchType: values["mtype"] as? Int ?? 0))
+        }
+        return EventSnapshot(events: events)
+    }
+
+    func applying(to matches: [LiveMatch]) -> [LiveMatch] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = MatchSchedule.feedTimeZone
+        formatter.dateFormat = "MM-dd HH:mm"
+        return matches.compactMap { match in
+            let ids = match.id.split(separator: ",")
+            guard ids.count == 3, ids[1] == "1" || ids[1] == "2" else { return match }
+            // An absent football/basketball row is removed by the web page too;
+            // absence means "no longer listed", not proof the match finished.
+            guard let event = events["\(ids[1]),\(ids[2])"] else { return nil }
+            return LiveMatch(id: match.id, league: match.league,
+                time: formatter.string(from: event.kickoff), homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam, homeLogoURL: match.homeLogoURL,
+                awayLogoURL: match.awayLogoURL, isHot: match.isHot, sources: match.sources,
+                providerState: event.state)
+        }
     }
 }
 

@@ -191,7 +191,7 @@ struct RegularMatchListScreen: View {
                         TouchMatchRow(match: match, now: now)
                             .overlay(
                                 RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
-                                    .strokeBorder(Palette.accent, lineWidth: selection == match ? 2 : 0)
+                                    .strokeBorder(Palette.accent, lineWidth: selection?.id == match.id ? 2 : 0)
                             )
                     }
                     .buttonStyle(.plain)

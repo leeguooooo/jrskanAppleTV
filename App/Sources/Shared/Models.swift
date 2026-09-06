@@ -10,6 +10,7 @@ struct LiveMatch: Identifiable, Hashable, Sendable {
     let awayLogoURL: URL?
     let isHot: Bool
     let sources: [MatchSource]
+    var providerState: ProviderMatchState? = nil
 }
 
 struct MatchSource: Identifiable, Hashable, Sendable {
@@ -18,12 +19,66 @@ struct MatchSource: Identifiable, Hashable, Sendable {
     let pageURL: URL
 }
 
+/// Status codes and period clocks used by jrs03.com's page.live script.
+struct ProviderMatchState: Hashable, Sendable {
+    let sportID: Int
+    let code: Int
+    let periodStartedAt: Date
+    let updatedAt: Date
+    var matchType = 0
+
+    func status(now: Date) -> MatchStatus? {
+        // Do not keep an old live label indefinitely after a refresh failure.
+        guard now.timeIntervalSince(updatedAt) < 10 * 60,
+              updatedAt.timeIntervalSince(now) < 5 * 60 else { return nil }
+        if code == 0 { return .scheduled }
+        if sportID == 1 {
+            switch code {
+            case 1, 3:
+                let elapsed = max(0, Int(now.timeIntervalSince(periodStartedAt) / 60))
+                let minute = code == 1 ? elapsed : max(46, elapsed + 45)
+                let limit = code == 1 ? 45 : 90
+                return .live(label: minute > limit ? "\(limit)+" : "\(minute)′")
+            case 2: return .live(label: "中场休息")
+            case 4, 5: return .live(label: "加时赛")
+            case 6: return .live(label: "点球大战")
+            case 7: return .finished
+            case 8: return .interrupted(label: "推迟")
+            case 9: return .interrupted(label: "中断")
+            case 10: return .interrupted(label: "腰斩")
+            case 11: return .interrupted(label: "取消")
+            case 12: return .interrupted(label: "待定")
+            default: return nil
+            }
+        }
+        if sportID == 2 {
+            // The website adjusts period labels for two-half competitions.
+            let periodCode = matchType == 2 && (code == 4 || code == 8) ? code / 2 : code
+            let periods = [1: "第一节", 2: "第一节结束", 3: "第二节", 4: "第二节结束",
+                           5: "第三节", 6: "第三节结束", 7: "第四节", 8: "加时"]
+            if let label = periods[periodCode] { return .live(label: label) }
+            switch code {
+            case 9: return .finished
+            case 10: return .interrupted(label: "中断")
+            case 11: return .interrupted(label: "取消")
+            case 12: return .interrupted(label: "推迟")
+            case 13: return .interrupted(label: "腰斩")
+            case 14: return .interrupted(label: "待定")
+            default: return nil
+            }
+        }
+        return nil
+    }
+}
+
 // MARK: - Schedule
 
-/// Where a match sits relative to now, derived from the feed's kickoff string.
+/// Provider-confirmed match state, with scheduled countdowns when appropriate.
 enum MatchStatus: Hashable, Sendable {
-    case live(elapsedMinutes: Int)
+    case live(label: String)
     case upcoming(startsInMinutes: Int)
+    case scheduled
+    case interrupted(label: String)
     case finished
     case unknown
 
@@ -36,8 +91,8 @@ enum MatchStatus: Hashable, Sendable {
     var rank: Int {
         switch self {
         case .live: return 0
-        case .upcoming: return 1
-        case .unknown: return 2
+        case .upcoming, .scheduled: return 1
+        case .unknown, .interrupted: return 2
         case .finished: return 3
         }
     }
@@ -45,36 +100,20 @@ enum MatchStatus: Hashable, Sendable {
     var sectionTitle: String {
         switch self {
         case .live: return "正在进行"
-        case .upcoming: return "即将开始"
-        case .unknown: return "其他"
+        case .upcoming, .scheduled: return "未开赛"
+        case .unknown, .interrupted: return "其他"
         case .finished: return "已结束"
         }
     }
 }
 
-/// The feed hands back one `"MM-dd HH:mm"` string in Beijing time and nothing
-/// else — no year, no zone, no state. Everything the UI says about "now",
-/// "in 20 minutes" or "已结束" is derived here so the cards, the detail hero
-/// and the section headers can never disagree with each other.
+/// Schedule times are used for display and upcoming countdowns only.
+/// In-progress and final states come from the website's event feed.
 enum MatchSchedule {
     static let feedTimeZone = TimeZone(identifier: "Asia/Shanghai")!
 
-    /// How long after kickoff a match still counts as in progress.
-    ///
-    /// This is not cosmetic. The site pulls a match's channels once the
-    /// broadcast ends, so every minute we keep calling a finished match "LIVE"
-    /// is a minute the viewer can open it, watch all its channels fail, and
-    /// get a resolver error instead of "it's over". A flat three-hour window
-    /// left a 2-hour football match advertised as live for another hour.
-    ///
-    /// Football: 45 + 15 + 45 plus stoppage and a late kickoff ≈ 2h15m.
-    /// Basketball: four quarters, longer breaks, overtime ≈ 2h45m.
-    static func liveWindow(forLeague league: String) -> TimeInterval {
-        isBasketball(league: league) ? 165 * 60 : 135 * 60
-    }
-
-    /// The feed has no sport field; the league name is the only signal, and it
-    /// is the same one the category chips use.
+    /// League-name fallback used by the category chips. Live state itself uses
+    /// the event feed's sport ID, never this heuristic.
     static func isBasketball(league: String) -> Bool {
         SportFilter.basketballLeagues.contains { league.localizedCaseInsensitiveContains($0) }
     }
@@ -111,7 +150,13 @@ enum MatchSchedule {
     }
 
     static func status(for match: LiveMatch, now: Date = Date()) -> MatchStatus {
-        status(for: match.time, league: match.league, now: now)
+        if let state = match.providerState, let status = state.status(now: now) {
+            if status == .scheduled, let kickoff = kickoff(from: match.time, now: now), kickoff > now {
+                return .upcoming(startsInMinutes: Int((kickoff.timeIntervalSince(now) / 60).rounded(.up)))
+            }
+            return status
+        }
+        return status(for: match.time, league: match.league, now: now)
     }
 
     static func status(for raw: String, league: String = "", now: Date = Date()) -> MatchStatus {
@@ -120,10 +165,7 @@ enum MatchSchedule {
         if delta < 0 {
             return .upcoming(startsInMinutes: Int((-delta / 60).rounded(.up)))
         }
-        if delta < liveWindow(forLeague: league) {
-            return .live(elapsedMinutes: Int(delta / 60))
-        }
-        return .finished
+        return .unknown
     }
 
     /// Kickoff rendered in the viewer's own zone: a relative day word plus the

@@ -6,6 +6,7 @@ import SwiftUI
 struct MatchDetailView: View {
     @StateObject private var model: MatchPlaybackModel
     @EnvironmentObject private var preferences: Preferences
+    @EnvironmentObject private var listModel: MatchListModel
 
     @State private var now = Date()
     @FocusState private var focusedChannelID: String?
@@ -18,7 +19,12 @@ struct MatchDetailView: View {
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
 
-    private var match: LiveMatch { model.match }
+    private var match: LiveMatch {
+        if let current = listModel.matches.first(where: { $0.id == model.match.id }) { return current }
+        var fallback = model.match
+        fallback.providerState = nil
+        return fallback
+    }
 
     var body: some View {
         ZStack {
@@ -225,6 +231,7 @@ struct MatchDetailView: View {
 private struct FollowButton: View {
     let team: String
     @EnvironmentObject private var preferences: Preferences
+    @EnvironmentObject private var listModel: MatchListModel
 
     var body: some View {
         let isFavorite = preferences.isFavorite(team)

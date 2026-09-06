@@ -121,10 +121,10 @@ struct TouchMatchRow: View {
     private var trailingStatus: some View {
         let shown = MatchSchedule.displayTime(for: match.time, now: now)
         switch status {
-        case .live(let elapsed):
+        case .live(let label):
             HStack(spacing: 6) {
                 LiveBadge(compact: true)
-                Text("\(elapsed)′")
+                Text(label)
                     .font(.caption.monospacedDigit().weight(.bold))
                     .foregroundStyle(Palette.live)
             }
@@ -132,6 +132,14 @@ struct TouchMatchRow: View {
             Text("已结束 · \(shown.clock)")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Palette.tertiaryText)
+        case .scheduled:
+            Text("未开赛 · \(shown.clock)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.secondaryText)
+        case .interrupted(let label):
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.secondaryText)
         case .upcoming, .unknown:
             Text(shown.day.isEmpty ? shown.clock : "\(shown.day) \(shown.clock)")
                 .font(.caption.monospacedDigit().weight(.semibold))

@@ -413,20 +413,18 @@ struct SectionHeader: View {
     }
 }
 
-/// Small state label used on cards and the detail hero: "已进行 32 分钟",
-/// "15 分钟后开赛", "已结束". LIVE gets the pulsing badge instead.
+/// Status and period clock from the website event feed, shared across screens.
 struct StatusLabel: View {
     let status: MatchStatus
     var compact = false
 
     var body: some View {
         switch status {
-        case .live(let elapsed):
+        case .live(let label):
             HStack(spacing: 10) {
                 LiveBadge()
-                // Cards get the football-style minute mark so the column never
-                // wraps; the detail hero has room for the full sentence.
-                Text(compact ? "\(elapsed)′" : (elapsed < 1 ? "刚开始" : "已进行 \(elapsed) 分钟"))
+                // The website supplies the period; never use kickoff elapsed time.
+                Text(label)
                     .font(.callout.monospacedDigit().weight(.semibold))
                     .foregroundStyle(Palette.live)
             }
@@ -436,6 +434,10 @@ struct StatusLabel: View {
             EmptyView()
         case .finished:
             MetaPill(text: "已结束", systemImage: "checkmark", tint: Palette.tertiaryText)
+        case .scheduled:
+            MetaPill(text: "未开赛", systemImage: "clock", tint: Palette.accent)
+        case .interrupted(let label):
+            MetaPill(text: label, systemImage: "pause.circle", tint: Palette.secondaryText)
         case .unknown:
             EmptyView()
         }

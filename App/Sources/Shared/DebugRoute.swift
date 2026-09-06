@@ -30,8 +30,9 @@ enum DebugRoute {
             return matches
                 .filter { !$0.sources.isEmpty }
                 .compactMap { match -> (LiveMatch, Int)? in
-                    if case .live(let elapsed) = MatchSchedule.status(for: match, now: now) {
-                        return (match, elapsed)
+                    if MatchSchedule.status(for: match, now: now).isLive {
+                        let kickoff = MatchSchedule.kickoff(from: match.time, now: now) ?? now
+                        return (match, Int(now.timeIntervalSince(kickoff) / 60))
                     }
                     return nil
                 }

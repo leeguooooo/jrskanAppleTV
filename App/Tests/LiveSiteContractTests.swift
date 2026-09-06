@@ -6,6 +6,22 @@ import XCTest
 #endif
 
 final class LiveSiteContractTests: XCTestCase {
+    func testWebsiteEventStatusContract() async throws {
+        guard ProcessInfo.processInfo.environment["RUN_LIVE_JRS_TESTS"] == "1" else {
+            throw XCTSkip("Set RUN_LIVE_JRS_TESTS=1 to check the website event feed.")
+        }
+        let matches = try await JRSClient().fetchMatches()
+        let supported = matches.filter {
+            let ids = $0.id.split(separator: ",")
+            return ids.count == 3 && (ids[1] == "1" || ids[1] == "2")
+        }
+        XCTAssertFalse(supported.isEmpty, "Expected football/basketball fixtures from the website.")
+        XCTAssertTrue(supported.allSatisfy { $0.providerState != nil },
+            "The event configuration, transport encoding or table schema changed; schedule-only fallback is active.")
+        XCTAssertTrue(supported.allSatisfy { $0.providerState?.status(now: Date()) != nil },
+            "The event feed contains an unsupported or stale match state.")
+    }
+
     func testCurrentPublicListingAndAtLeastOneHLSRoute() async throws {
         guard ProcessInfo.processInfo.environment["RUN_LIVE_JRS_TESTS"] == "1" else {
             throw XCTSkip("Set RUN_LIVE_JRS_TESTS=1 to run the mutable live-site contract.")

@@ -88,7 +88,7 @@ struct MatchCard: View {
                     KickoffTime(raw: match.time, now: now, dimmed: true)
                     StatusLabel(status: status)
                 }
-            case .upcoming, .unknown:
+            case .upcoming, .scheduled, .interrupted, .unknown:
                 KickoffTime(raw: match.time, now: now)
                 StatusLabel(status: status)
             }
@@ -117,8 +117,10 @@ struct MatchCard: View {
         let shown = MatchSchedule.displayTime(for: match.time, now: now)
         let state: String
         switch status {
-        case .live(let elapsed): state = "正在进行，已进行 \(elapsed) 分钟"
+        case .live(let label): state = "正在进行，\(label)"
         case .upcoming: state = "\(shown.day) \(shown.clock) 开赛"
+        case .scheduled: state = "未开赛"
+        case .interrupted(let label): state = label
         case .finished: state = "已结束"
         case .unknown: state = match.time
         }

@@ -3,6 +3,7 @@ import SwiftUI
 struct MatchDetailScreen: View {
     @StateObject private var model: MatchPlaybackModel
     @EnvironmentObject private var preferences: Preferences
+    @EnvironmentObject private var listModel: MatchListModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var now = Date()
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -11,7 +12,12 @@ struct MatchDetailScreen: View {
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
 
-    private var match: LiveMatch { model.match }
+    private var match: LiveMatch {
+        if let current = listModel.matches.first(where: { $0.id == model.match.id }) { return current }
+        var fallback = model.match
+        fallback.providerState = nil
+        return fallback
+    }
     private var status: MatchStatus { MatchSchedule.status(for: match, now: now) }
 
     var body: some View {
@@ -188,6 +194,7 @@ struct MatchDetailScreen: View {
 private struct FollowButton: View {
     let team: String
     @EnvironmentObject private var preferences: Preferences
+    @EnvironmentObject private var listModel: MatchListModel
 
     var body: some View {
         let isFavorite = preferences.isFavorite(team)
