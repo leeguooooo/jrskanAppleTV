@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// Phone-sized counterparts of the tvOS design pieces. Same palette, same
-/// vocabulary, sized for a thumb instead of a remote.
-enum PhoneMetrics {
+/// Touch counterparts of the tvOS design pieces: same palette, same
+/// vocabulary, sized for a finger or a pointer instead of a remote. Shared by
+/// iPhone, iPad and the Mac Catalyst build — the cards are laid out in a stack
+/// on a phone and in a grid on a wide screen, but they are the same cards.
+enum TouchMetrics {
     static let corner: CGFloat = 16
     static let crest: CGFloat = 40
 }
 
-struct PhoneBackground: View {
+struct TouchBackground: View {
     var body: some View {
         ZStack {
             Palette.background
@@ -24,33 +26,33 @@ struct PhoneBackground: View {
 
 /// Card surface for list rows: the same lifted, hairlined tile as the TV
 /// cards, without the focus treatment.
-struct PhoneCard: ViewModifier {
+struct TouchCard: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: PhoneMetrics.corner, style: .continuous)
+                RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
                     .fill(Palette.surface)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: PhoneMetrics.corner, style: .continuous)
+                RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
                     .strokeBorder(Palette.hairline, lineWidth: 1)
             )
     }
 }
 
 extension View {
-    func phoneCard() -> some View { modifier(PhoneCard()) }
+    func touchCard() -> some View { modifier(TouchCard()) }
 }
 
 // MARK: - Rows
 
-struct PhoneMatchRow: View {
+struct TouchMatchRow: View {
     let match: LiveMatch
     var now = Date()
     @EnvironmentObject private var preferences: Preferences
 
-    private var status: MatchStatus { MatchSchedule.status(for: match.time, now: now) }
+    private var status: MatchStatus { MatchSchedule.status(for: match, now: now) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -77,11 +79,14 @@ struct PhoneMatchRow: View {
             }
 
             HStack(spacing: 10) {
-                TeamCrest(url: match.homeLogoURL, teamName: match.homeTeam, size: PhoneMetrics.crest)
+                TeamCrest(url: match.homeLogoURL, teamName: match.homeTeam, size: TouchMetrics.crest)
                 Text(match.homeTeam)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Palette.primaryText)
                     .lineLimit(2)
+                    // The card also has to survive an iPad's narrow middle
+                    // column, where a two-word club name would otherwise wrap.
+                    .minimumScaleFactor(0.75)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("VS")
@@ -92,9 +97,10 @@ struct PhoneMatchRow: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Palette.primaryText)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.75)
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam, size: PhoneMetrics.crest)
+                TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam, size: TouchMetrics.crest)
             }
 
             HStack(spacing: 8) {
@@ -107,7 +113,7 @@ struct PhoneMatchRow: View {
                 }
             }
         }
-        .phoneCard()
+        .touchCard()
         .accessibilityElement(children: .combine)
     }
 
@@ -149,23 +155,23 @@ struct PhoneMatchRow: View {
     }
 }
 
-struct PhoneSkeletonRow: View {
+struct TouchSkeletonRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Shimmer().frame(width: 90, height: 12).clipShape(Capsule())
             HStack(spacing: 10) {
-                Circle().fill(Palette.surface).frame(width: PhoneMetrics.crest, height: PhoneMetrics.crest)
+                Circle().fill(Palette.surface).frame(width: TouchMetrics.crest, height: TouchMetrics.crest)
                 Shimmer().frame(height: 16).clipShape(Capsule())
-                Circle().fill(Palette.surface).frame(width: PhoneMetrics.crest, height: PhoneMetrics.crest)
+                Circle().fill(Palette.surface).frame(width: TouchMetrics.crest, height: TouchMetrics.crest)
             }
             Shimmer().frame(width: 70, height: 10).clipShape(Capsule())
         }
-        .phoneCard()
+        .touchCard()
     }
 }
 
 /// Filter chip row. Horizontal so all categories stay one thumb-swipe away.
-struct PhoneCategoryBar: View {
+struct TouchCategoryBar: View {
     @Binding var selection: SportFilter
     let filters: [SportFilter]
     let counts: [SportFilter: Int]
@@ -202,7 +208,7 @@ struct PhoneCategoryBar: View {
     }
 }
 
-struct PhoneChannelRow: View {
+struct TouchChannelRow: View {
     let number: Int
     let source: MatchSource
     let subtitle: String
@@ -250,12 +256,12 @@ struct PhoneChannelRow: View {
                 .font(.subheadline)
                 .foregroundStyle(isBusy ? Palette.secondaryText : Palette.accent)
         }
-        .phoneCard()
+        .touchCard()
     }
 }
 
 /// Inline notice sized for a phone; same tones as the TV banner.
-struct PhoneNotice: View {
+struct TouchNotice: View {
     let message: String
     var tone: NoticeBanner.Tone = .warning
     var actionTitle: String?
@@ -279,11 +285,11 @@ struct PhoneNotice: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: PhoneMetrics.corner, style: .continuous)
+            RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
                 .fill(tint.opacity(0.14))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: PhoneMetrics.corner, style: .continuous)
+            RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
                 .strokeBorder(tint.opacity(0.45), lineWidth: 1)
         )
     }
@@ -306,7 +312,7 @@ struct PhoneNotice: View {
 }
 
 /// Empty / error state for the phone: illustration, title, message, one action.
-struct PhoneStatusState: View {
+struct TouchStatusState: View {
     let title: String
     var message: String?
     var illustration: String?

@@ -59,10 +59,25 @@ enum MatchStatus: Hashable, Sendable {
 enum MatchSchedule {
     static let feedTimeZone = TimeZone(identifier: "Asia/Shanghai")!
 
-    /// How long after kickoff a match still counts as in progress. Football
-    /// runs ~2h, basketball ~2.5h; three hours covers overtime and delays
-    /// without keeping yesterday's games pinned to the top of the list.
-    static let liveWindow: TimeInterval = 3 * 60 * 60
+    /// How long after kickoff a match still counts as in progress.
+    ///
+    /// This is not cosmetic. The site pulls a match's channels once the
+    /// broadcast ends, so every minute we keep calling a finished match "LIVE"
+    /// is a minute the viewer can open it, watch all its channels fail, and
+    /// get a resolver error instead of "it's over". A flat three-hour window
+    /// left a 2-hour football match advertised as live for another hour.
+    ///
+    /// Football: 45 + 15 + 45 plus stoppage and a late kickoff ≈ 2h15m.
+    /// Basketball: four quarters, longer breaks, overtime ≈ 2h45m.
+    static func liveWindow(forLeague league: String) -> TimeInterval {
+        isBasketball(league: league) ? 165 * 60 : 135 * 60
+    }
+
+    /// The feed has no sport field; the league name is the only signal, and it
+    /// is the same one the category chips use.
+    static func isBasketball(league: String) -> Bool {
+        SportFilter.basketballLeagues.contains { league.localizedCaseInsensitiveContains($0) }
+    }
 
     static func kickoff(from raw: String, now: Date = Date()) -> Date? {
         let parts = raw.split(whereSeparator: { $0 == " " || $0 == "\u{00A0}" })
@@ -95,13 +110,17 @@ enum MatchSchedule {
         return date
     }
 
-    static func status(for raw: String, now: Date = Date()) -> MatchStatus {
+    static func status(for match: LiveMatch, now: Date = Date()) -> MatchStatus {
+        status(for: match.time, league: match.league, now: now)
+    }
+
+    static func status(for raw: String, league: String = "", now: Date = Date()) -> MatchStatus {
         guard let kickoff = kickoff(from: raw, now: now) else { return .unknown }
         let delta = now.timeIntervalSince(kickoff)
         if delta < 0 {
             return .upcoming(startsInMinutes: Int((-delta / 60).rounded(.up)))
         }
-        if delta < liveWindow {
+        if delta < liveWindow(forLeague: league) {
             return .live(elapsedMinutes: Int(delta / 60))
         }
         return .finished
@@ -129,14 +148,22 @@ enum MatchSchedule {
         formatter.dateFormat = "HH:mm"
         let clock = formatter.string(from: kickoff)
 
+        // Measured against the caller's `now`, not the system clock:
+        // `isDateInToday` asks the real calendar, so a screen still showing
+        // 23:59's data just after midnight would relabel every row while the
+        // rest of the UI is still working from the previous minute's tick.
+        let daysApart = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: now),
+            to: calendar.startOfDay(for: kickoff)
+        ).day ?? 0
+
         let day: String
-        if calendar.isDateInToday(kickoff) {
-            day = "今天"
-        } else if calendar.isDateInTomorrow(kickoff) {
-            day = "明天"
-        } else if calendar.isDateInYesterday(kickoff) {
-            day = "昨天"
-        } else {
+        switch daysApart {
+        case 0: day = "今天"
+        case 1: day = "明天"
+        case -1: day = "昨天"
+        default:
             formatter.dateFormat = "M月d日"
             day = formatter.string(from: kickoff)
         }
@@ -180,15 +207,13 @@ enum SportFilter: String, CaseIterable, Identifiable {
         case .hot:
             return match.isHot
         case .basketball:
-            return Self.basketballLeagues.contains {
-                match.league.localizedCaseInsensitiveContains($0)
-            }
+            return MatchSchedule.isBasketball(league: match.league)
         case .football:
             return !SportFilter.basketball.includes(match)
         }
     }
 
-    private static let basketballLeagues = [
+    static let basketballLeagues = [
         "NBA", "WNBA", "CBA", "NBL", "篮", "篮球", "欧篮", "韩篮", "菲MPBL"
     ]
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PhoneMatchListScreen: View {
+struct CompactMatchListScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
 
@@ -11,7 +11,7 @@ struct PhoneMatchListScreen: View {
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                PhoneBackground()
+                TouchBackground()
                 content
             }
             .navigationTitle("今日比赛")
@@ -20,7 +20,7 @@ struct PhoneMatchListScreen: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
-                        PhoneSettingsScreen()
+                        SettingsScreen()
                     } label: {
                         Image(systemName: "gearshape.fill")
                     }
@@ -28,7 +28,7 @@ struct PhoneMatchListScreen: View {
                 }
             }
             .navigationDestination(for: LiveMatch.self) { match in
-                PhoneMatchDetailScreen(match: match, preferences: preferences)
+                MatchDetailScreen(match: match, preferences: preferences)
             }
             .searchable(text: $model.searchText, prompt: "搜索球队或联赛")
             .searchSuggestions {
@@ -53,12 +53,12 @@ struct PhoneMatchListScreen: View {
         if model.isLoading && model.matches.isEmpty {
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(0..<6, id: \.self) { _ in PhoneSkeletonRow() }
+                    ForEach(0..<6, id: \.self) { _ in TouchSkeletonRow() }
                 }
                 .padding(16)
             }
         } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
-            PhoneStatusState(
+            TouchStatusState(
                 title: "暂时无法载入比赛",
                 message: errorMessage,
                 illustration: Illustration.offline,
@@ -79,7 +79,7 @@ struct PhoneMatchListScreen: View {
                     .padding(.horizontal, 16)
 
                 if !isSearching {
-                    PhoneCategoryBar(
+                    TouchCategoryBar(
                         selection: $model.filter,
                         filters: model.availableFilters,
                         counts: model.categoryCounts
@@ -87,7 +87,7 @@ struct PhoneMatchListScreen: View {
                 }
 
                 if let errorMessage = model.errorMessage {
-                    PhoneNotice(
+                    TouchNotice(
                         message: "刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
                         actionTitle: "重试",
                         action: { Task { await model.refresh() } }
@@ -153,7 +153,7 @@ struct PhoneMatchListScreen: View {
 
             ForEach(section.matches) { match in
                 NavigationLink(value: match) {
-                    PhoneMatchRow(match: match, now: now)
+                    TouchMatchRow(match: match, now: now)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 16)
@@ -164,7 +164,7 @@ struct PhoneMatchListScreen: View {
     @ViewBuilder
     private var searchResults: some View {
         if model.visibleMatches.isEmpty {
-            PhoneStatusState(
+            TouchStatusState(
                 title: "没有匹配的比赛",
                 message: "换个关键词试试，比如联赛名或球队简称。",
                 illustration: Illustration.search
@@ -172,7 +172,7 @@ struct PhoneMatchListScreen: View {
         } else {
             ForEach(model.visibleMatches) { match in
                 NavigationLink(value: match) {
-                    PhoneMatchRow(match: match, now: now)
+                    TouchMatchRow(match: match, now: now)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 16)
@@ -184,13 +184,13 @@ struct PhoneMatchListScreen: View {
     private var emptyFilterState: some View {
         switch model.filter {
         case .followed:
-            PhoneStatusState(
+            TouchStatusState(
                 title: "关注的球队今天没有比赛",
                 message: "在比赛详情里点「关注」可以添加更多球队。",
                 illustration: Illustration.noMatches
             )
         default:
-            PhoneStatusState(
+            TouchStatusState(
                 title: "这个分类今天没有比赛",
                 message: "换一个分类，或下拉刷新看看最新赛程。",
                 illustration: Illustration.noMatches

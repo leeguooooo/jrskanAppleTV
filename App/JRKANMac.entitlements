@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mac App Store 与 TestFlight for Mac 强制要求 App 沙盒。 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- 沙盒里默认连出站网络都不通；抓公开页面和拉 HLS 都要这一项。 -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>

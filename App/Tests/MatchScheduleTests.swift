@@ -60,4 +60,20 @@ final class MatchScheduleTests: XCTestCase {
         XCTAssertTrue(SportFilter.followed.includes(match, favorites: ["凯尔特人"]))
         XCTAssertFalse(SportFilter.followed.includes(match, favorites: ["勇士"]))
     }
+
+    func testLiveWindowFollowsTheSport() {
+        // A football match that kicked off 2h50m ago is over: the site has
+        // already pulled its channels, so calling it live only leads the
+        // viewer into five failing lines.
+        // 2h20m after kickoff.
+        let now = date("2026-09-05 22:50")
+        XCTAssertEqual(MatchSchedule.status(for: "09-05 20:30", league: "美职联", now: now), .finished)
+        // The same gap in basketball is still inside a long game.
+        XCTAssertEqual(
+            MatchSchedule.status(for: "09-05 20:30", league: "NBA", now: now),
+            .live(elapsedMinutes: 140)
+        )
+        XCTAssertTrue(MatchSchedule.isBasketball(league: "菲MPBL"))
+        XCTAssertFalse(MatchSchedule.isBasketball(league: "英超"))
+    }
 }

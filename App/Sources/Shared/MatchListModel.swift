@@ -54,13 +54,13 @@ final class MatchListModel: ObservableObject {
     var sections: [MatchSection] {
         let now = Date()
         let grouped = Dictionary(grouping: filteredMatches) {
-            MatchSchedule.status(for: $0.time, now: now).rank
+            MatchSchedule.status(for: $0, now: now).rank
         }
         return grouped
             .sorted { $0.key < $1.key }
             .compactMap { rank, matches in
                 guard let first = matches.first else { return nil }
-                return MatchSection(status: MatchSchedule.status(for: first.time, now: now), matches: matches)
+                return MatchSection(status: MatchSchedule.status(for: first, now: now), matches: matches)
             }
     }
 
@@ -68,7 +68,7 @@ final class MatchListModel: ObservableObject {
     private var sortedMatches: [LiveMatch] {
         let now = Date()
         let keyed = matches.map { match -> (LiveMatch, MatchStatus, Date) in
-            (match, MatchSchedule.status(for: match.time, now: now),
+            (match, MatchSchedule.status(for: match, now: now),
              MatchSchedule.kickoff(from: match.time, now: now) ?? .distantFuture)
         }
         return keyed.sorted { lhs, rhs in
@@ -101,7 +101,7 @@ final class MatchListModel: ObservableObject {
 
     var liveCount: Int {
         let now = Date()
-        return matches.filter { MatchSchedule.status(for: $0.time, now: now).isLive }.count
+        return matches.filter { MatchSchedule.status(for: $0, now: now).isLive }.count
     }
 
     /// Distinct league names, for search suggestions.

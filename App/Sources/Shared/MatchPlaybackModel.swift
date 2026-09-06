@@ -33,6 +33,7 @@ final class MatchPlaybackModel: ObservableObject {
     /// Channels that connected but never produced a picture this visit, so
     /// automatic fallback never loops back onto one of them.
     @Published private(set) var stalledIndices: Set<Int> = []
+    @Published private(set) var failedResolutionIndices: Set<Int> = []
 
     private let resolver: StreamResolver
     private let sourcePages: SourcePageClient
@@ -77,6 +78,7 @@ final class MatchPlaybackModel: ObservableObject {
     func subtitle(for source: MatchSource, index: Int) -> String {
         if resolvingIndex == index { return "正在解析线路…" }
         if stalledIndices.contains(index) { return "刚才没有画面" }
+        if failedResolutionIndices.contains(index) { return "刚才解析失败" }
         if channels?.isEmpty ?? true { return "备用入口 · 直接尝试播放" }
         if source.name.localizedCaseInsensitiveContains("高清") { return "高清频道" }
         return "主播解说"
@@ -89,7 +91,8 @@ final class MatchPlaybackModel: ObservableObject {
         guard count > 0 else { return nil }
         for offset in 1...count {
             let candidate = (index + offset) % count
-            if candidate != index, !stalledIndices.contains(candidate) { return candidate }
+            if candidate != index, !stalledIndices.contains(candidate),
+               !failedResolutionIndices.contains(candidate) { return candidate }
         }
         return nil
     }
@@ -140,7 +143,10 @@ final class MatchPlaybackModel: ObservableObject {
     func startPlayback(at startIndex: Int, resetStalls: Bool = true) async {
         let channels = resolvedChannels
         guard channels.indices.contains(startIndex) else { return }
-        if resetStalls { stalledIndices = [] }
+        if resetStalls {
+            stalledIndices = []
+            failedResolutionIndices = []
+        }
         errorMessage = nil
         notice = nil
 
@@ -163,6 +169,7 @@ final class MatchPlaybackModel: ObservableObject {
                 playback = PlaybackRequest(url: url, sourceName: source.name, index: index)
                 return
             } catch {
+                failedResolutionIndices.insert(index)
                 failures.append("线路 \(index + 1)：\(error.localizedDescription)")
                 attempts += 1
                 guard tryOthers, let next = nextUntriedIndex(after: index) else { break }
@@ -170,9 +177,14 @@ final class MatchPlaybackModel: ObservableObject {
             }
         }
 
-        errorMessage = failures.count > 1
-            ? "试过 \(failures.count) 条线路都无法解析。\(failures.last ?? "")"
-            : failures.first
+        if !stalledIndices.isEmpty {
+            errorMessage = "当前线路都未能播放：\(stalledIndices.count) 条没有画面，"
+                + "\(failedResolutionIndices.count) 条解析失败。可以稍后重试。"
+        } else {
+            errorMessage = failures.count > 1
+                ? "试过 \(failures.count) 条线路都无法解析。\(failures.last ?? "")"
+                : failures.first
+        }
     }
 
     /// The player connected but never showed a picture. Remember the channel,

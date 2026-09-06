@@ -59,7 +59,7 @@ struct MatchDetailView: View {
     }
 
     private var status: MatchStatus {
-        MatchSchedule.status(for: match.time, now: now)
+        MatchSchedule.status(for: match, now: now)
     }
 
     // MARK: - Hero

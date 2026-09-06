@@ -39,6 +39,9 @@ struct StreamResolver {
 
     func extractM3U8URL(in html: String, pageURL: URL) -> URL? {
         let decoded = decodeHTMLEntities(html)
+        if let restoredURL = restoredPlayerURL(in: decoded, pageURL: pageURL) {
+            return restoredURL
+        }
         let directPatterns = [
             #"(?i)(https?://[^"'<>\\\s]+\.m3u8[^"'<>\\\s]*)"#,
             #"(?i)(//[^"'<>\\\s]+\.m3u8[^"'<>\\\s]*)"#
@@ -77,6 +80,40 @@ struct StreamResolver {
             }
         }
         return nil
+    }
+
+    /// The msss wrapper reverses the second-level domain in its `id` value.
+    /// Match that specific player contract rather than treating every wrapper
+    /// query containing .m3u8 as media (or reversing ordinary stream hosts).
+    private func restoredPlayerURL(in html: String, pageURL: URL) -> URL? {
+        guard
+            html.range(of: #"\brestoreStreamUrl\s*\(\s*id\s*\)"#, options: .regularExpression) != nil,
+            html.range(of: #"\.split\(\s*["']["']\s*\)\s*\.reverse\(\s*\)\s*\.join\(\s*["']["']\s*\)"#,
+                       options: .regularExpression) != nil,
+            let query = URLComponents(url: pageURL, resolvingAgainstBaseURL: true)?.percentEncodedQuery,
+            let idRange = query.range(of: #"(?:^|&)id="#, options: .regularExpression)
+        else { return nil }
+
+        // J_get consumes the entire suffix, including unescaped '&' and '='
+        // belonging to the media URL's signed query. Decode it exactly once.
+        let rawValue = String(query[idRange.upperBound...])
+        let value = rawValue.removingPercentEncoding ?? rawValue
+        guard
+            let url = makeURL(from: value, relativeTo: pageURL),
+            isM3U8URL(url),
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+            let host = components.host,
+            value.hasPrefix("//") || value.lowercased().hasPrefix("https://")
+                || value.lowercased().hasPrefix("http://")
+        else { return nil }
+
+        var labels = host.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        guard labels.count >= 2, labels.allSatisfy({ !$0.isEmpty }) else { return nil }
+        labels[labels.count - 2] = String(labels[labels.count - 2].reversed())
+        components.host = labels.joined(separator: ".")
+        // The wrapper returns a protocol-relative URL even for an http input.
+        components.scheme = "https"
+        return components.url
     }
 
     func iframeURLs(in html: String, pageURL: URL) -> [URL] {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PhoneSettingsScreen: View {
+struct SettingsScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
     @State private var clearedHistory = false
@@ -67,7 +67,7 @@ struct PhoneSettingsScreen: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(PhoneBackground())
+        .background(TouchBackground())
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

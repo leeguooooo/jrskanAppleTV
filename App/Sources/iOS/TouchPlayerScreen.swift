@@ -11,7 +11,7 @@ import SwiftUI
 /// A match is a landscape picture. The screen is forced into landscape while
 /// the player is up and released when it closes, so the video fills the phone
 /// instead of sitting in a strip across a portrait screen.
-struct PhonePlayerScreen: View {
+struct TouchPlayerScreen: View {
     @ObservedObject var model: MatchPlaybackModel
     @State private var player = AVPlayer()
     @State private var watchdog: Task<Void, Never>?

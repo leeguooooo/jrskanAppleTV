@@ -20,13 +20,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 enum Orientation {
+    /// Only the phone needs this. An iPad or a Mac Catalyst window is already
+    /// wide, and rotating it out from under the viewer (or worse, refusing
+    /// portrait on an iPad they are holding upright) is the wrong behaviour.
+    private static var appliesToThisDevice: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+
     /// Lock to landscape and turn the screen if it is not already there.
     static func enterLandscape() {
+        guard appliesToThisDevice else { return }
         AppDelegate.orientationLock = .landscape
         request(.landscapeRight, allowing: .landscape)
     }
 
     static func restoreDefault() {
+        guard appliesToThisDevice else { return }
         AppDelegate.orientationLock = AppDelegate.defaultMask
         request(.portrait, allowing: AppDelegate.defaultMask)
     }

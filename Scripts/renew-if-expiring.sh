@@ -4,7 +4,7 @@
 # 两边都还早就什么都不做，所以可以每周跑一次而不浪费上传。
 #
 # 用法：Scripts/renew-if-expiring.sh            # 按到期日判断
-#       FORCE=all|ios|tvos Scripts/renew-if-expiring.sh   # 不看到期日，直接上传
+#       FORCE=all|ios|tvos|mac Scripts/renew-if-expiring.sh   # 不看到期日，直接上传
 # 注意：$VAR 后面紧跟中文时要写成 ${VAR}，runner 上 bash 3.2 在 C locale 下会把中文字节吞进变量名。
 # 依赖：Scripts/asc_api.py（python3 + cryptography）、Scripts/testflight.sh 的全部前提。
 set -euo pipefail
@@ -53,4 +53,6 @@ needs_upload() {  # $1 平台名(ios|tvos) $2 ASC 平台枚举
 uploaded=0
 if needs_upload tvos TV_OS; then Scripts/testflight.sh tvos "$BUILD_NUMBER"; uploaded=1; fi
 if needs_upload ios IOS;    then Scripts/testflight.sh ios  "$BUILD_NUMBER"; uploaded=1; fi
+# Mac Catalyst 在 ASC 里是同一条记录的 macOS 平台，构建到期日与 iOS 各算各的。
+if needs_upload mac MAC_OS; then Scripts/testflight.sh mac  "$BUILD_NUMBER"; uploaded=1; fi
 [ "$uploaded" = 1 ] && echo "已上传构建 ${BUILD_NUMBER}" || echo "无需上传"

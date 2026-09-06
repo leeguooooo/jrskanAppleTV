@@ -15,7 +15,7 @@ struct JRKANiOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            PhoneMatchListScreen()
+            RootScreen()
                 .environmentObject(model)
                 .environmentObject(model.preferences)
                 .preferredColorScheme(.dark)

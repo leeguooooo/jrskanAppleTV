@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		04E763EBB945EF0A395FB4AA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B3E8B1E431F8497F427872 /* SettingsView.swift */; };
+		08349E7A2C724CDB7011195A /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C253D69C104183CC136B6570 /* SettingsScreen.swift */; };
 		0C5B37767FC281475F00701C /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6B493CE6BB2FB3AC7928093 /* DesignSystem.swift */; };
 		0C9D3F509C33F0089A2E42D2 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1448D30F03D5ED92BA5CFDA /* Preferences.swift */; };
 		0E89F6B2D62814E6D5B448D6 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1448D30F03D5ED92BA5CFDA /* Preferences.swift */; };
@@ -21,20 +22,23 @@
 		17235F6837A722ED53FAA65E /* MatchListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A90A2984F83A94B6057399B /* MatchListModel.swift */; };
 		200218C81A1D8941BB310C8D /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
 		250B58FF657D661D7FEF6E20 /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */; };
-		2589C8005CBDD0470DBDA251 /* PhoneMatchListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093966DE6EFABD5BB16E2F19 /* PhoneMatchListScreen.swift */; };
 		2B66D3DADE77370AA966A3B9 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
 		30B0BD0144ACC59F0826B89E /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
-		324C8E5776C615EBDCB961E5 /* PhoneMatchDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE862383A8B2185F5F5133A /* PhoneMatchDetailScreen.swift */; };
+		4B7D566FEA8A5038A38271C9 /* TouchDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */; };
 		4CF7D02FE21F8B286A1709CD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18C6543E468B4065A6EC744 /* Models.swift */; };
 		4E77AEC94B5B6EA1D563BBE4 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		580BC96B511F1896D43077DD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */; };
 		5C11EF67F00E71AC327076A6 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
+		5C914807D7A4A5DBC7F305D9 /* MatchDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0234E27651736E182F447240 /* MatchDetailScreen.swift */; };
 		61434824021049A6A521E3B5 /* MatchCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */; };
 		65C930740BA8BCAC3E9041FD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */; };
 		6BD40C7F3851EBC43C6655AB /* LiveSiteContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */; };
 		7624C69B95E5DE3C5F191081 /* MatchScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */; };
+		7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */; };
 		7BEEDDBD3F10896D8FBBFF23 /* LiveSiteContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */; };
-		7EB9650762C191B15FD44527 /* PhonePlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C836C90B0F5942A1975484C /* PhonePlayerScreen.swift */; };
+		80DBE1F70734F7FCFDE78F80 /* TouchPlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A18FB18C33A913FFA7E500 /* TouchPlayerScreen.swift */; };
+		87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */; };
+		8FB7DFE9E8FFACA2528A34EB /* CompactMatchListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */; };
 		927FB31C55A0E0DC5F26AAE2 /* MatchScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */; };
 		9555F68EC6C93D670DF98F95 /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */; };
 		9E519C204229261351A60C8B /* StreamResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5BE82233AE1714BD02AEDE /* StreamResolver.swift */; };
@@ -42,12 +46,10 @@
 		ABF39F61FAD181936DAAC61B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18C6543E468B4065A6EC744 /* Models.swift */; };
 		AD966957C062CE6661493EDF /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */; };
 		B977CB79D85E42A3106F2365 /* OrientationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 423BF4E949A39E0F05368991 /* OrientationController.swift */; };
-		BEEE4D5741E33A0C34D64F73 /* PhoneDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 730827990B1D8C455D0161F9 /* PhoneDesign.swift */; };
 		C4F2CE29255ED27A5F842FE6 /* iOSAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1309C8B5493C3C6AF2316DD1 /* iOSAssets.xcassets */; };
 		CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
 		D8D7F870BF57CE2BE1C21EC5 /* StreamResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5BE82233AE1714BD02AEDE /* StreamResolver.swift */; };
 		DB7D4CEEFE8FC7124685D598 /* MatchListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A90A2984F83A94B6057399B /* MatchListModel.swift */; };
-		E4486C7B395870EA9E0FD3CD /* PhoneSettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40BF823E6C50BFFEAE28F65 /* PhoneSettingsScreen.swift */; };
 		F21A5DAFDB0A5722A5F676AB /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
 		F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */; };
 		F702DD8A96C50B4F9A7A9099 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
@@ -71,20 +73,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		093966DE6EFABD5BB16E2F19 /* PhoneMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneMatchListScreen.swift; sourceTree = "<group>"; };
-		0C836C90B0F5942A1975484C /* PhonePlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhonePlayerScreen.swift; sourceTree = "<group>"; };
+		0234E27651736E182F447240 /* MatchDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchDetailScreen.swift; sourceTree = "<group>"; };
+		09A18FB18C33A913FFA7E500 /* TouchPlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchPlayerScreen.swift; sourceTree = "<group>"; };
 		1309C8B5493C3C6AF2316DD1 /* iOSAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = iOSAssets.xcassets; sourceTree = "<group>"; };
 		13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchPlaybackModel.swift; sourceTree = "<group>"; };
 		146FE878061FD60A7E8B410D /* StreamResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolverTests.swift; sourceTree = "<group>"; };
 		166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerScreen.swift; sourceTree = "<group>"; };
+		2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootScreen.swift; sourceTree = "<group>"; };
 		423BF4E949A39E0F05368991 /* OrientationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationController.swift; sourceTree = "<group>"; };
+		4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactMatchListScreen.swift; sourceTree = "<group>"; };
 		56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRoute.swift; sourceTree = "<group>"; };
 		581B4B353F8C9863B02DF5F1 /* JRKANiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchDesign.swift; sourceTree = "<group>"; };
 		653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		68B3E8B1E431F8497F427872 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchCard.swift; sourceTree = "<group>"; };
 		6EA31676B29AF1E71B60E890 /* JRSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSClient.swift; sourceTree = "<group>"; };
-		730827990B1D8C455D0161F9 /* PhoneDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDesign.swift; sourceTree = "<group>"; };
 		76CF190C1FCCD118D97DAC37 /* JRKANTVTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = JRKANTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E15189360D043027DF726F4 /* MatchDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchDetailView.swift; sourceTree = "<group>"; };
 		8A90A2984F83A94B6057399B /* MatchListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListModel.swift; sourceTree = "<group>"; };
@@ -97,13 +101,13 @@
 		B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB5BE82233AE1714BD02AEDE /* StreamResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolver.swift; sourceTree = "<group>"; };
 		BCBF11EAF493C5299A821529 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C253D69C104183CC136B6570 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		C6F0CA23C2A11AD21E8F97B3 /* JRKANTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANTVApp.swift; sourceTree = "<group>"; };
-		CAE862383A8B2185F5F5133A /* PhoneMatchDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneMatchDetailScreen.swift; sourceTree = "<group>"; };
 		CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSiteContractTests.swift; sourceTree = "<group>"; };
 		D6B493CE6BB2FB3AC7928093 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		ED60CF5C0B1E440A31BE919D /* JRSListingParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParserTests.swift; sourceTree = "<group>"; };
 		F18C6543E468B4065A6EC744 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		F40BF823E6C50BFFEAE28F65 /* PhoneSettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSettingsScreen.swift; sourceTree = "<group>"; };
+		F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegularMatchListScreen.swift; sourceTree = "<group>"; };
 		F7CCA2DEF811B4DBC10F8715 /* JRKANTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -119,13 +123,15 @@
 		06B84AC9D7E700781DBCB31B /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */,
 				B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */,
+				0234E27651736E182F447240 /* MatchDetailScreen.swift */,
 				423BF4E949A39E0F05368991 /* OrientationController.swift */,
-				730827990B1D8C455D0161F9 /* PhoneDesign.swift */,
-				CAE862383A8B2185F5F5133A /* PhoneMatchDetailScreen.swift */,
-				093966DE6EFABD5BB16E2F19 /* PhoneMatchListScreen.swift */,
-				0C836C90B0F5942A1975484C /* PhonePlayerScreen.swift */,
-				F40BF823E6C50BFFEAE28F65 /* PhoneSettingsScreen.swift */,
+				F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */,
+				2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */,
+				C253D69C104183CC136B6570 /* SettingsScreen.swift */,
+				5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */,
+				09A18FB18C33A913FFA7E500 /* TouchPlayerScreen.swift */,
 			);
 			path = iOS;
 			sourceTree = "<group>";
@@ -396,22 +402,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8FB7DFE9E8FFACA2528A34EB /* CompactMatchListScreen.swift in Sources */,
 				CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */,
 				0C5B37767FC281475F00701C /* DesignSystem.swift in Sources */,
 				F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */,
 				4E77AEC94B5B6EA1D563BBE4 /* JRSClient.swift in Sources */,
 				9555F68EC6C93D670DF98F95 /* JRSListingParser.swift in Sources */,
+				5C914807D7A4A5DBC7F305D9 /* MatchDetailScreen.swift in Sources */,
 				17235F6837A722ED53FAA65E /* MatchListModel.swift in Sources */,
 				2B66D3DADE77370AA966A3B9 /* MatchPlaybackModel.swift in Sources */,
 				ABF39F61FAD181936DAAC61B /* Models.swift in Sources */,
 				B977CB79D85E42A3106F2365 /* OrientationController.swift in Sources */,
-				BEEE4D5741E33A0C34D64F73 /* PhoneDesign.swift in Sources */,
-				324C8E5776C615EBDCB961E5 /* PhoneMatchDetailScreen.swift in Sources */,
-				2589C8005CBDD0470DBDA251 /* PhoneMatchListScreen.swift in Sources */,
-				7EB9650762C191B15FD44527 /* PhonePlayerScreen.swift in Sources */,
-				E4486C7B395870EA9E0FD3CD /* PhoneSettingsScreen.swift in Sources */,
 				0E89F6B2D62814E6D5B448D6 /* Preferences.swift in Sources */,
+				7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */,
+				87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */,
+				08349E7A2C724CDB7011195A /* SettingsScreen.swift in Sources */,
 				9E519C204229261351A60C8B /* StreamResolver.swift in Sources */,
+				4B7D566FEA8A5038A38271C9 /* TouchDesign.swift in Sources */,
+				80DBE1F70734F7FCFDE78F80 /* TouchPlayerScreen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -546,14 +554,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = App/JRKANMac.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				INFOPLIST_FILE = "App/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv;
 				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -612,14 +624,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = App/JRKANMac.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				INFOPLIST_FILE = "App/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.leeguoo.jrskan.tv;
 				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

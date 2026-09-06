@@ -14,10 +14,10 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 不看到期日直接上传（none / all / ios / tvos）
+        description: 不看到期日直接上传（none / all / ios / tvos / mac）
         default: none
         type: choice
-        options: [none, all, ios, tvos]
+        options: [none, all, ios, tvos, mac]
 
 concurrency:
   group: testflight-renew

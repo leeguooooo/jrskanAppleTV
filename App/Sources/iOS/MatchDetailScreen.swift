@@ -1,8 +1,9 @@
 import SwiftUI
 
-struct PhoneMatchDetailScreen: View {
+struct MatchDetailScreen: View {
     @StateObject private var model: MatchPlaybackModel
     @EnvironmentObject private var preferences: Preferences
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var now = Date()
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -11,18 +12,23 @@ struct PhoneMatchDetailScreen: View {
     }
 
     private var match: LiveMatch { model.match }
-    private var status: MatchStatus { MatchSchedule.status(for: match.time, now: now) }
+    private var status: MatchStatus { MatchSchedule.status(for: match, now: now) }
 
     var body: some View {
         ZStack {
-            PhoneBackground()
+            TouchBackground()
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     hero
                     channelSection
                 }
-                .padding(16)
+                .padding(horizontalSizeClass == .compact ? 16 : 28)
                 .padding(.bottom, 32)
+                // A detail pane on a 13-inch iPad is far wider than the
+                // content needs; letting the cards run edge to edge there
+                // stretches every row into an unreadable band.
+                .frame(maxWidth: 720)
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle(match.league)
@@ -42,7 +48,7 @@ struct PhoneMatchDetailScreen: View {
             get: { model.playback != nil },
             set: { if !$0 { model.stopPlayback() } }
         )) {
-            PhonePlayerScreen(model: model)
+            TouchPlayerScreen(model: model)
         }
     }
 
@@ -64,7 +70,7 @@ struct PhoneMatchDetailScreen: View {
                 teamBlock(name: match.awayTeam, logo: match.awayLogoURL)
             }
         }
-        .phoneCard()
+        .touchCard()
     }
 
     private var kickoffColumn: some View {
@@ -122,13 +128,13 @@ struct PhoneMatchDetailScreen: View {
             }
 
             if let channelNotice = model.channelNotice {
-                PhoneNotice(message: channelNotice, tone: .info)
+                TouchNotice(message: channelNotice, tone: .info)
             }
             if let notice = model.notice {
-                PhoneNotice(message: notice, tone: .info)
+                TouchNotice(message: notice, tone: .info)
             }
             if let errorMessage = model.errorMessage {
-                PhoneNotice(
+                TouchNotice(
                     message: errorMessage,
                     tone: .error,
                     actionTitle: model.retryActionTitle,
@@ -143,7 +149,7 @@ struct PhoneMatchDetailScreen: View {
     @ViewBuilder
     private var channelList: some View {
         if match.sources.isEmpty {
-            PhoneStatusState(
+            TouchStatusState(
                 title: "这场比赛还没有线路",
                 message: "开赛前后线路才会陆续上线，稍后回来看看。",
                 illustration: Illustration.noChannel
@@ -153,7 +159,7 @@ struct PhoneMatchDetailScreen: View {
                 ForEach(0..<3, id: \.self) { _ in
                     Shimmer()
                         .frame(height: 68)
-                        .clipShape(RoundedRectangle(cornerRadius: PhoneMetrics.corner, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
                 }
             }
         } else {
@@ -163,7 +169,7 @@ struct PhoneMatchDetailScreen: View {
                     Button {
                         Task { await model.startPlayback(at: index) }
                     } label: {
-                        PhoneChannelRow(
+                        TouchChannelRow(
                             number: index + 1,
                             source: source,
                             subtitle: model.subtitle(for: source, index: index),

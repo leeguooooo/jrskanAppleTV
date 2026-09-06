@@ -12,7 +12,7 @@ struct MatchCard: View {
     @EnvironmentObject private var preferences: Preferences
 
     private var status: MatchStatus {
-        MatchSchedule.status(for: match.time, now: now)
+        MatchSchedule.status(for: match, now: now)
     }
 
     var body: some View {
