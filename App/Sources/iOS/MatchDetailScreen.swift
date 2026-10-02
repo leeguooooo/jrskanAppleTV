@@ -52,11 +52,10 @@ struct MatchDetailScreen: View {
             #endif
             if shouldPlay { await model.startSuggestedPlayback() }
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { model.playback != nil },
-            set: { if !$0 { model.stopPlayback() } }
-        )) {
-            TouchPlayerScreen(model: model)
+        // Resolve first, present second: the player appears once a channel
+        // has a stream. Later channel switches go through the same session.
+        .onChange(of: model.playback?.id) { _, _ in
+            if model.playback != nil { PlayerSession.shared.show(model) }
         }
     }
 

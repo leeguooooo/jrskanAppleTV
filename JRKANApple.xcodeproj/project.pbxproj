@@ -36,6 +36,7 @@
 		5C914807D7A4A5DBC7F305D9 /* MatchDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0234E27651736E182F447240 /* MatchDetailScreen.swift */; };
 		61434824021049A6A521E3B5 /* MatchCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */; };
 		65C930740BA8BCAC3E9041FD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */; };
+		6BB572B7A9E69C80285110AE /* PlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E562777A1E90EA727E2F897D /* PlayerSession.swift */; };
 		6BD40C7F3851EBC43C6655AB /* LiveSiteContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */; };
 		7624C69B95E5DE3C5F191081 /* MatchScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */; };
 		7737DBD6113F68387154EC78 /* PlaybackHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97594FAB228C1A127418D2E8 /* PlaybackHealth.swift */; };
@@ -114,6 +115,7 @@
 		C6F0CA23C2A11AD21E8F97B3 /* JRKANTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANTVApp.swift; sourceTree = "<group>"; };
 		CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSiteContractTests.swift; sourceTree = "<group>"; };
 		D6B493CE6BB2FB3AC7928093 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		E562777A1E90EA727E2F897D /* PlayerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSession.swift; sourceTree = "<group>"; };
 		ED60CF5C0B1E440A31BE919D /* JRSListingParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParserTests.swift; sourceTree = "<group>"; };
 		F18C6543E468B4065A6EC744 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegularMatchListScreen.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 				B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */,
 				0234E27651736E182F447240 /* MatchDetailScreen.swift */,
 				423BF4E949A39E0F05368991 /* OrientationController.swift */,
+				E562777A1E90EA727E2F897D /* PlayerSession.swift */,
 				F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */,
 				2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */,
 				C253D69C104183CC136B6570 /* SettingsScreen.swift */,
@@ -430,6 +433,7 @@
 				ABF39F61FAD181936DAAC61B /* Models.swift in Sources */,
 				B977CB79D85E42A3106F2365 /* OrientationController.swift in Sources */,
 				7737DBD6113F68387154EC78 /* PlaybackHealth.swift in Sources */,
+				6BB572B7A9E69C80285110AE /* PlayerSession.swift in Sources */,
 				0E89F6B2D62814E6D5B448D6 /* Preferences.swift in Sources */,
 				7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */,
 				87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */,
