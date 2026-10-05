@@ -2,6 +2,10 @@ import SwiftUI
 
 /// One sport's list inside the iPhone tab bar. Each tab keeps its own
 /// navigation stack, so switching sports does not lose an open match.
+///
+/// Built from stock parts — an inset-grouped List, system section headers,
+/// ContentUnavailableView — so it reads like an Apple app rather than a
+/// themed one.
 struct CompactMatchListScreen: View {
     let sport: SportFilter
 
@@ -19,29 +23,26 @@ struct CompactMatchListScreen: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ZStack {
-                TouchBackground()
-                content
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                if sport == .all {
-                    ToolbarItem(placement: .topBarTrailing) { refinementMenu }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        SettingsScreen()
-                    } label: {
-                        Image(systemName: "gearshape")
+            content
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.large)
+                .modifier(NavigationSubtitle(text: subtitle))
+                .toolbar {
+                    if sport == .all {
+                        ToolbarItem(placement: .topBarTrailing) { refinementMenu }
                     }
-                    .accessibilityLabel("设置")
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink {
+                            SettingsScreen()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .accessibilityLabel("设置")
+                    }
                 }
-            }
-            .navigationDestination(for: LiveMatch.self) { match in
-                MatchDetailScreen(match: match, preferences: preferences, autoplay: resumeMatchID == match.id)
-            }
+                .navigationDestination(for: LiveMatch.self) { match in
+                    MatchDetailScreen(match: match, preferences: preferences, autoplay: resumeMatchID == match.id)
+                }
         }
         .onChange(of: path.count) { _, count in if count == 0 { resumeMatchID = nil } }
         .onReceive(minuteTick) { now = $0 }
@@ -63,22 +64,71 @@ struct CompactMatchListScreen: View {
     @ViewBuilder
     private var content: some View {
         if model.isLoading && model.matches.isEmpty {
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(0..<6, id: \.self) { _ in TouchSkeletonRow() }
+            List {
+                Section {
+                    ForEach(0..<8, id: \.self) { _ in ScoreboardPlaceholderRow() }
                 }
-                .padding(.horizontal, 16)
             }
+            .listStyle(.insetGrouped)
         } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
-            TouchStatusState(
-                title: "暂时无法载入比赛",
-                message: errorMessage,
-                illustration: Illustration.offline,
-                actionTitle: "重试",
-                action: { Task { await model.refresh() } }
-            )
+            ContentUnavailableView {
+                Label("暂时无法载入比赛", systemImage: "wifi.exclamationmark")
+            } description: {
+                Text(errorMessage)
+            } actions: {
+                Button("重试") { Task { await model.refresh() } }
+                    .buttonStyle(.borderedProminent)
+            }
         } else {
             list
+        }
+    }
+
+    private var list: some View {
+        List {
+            if sport == .all, model.filter == .all, let match = model.continueMatch {
+                Section {
+                    Button { resumeMatchID = match.id; path.append(match) } label: {
+                        ContinueWatchingRow(match: match)
+                    }
+                    .tint(.primary)
+                }
+            }
+
+            if let errorMessage = model.errorMessage {
+                Section {
+                    Label {
+                        Text("赛程刷新失败，下面是上次读取的赛程。\(errorMessage)")
+                            .font(.footnote)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    }
+                    Button("重试") { Task { await model.refresh() } }
+                }
+            }
+
+            ForEach(model.sections) { section in
+                Section {
+                    ForEach(section.matches) { match in
+                        Button { path.append(match) } label: {
+                            ScoreboardRow(match: match, now: now)
+                        }
+                        .tint(.primary)
+                        .contextMenu { FollowMenu(match: match) }
+                    }
+                } header: {
+                    HStack(spacing: 6) {
+                        Text(section.title)
+                        Text("\(section.matches.count)").foregroundStyle(.tertiary)
+                    }
+                }
+                .headerProminence(.increased)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await model.refresh() }
+        .overlay {
+            if model.filteredMatches.isEmpty { emptyState }
         }
     }
 
@@ -89,6 +139,30 @@ struct CompactMatchListScreen: View {
         default: return sport.rawValue
         }
     }
+
+    /// Counts follow the tab, and a score-feed problem replaces the timestamp.
+    private var subtitle: String {
+        let shown = model.filteredMatches
+        let live = shown.filter { MatchSchedule.status(for: $0, now: now).isLive }.count
+        var parts: [String] = []
+        if live > 0 { parts.append("\(live) 场进行中") }
+        parts.append("共 \(shown.count) 场")
+        if let notice = model.scoreNotice {
+            parts.append(notice)
+        } else if let updated = model.scoresUpdatedAt ?? model.lastUpdated {
+            // The score feed goes quiet when nothing is on; only call it stale
+            // while there are games it should be updating.
+            let stale = live > 0 && model.scoresUpdatedAt != nil && now.timeIntervalSince(updated) > 120
+            parts.append(stale ? "比分数据较旧" : "\(Self.clock.string(from: updated)) 更新")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static let clock: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 
     /// 热门 / 关注 / 最近观看 narrow 全部 rather than being tabs of their own.
     private var refinementMenu: some View {
@@ -109,74 +183,55 @@ struct CompactMatchListScreen: View {
         .accessibilityLabel("筛选")
     }
 
-    private var list: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                summary
-                    .padding(.horizontal, 16)
-
-                if sport == .all, model.filter == .all, let match = model.continueMatch {
-                    Button { resumeMatchID = match.id; path.append(match) } label: { TouchContinueWatching(match: match) }
-                        .buttonStyle(.plain).padding(.horizontal, 16)
-                }
-
-                if let errorMessage = model.errorMessage {
-                    TouchNotice(
-                        message: "赛程刷新失败：\(errorMessage) 下面仍是上次读取的赛程。",
-                        actionTitle: "重试",
-                        action: { Task { await model.refresh() } }
-                    )
-                    .padding(.horizontal, 16)
-                }
-
-                if model.filteredMatches.isEmpty {
-                    emptyFilterState
-                } else {
-                    sections
-                }
-            }
-            .padding(.bottom, 32)
-        }
-        .refreshable { await model.refresh() }
-    }
-
-    private var summary: some View {
-        TouchListSummary(now: now)
-    }
-
-    private var sections: some View {
-        // A real Section per group: with header and rows as loose siblings,
-        // a match moving from 其他 to 正在进行 kept its stale pre-score row.
-        ForEach(model.sections) { section in
-            Section {
-                ForEach(section.matches) { match in
-                    NavigationLink(value: match) {
-                        TouchMatchRow(match: match, now: now)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                }
-            } header: {
-                TouchSectionHeader(section: section)
-            }
-        }
-    }
-
     @ViewBuilder
-    private var emptyFilterState: some View {
+    private var emptyState: some View {
         switch model.filter {
         case .followed:
-            TouchStatusState(
-                title: "关注的球队今天没有比赛",
-                message: "在比赛详情里点「关注」可以添加更多球队。",
-                illustration: Illustration.noMatches
+            ContentUnavailableView(
+                "关注的球队今天没有比赛",
+                systemImage: "star",
+                description: Text("长按任意比赛可以关注球队。")
             )
         default:
-            TouchStatusState(
-                title: sport == .all ? "这个分类今天没有比赛" : "今天没有\(sport.rawValue)比赛",
-                message: "下拉刷新看看最新赛程，或者换个项目。",
-                illustration: Illustration.noMatches
+            ContentUnavailableView(
+                sport == .all ? "今天没有比赛" : "今天没有\(sport.rawValue)比赛",
+                systemImage: sport == .all ? "sportscourt" : (sport.systemImage ?? "sportscourt"),
+                description: Text("下拉刷新看看最新赛程。")
             )
+        }
+    }
+}
+
+struct ContinueWatchingRow: View {
+    let match: LiveMatch
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "play.circle.fill")
+                .font(.title)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Palette.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("继续观看").font(.headline)
+                Text("\(match.homeTeam) vs \(match.awayTeam)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The large-title subtitle is new in iOS 26; earlier systems show the title alone.
+struct NavigationSubtitle: ViewModifier {
+    let text: String
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.navigationSubtitle(text)
+        } else {
+            content
         }
     }
 }

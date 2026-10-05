@@ -61,6 +61,7 @@
 		F21A5DAFDB0A5722A5F676AB /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
 		F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */; };
 		F702DD8A96C50B4F9A7A9099 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
+		F730894A27E9A40302916E13 /* ScoreboardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493E0B013E479B8EF86CE9B1 /* ScoreboardRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +92,7 @@
 		20084C4028DD8400105B30FE /* MatchDataViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchDataViews.swift; sourceTree = "<group>"; };
 		2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootScreen.swift; sourceTree = "<group>"; };
 		423BF4E949A39E0F05368991 /* OrientationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationController.swift; sourceTree = "<group>"; };
+		493E0B013E479B8EF86CE9B1 /* ScoreboardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreboardRow.swift; sourceTree = "<group>"; };
 		4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactMatchListScreen.swift; sourceTree = "<group>"; };
 		56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRoute.swift; sourceTree = "<group>"; };
 		581B4B353F8C9863B02DF5F1 /* JRKANiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -144,6 +146,7 @@
 				E562777A1E90EA727E2F897D /* PlayerSession.swift */,
 				F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */,
 				2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */,
+				493E0B013E479B8EF86CE9B1 /* ScoreboardRow.swift */,
 				C253D69C104183CC136B6570 /* SettingsScreen.swift */,
 				5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */,
 				09A18FB18C33A913FFA7E500 /* TouchPlayerScreen.swift */,
@@ -441,6 +444,7 @@
 				0E89F6B2D62814E6D5B448D6 /* Preferences.swift in Sources */,
 				7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */,
 				87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */,
+				F730894A27E9A40302916E13 /* ScoreboardRow.swift in Sources */,
 				08349E7A2C724CDB7011195A /* SettingsScreen.swift in Sources */,
 				9E519C204229261351A60C8B /* StreamResolver.swift in Sources */,
 				4B7D566FEA8A5038A38271C9 /* TouchDesign.swift in Sources */,

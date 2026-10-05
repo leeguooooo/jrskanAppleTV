@@ -80,81 +80,43 @@ struct CompactHomeScreen: View {
     }
 }
 
-/// The search tab: league shortcuts until something is typed, then matching
-/// fixtures across every sport.
+/// The search tab: today's competitions until something is typed, then
+/// matching fixtures across every sport.
 struct TouchSearchScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
-    @State private var now = Date()
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                TouchBackground()
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        if model.searchText.isEmpty {
-                            leagues
-                        } else if model.visibleMatches.isEmpty {
-                            TouchStatusState(
-                                title: "没有匹配的比赛",
-                                message: "换个关键词试试，比如联赛名或球队简称。",
-                                illustration: Illustration.search
-                            )
-                        } else {
-                            ForEach(model.visibleMatches) { match in
-                                NavigationLink(value: match) {
-                                    TouchMatchRow(match: match, now: now)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 16)
-                            }
+        NavigationStack(path: $path) {
+            List {
+                if model.searchText.isEmpty {
+                    Section("今天的联赛") {
+                        ForEach(model.leagueNames, id: \.self) { league in
+                            Button(league) { model.searchText = league }
+                                .tint(.primary)
                         }
                     }
-                    .padding(.bottom, 32)
+                } else {
+                    ForEach(model.visibleMatches) { match in
+                        Button { path.append(match) } label: { ScoreboardRow(match: match) }
+                            .tint(.primary)
+                            .contextMenu { FollowMenu(match: match) }
+                    }
                 }
-                .scrollDismissesKeyboard(.immediately)
             }
+            .listStyle(.insetGrouped)
+            .overlay {
+                if !model.searchText.isEmpty, model.visibleMatches.isEmpty {
+                    ContentUnavailableView.search(text: model.searchText)
+                }
+            }
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("搜索")
-            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: LiveMatch.self) { match in
                 MatchDetailScreen(match: match, preferences: preferences, autoplay: false)
             }
             .searchable(text: $model.searchText, prompt: "球队或联赛")
-        }
-        .onAppear { now = Date() }
-    }
-
-    private var leagues: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("今天的联赛")
-                .font(.title3.weight(.bold))
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-            VStack(spacing: 0) {
-                ForEach(Array(model.leagueNames.enumerated()), id: \.element) { index, league in
-                    if index > 0 { Divider().padding(.leading, 16) }
-                    Button { model.searchText = league } label: {
-                        HStack {
-                            Text(league).foregroundStyle(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(minHeight: 48)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .background(
-                RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemBackground))
-            )
-            .padding(.horizontal, 16)
         }
     }
 }
