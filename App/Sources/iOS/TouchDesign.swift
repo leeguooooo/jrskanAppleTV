@@ -86,9 +86,11 @@ struct TouchListSummary: View {
 
     private var line: String {
         var parts: [String] = []
-        let live = model.liveCount
+        // Counts follow the tab: 羽毛球 should not report basketball games.
+        let shown = model.filteredMatches
+        let live = shown.filter { MatchSchedule.status(for: $0, now: now).isLive }.count
         if live > 0 { parts.append("\(live) 场进行中") }
-        parts.append("共 \(model.matches.count) 场")
+        parts.append("共 \(shown.count) 场")
         if notice == nil, let updated = model.scoresUpdatedAt ?? model.lastUpdated {
             parts.append("\(Self.clock.string(from: updated)) 更新")
         }
@@ -266,49 +268,6 @@ struct TouchSkeletonRow: View {
             }
         }
         .touchCard()
-    }
-}
-
-/// Filter chips. Horizontal so all categories stay one thumb-swipe away. The
-/// two lead sports always show; any other empty category is hidden rather
-/// than offered as "热门 0".
-struct TouchCategoryBar: View {
-    @Binding var selection: SportFilter
-    let filters: [SportFilter]
-    let counts: [SportFilter: Int]
-
-    private var shown: [SportFilter] {
-        filters.filter {
-            [.all, .basketball, .badminton].contains($0) || $0 == selection || (counts[$0] ?? 0) > 0
-        }
-    }
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(shown) { filter in
-                    let isSelected = selection == filter
-                    Button {
-                        withAnimation(.snappy(duration: 0.25)) { selection = filter }
-                    } label: {
-                        Text(filter.rawValue)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .frame(height: 34)
-                            .foregroundStyle(isSelected ? Color.black : Color.primary)
-                            .background(
-                                Capsule().fill(isSelected ? Color.white : Color(uiColor: .tertiarySystemFill))
-                            )
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
-                    .accessibilityValue("\(counts[filter] ?? 0) 场")
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-        .scrollClipDisabled()
     }
 }
 

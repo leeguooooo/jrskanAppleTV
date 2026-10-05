@@ -24,6 +24,7 @@
 		17235F6837A722ED53FAA65E /* MatchListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A90A2984F83A94B6057399B /* MatchListModel.swift */; };
 		200218C81A1D8941BB310C8D /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
 		250B58FF657D661D7FEF6E20 /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */; };
+		29F57AE74969BE5F4C84FF86 /* CompactHomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */; };
 		2B66D3DADE77370AA966A3B9 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
 		30B0BD0144ACC59F0826B89E /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
 		33056E80ADB05B7E07C65E48 /* MatchDataViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20084C4028DD8400105B30FE /* MatchDataViews.swift */; };
@@ -120,6 +121,7 @@
 		F18C6543E468B4065A6EC744 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegularMatchListScreen.swift; sourceTree = "<group>"; };
 		F7CCA2DEF811B4DBC10F8715 /* JRKANTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactHomeScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -134,6 +136,7 @@
 		06B84AC9D7E700781DBCB31B /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */,
 				4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */,
 				B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */,
 				0234E27651736E182F447240 /* MatchDetailScreen.swift */,
@@ -420,6 +423,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				29F57AE74969BE5F4C84FF86 /* CompactHomeScreen.swift in Sources */,
 				8FB7DFE9E8FFACA2528A34EB /* CompactMatchListScreen.swift in Sources */,
 				CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */,
 				0C5B37767FC281475F00701C /* DesignSystem.swift in Sources */,

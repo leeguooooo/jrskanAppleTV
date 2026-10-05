@@ -19,7 +19,7 @@ struct RootScreen: View {
     var body: some View {
         Group {
             if UIDevice.current.userInterfaceIdiom == .phone || horizontalSizeClass == .compact {
-                CompactMatchListScreen()
+                CompactHomeScreen()
             } else {
                 RegularMatchListScreen()
             }

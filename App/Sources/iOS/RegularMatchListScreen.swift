@@ -182,8 +182,11 @@ struct RegularMatchListScreen: View {
                     emptyFilterState
                 } else {
                     ForEach(model.sections) { section in
-                        sectionHeader(section)
-                        grid(of: section.matches, emptyTitle: "", emptyMessage: nil, illustration: nil)
+                        Section {
+                            grid(of: section.matches, emptyTitle: "", emptyMessage: nil, illustration: nil)
+                        } header: {
+                            sectionHeader(section)
+                        }
                     }
                 }
             }

@@ -274,16 +274,21 @@ enum MatchSchedule {
 // MARK: - Filters
 
 enum SportFilter: String, CaseIterable, Identifiable {
-    // Declaration order is chip order: the two sports watched most lead.
+    // Declaration order is display order: everything first, then the two
+    // sports watched most.
+    case all = "全部"
     case basketball = "篮球"
     case badminton = "羽毛球"
-    case all = "全部"
     case football = "足球"
     case hot = "热门"
     case followed = "关注"
     case recent = "最近观看"
 
     var id: String { rawValue }
+
+    /// The sports that get a tab of their own on iPhone. The personal lists
+    /// (hot, followed, recent) are refinements of 全部, not destinations.
+    static let tabs: [SportFilter] = [.all, .basketball, .badminton, .football]
 
     var systemImage: String? {
         switch self {
@@ -308,6 +313,9 @@ enum SportFilter: String, CaseIterable, Identifiable {
         case .hot:
             return match.isHot
         case .basketball:
+            // Sport code 2 is basketball both in the listing id and the event
+            // feed; the league name only covers rows that carry neither.
+            if let code = match.providerState?.sportID ?? match.listingSportCode { return code == 2 }
             return MatchSchedule.isBasketball(league: match.league)
         case .badminton:
             return MatchSchedule.isBadminton(match)

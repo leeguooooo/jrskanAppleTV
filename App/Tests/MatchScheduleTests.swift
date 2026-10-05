@@ -71,7 +71,10 @@ final class MatchScheduleTests: XCTestCase {
         XCTAssertFalse(SportFilter.football.includes(badminton))
         XCTAssertTrue(SportFilter.badminton.includes(match("7002", league: "BWF世界巡回赛")))
         XCTAssertFalse(SportFilter.badminton.includes(match("4644105,1,4644105", league: "蒙古超")))
-        XCTAssertEqual(SportFilter.allCases.prefix(2), [.basketball, .badminton])
+        let youthBasketball = match("3944800,2,3944800", league: "U18女亚洲杯")
+        XCTAssertTrue(SportFilter.basketball.includes(youthBasketball))
+        XCTAssertFalse(SportFilter.football.includes(youthBasketball))
+        XCTAssertEqual(SportFilter.tabs, [.all, .basketball, .badminton, .football])
     }
 
     func testElapsedKickoffNeverProvesLiveOrFinished() {

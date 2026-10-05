@@ -1,6 +1,10 @@
 import SwiftUI
 
+/// One sport's list inside the iPhone tab bar. Each tab keeps its own
+/// navigation stack, so switching sports does not lose an open match.
 struct CompactMatchListScreen: View {
+    let sport: SportFilter
+
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
 
@@ -19,10 +23,13 @@ struct CompactMatchListScreen: View {
                 TouchBackground()
                 content
             }
-            .navigationTitle("今日比赛")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
+                if sport == .all {
+                    ToolbarItem(placement: .topBarTrailing) { refinementMenu }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         SettingsScreen()
@@ -35,20 +42,12 @@ struct CompactMatchListScreen: View {
             .navigationDestination(for: LiveMatch.self) { match in
                 MatchDetailScreen(match: match, preferences: preferences, autoplay: resumeMatchID == match.id)
             }
-            .searchable(text: $model.searchText, prompt: "搜索球队或联赛")
-            .searchSuggestions {
-                if model.searchText.isEmpty {
-                    ForEach(model.leagueNames.prefix(12), id: \.self) { league in
-                        Text(league).searchCompletion(league)
-                    }
-                }
-            }
         }
         .onChange(of: path.count) { _, count in if count == 0 { resumeMatchID = nil } }
         .onReceive(minuteTick) { now = $0 }
         #if DEBUG
         .onChange(of: model.isLoading) { _, loading in
-            guard !loading, !model.matches.isEmpty, !appliedDebugRoute, path.isEmpty else { return }
+            guard sport == .all, !loading, !model.matches.isEmpty, !appliedDebugRoute, path.isEmpty else { return }
             if DebugRoute.raw == "resume", let match = model.continueMatch {
                 appliedDebugRoute = true
                 resumeMatchID = match.id
@@ -83,7 +82,32 @@ struct CompactMatchListScreen: View {
         }
     }
 
-    private var isSearching: Bool { !model.searchText.isEmpty }
+    private var title: String {
+        switch model.filter {
+        case .all: return "今日比赛"
+        case let filter where sport == .all: return filter.rawValue
+        default: return sport.rawValue
+        }
+    }
+
+    /// 热门 / 关注 / 最近观看 narrow 全部 rather than being tabs of their own.
+    private var refinementMenu: some View {
+        Menu {
+            Picker("显示", selection: $model.filter) {
+                Text("全部比赛").tag(SportFilter.all)
+                ForEach(model.availableFilters.filter { !SportFilter.tabs.contains($0) }) { filter in
+                    Label("\(filter.rawValue)  \(model.categoryCounts[filter] ?? 0)",
+                          systemImage: filter.systemImage ?? "circle")
+                        .tag(filter)
+                }
+            }
+        } label: {
+            Image(systemName: model.filter == .all
+                  ? "line.3.horizontal.decrease"
+                  : "line.3.horizontal.decrease.circle.fill")
+        }
+        .accessibilityLabel("筛选")
+    }
 
     private var list: some View {
         ScrollView {
@@ -91,17 +115,9 @@ struct CompactMatchListScreen: View {
                 summary
                     .padding(.horizontal, 16)
 
-                if !isSearching, model.filter != .recent, let match = model.continueMatch {
+                if sport == .all, model.filter == .all, let match = model.continueMatch {
                     Button { resumeMatchID = match.id; path.append(match) } label: { TouchContinueWatching(match: match) }
                         .buttonStyle(.plain).padding(.horizontal, 16)
-                }
-
-                if !isSearching {
-                    TouchCategoryBar(
-                        selection: $model.filter,
-                        filters: model.availableFilters,
-                        counts: model.categoryCounts
-                    )
                 }
 
                 if let errorMessage = model.errorMessage {
@@ -113,9 +129,7 @@ struct CompactMatchListScreen: View {
                     .padding(.horizontal, 16)
                 }
 
-                if isSearching {
-                    searchResults
-                } else if model.filteredMatches.isEmpty {
+                if model.filteredMatches.isEmpty {
                     emptyFilterState
                 } else {
                     sections
@@ -131,34 +145,19 @@ struct CompactMatchListScreen: View {
     }
 
     private var sections: some View {
+        // A real Section per group: with header and rows as loose siblings,
+        // a match moving from 其他 to 正在进行 kept its stale pre-score row.
         ForEach(model.sections) { section in
-            TouchSectionHeader(section: section)
-
-            ForEach(section.matches) { match in
-                NavigationLink(value: match) {
-                    TouchMatchRow(match: match, now: now)
+            Section {
+                ForEach(section.matches) { match in
+                    NavigationLink(value: match) {
+                        TouchMatchRow(match: match, now: now)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var searchResults: some View {
-        if model.visibleMatches.isEmpty {
-            TouchStatusState(
-                title: "没有匹配的比赛",
-                message: "换个关键词试试，比如联赛名或球队简称。",
-                illustration: Illustration.search
-            )
-        } else {
-            ForEach(model.visibleMatches) { match in
-                NavigationLink(value: match) {
-                    TouchMatchRow(match: match, now: now)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
+            } header: {
+                TouchSectionHeader(section: section)
             }
         }
     }
@@ -174,8 +173,8 @@ struct CompactMatchListScreen: View {
             )
         default:
             TouchStatusState(
-                title: "这个分类今天没有比赛",
-                message: "换一个分类，或下拉刷新看看最新赛程。",
+                title: sport == .all ? "这个分类今天没有比赛" : "今天没有\(sport.rawValue)比赛",
+                message: "下拉刷新看看最新赛程，或者换个项目。",
                 illustration: Illustration.noMatches
             )
         }
