@@ -61,6 +61,19 @@ final class MatchScheduleTests: XCTestCase {
         XCTAssertFalse(SportFilter.followed.includes(match, favorites: ["勇士"]))
     }
 
+    func testBadmintonComesFromListingSportCode() {
+        func match(_ id: String, league: String) -> LiveMatch {
+            LiveMatch(id: id, league: league, time: "09-05 20:00", homeTeam: "A", awayTeam: "B",
+                      homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: [])
+        }
+        let badminton = match("7001,131,7001", league: "印尼公开赛")
+        XCTAssertTrue(SportFilter.badminton.includes(badminton))
+        XCTAssertFalse(SportFilter.football.includes(badminton))
+        XCTAssertTrue(SportFilter.badminton.includes(match("7002", league: "BWF世界巡回赛")))
+        XCTAssertFalse(SportFilter.badminton.includes(match("4644105,1,4644105", league: "蒙古超")))
+        XCTAssertEqual(SportFilter.allCases.prefix(2), [.basketball, .badminton])
+    }
+
     func testElapsedKickoffNeverProvesLiveOrFinished() {
         let now = date("2026-09-05 22:50")
         for league in ["美职联", "NBA", "未知联赛"] {

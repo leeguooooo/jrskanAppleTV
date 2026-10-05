@@ -196,21 +196,26 @@ struct TeamCrest: View {
     let url: URL?
     let teamName: String
     var size: CGFloat = 64
+    /// Draws the logo bare, the way Apple Sports does, and keeps the disc only
+    /// behind the monogram fallback so a missing logo still has a shape.
+    var framed = true
 
     var body: some View {
         AsyncImage(url: url, transaction: .init(animation: .easeOut(duration: 0.25))) { phase in
             switch phase {
             case .success(let image):
-                image.resizable().scaledToFit().padding(size * 0.10)
+                image.resizable().scaledToFit().padding(framed ? size * 0.10 : 0)
             case .empty:
                 Shimmer().clipShape(Circle())
             default:
                 monogram
+                    .frame(width: size, height: size)
+                    .background(framed ? .clear : Color.white.opacity(0.08), in: Circle())
             }
         }
         .frame(width: size, height: size)
-        .background(Color.white.opacity(0.07), in: Circle())
-        .overlay(Circle().strokeBorder(Palette.hairline, lineWidth: 1))
+        .background(framed ? Color.white.opacity(0.07) : .clear, in: Circle())
+        .overlay(Circle().strokeBorder(framed ? Palette.hairline : .clear, lineWidth: 1))
     }
 
     private var monogram: some View {

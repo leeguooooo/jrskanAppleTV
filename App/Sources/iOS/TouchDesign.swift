@@ -1,48 +1,126 @@
 import SwiftUI
 
-/// Touch counterparts of the tvOS design pieces: same palette, same
-/// vocabulary, sized for a finger or a pointer instead of a remote. Shared by
-/// iPhone, iPad and the Mac Catalyst build — the cards are laid out in a stack
-/// on a phone and in a grid on a wide screen, but they are the same cards.
+/// Touch counterparts of the tvOS design pieces, sized for a finger or a
+/// pointer instead of a remote. Shared by iPhone, iPad and the Mac Catalyst
+/// build. The look follows Apple Sports: a black canvas, borderless cards,
+/// bare team logos and scores that carry the weight, with colour kept for
+/// the things that need it (live, selection).
 enum TouchMetrics {
-    static let corner: CGFloat = 16
-    static let crest: CGFloat = 40
+    static let corner: CGFloat = 22
+    static let crest: CGFloat = 30
 }
 
 struct TouchBackground: View {
     var body: some View {
-        ZStack {
-            Palette.background
-            RadialGradient(
-                colors: [Palette.accent.opacity(0.18), .clear],
-                center: .init(x: 0.1, y: -0.1),
-                startRadius: 0,
-                endRadius: 520
-            )
-        }
-        .ignoresSafeArea()
+        Color.black.ignoresSafeArea()
     }
 }
 
-/// Card surface for list rows: the same lifted, hairlined tile as the TV
-/// cards, without the focus treatment.
+/// Card surface for list rows: a flat grouped-background tile, no hairline.
 struct TouchCard: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(14)
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
-                    .fill(Palette.surface)
+                    .fill(Color(uiColor: .secondarySystemBackground))
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
-                    .strokeBorder(Palette.hairline, lineWidth: 1)
-            )
+            .contentShape(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
     }
 }
 
 extension View {
     func touchCard() -> some View { modifier(TouchCard()) }
+}
+
+// MARK: - Live
+
+/// A plain pulsing dot. The TV badge sits on a tinted capsule so it reads
+/// from the sofa; at arm's length that capsule just looks like a smudge.
+struct TouchLiveDot: View {
+    var size: CGFloat = 7
+    @State private var pulsing = false
+
+    var body: some View {
+        Circle()
+            .fill(Palette.live)
+            .frame(width: size, height: size)
+            .opacity(pulsing ? 0.35 : 1)
+            .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulsing)
+            .onAppear { pulsing = true }
+            .accessibilityHidden(true)
+    }
+}
+
+// MARK: - List chrome
+
+/// One quiet line under the large title: what is on, and how fresh it is.
+/// A score-feed problem replaces the timestamp so it is not missed.
+struct TouchListSummary: View {
+    @EnvironmentObject private var model: MatchListModel
+    var now = Date()
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(line)
+                .foregroundStyle(.secondary)
+            if let notice {
+                Text("· \(notice)").foregroundStyle(Palette.accent)
+            }
+            if MatchSchedule.viewerIsOffFeedTime(now: now) {
+                Image(systemName: "globe")
+                    .foregroundStyle(.tertiary)
+                    .accessibilityLabel("本机时间")
+            }
+        }
+        .font(.subheadline)
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
+    }
+
+    private var notice: String? {
+        if let scoreNotice = model.scoreNotice { return scoreNotice }
+        if let scores = model.scoresUpdatedAt, now.timeIntervalSince(scores) > 120 { return "比分数据较旧" }
+        return nil
+    }
+
+    private var line: String {
+        var parts: [String] = []
+        let live = model.liveCount
+        if live > 0 { parts.append("\(live) 场进行中") }
+        parts.append("共 \(model.matches.count) 场")
+        if notice == nil, let updated = model.scoresUpdatedAt ?? model.lastUpdated {
+            parts.append("\(Self.clock.string(from: updated)) 更新")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static let clock: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+}
+
+struct TouchSectionHeader: View {
+    let section: MatchSection
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if section.status.isLive { TouchLiveDot(size: 8) }
+            Text(section.title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.primary)
+            Text("\(section.matches.count)")
+                .font(.title3.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.tertiary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
 }
 
 // MARK: - Rows
@@ -53,208 +131,184 @@ struct TouchMatchRow: View {
     @EnvironmentObject private var preferences: Preferences
 
     private var status: MatchStatus { MatchSchedule.status(for: match, now: now) }
+    private var homeScore: Int? { match.scoreText == nil ? nil : match.providerState?.homeScore }
+    private var awayScore: Int? { match.scoreText == nil ? nil : match.providerState?.awayScore }
+    private var hasScore: Bool { homeScore != nil && awayScore != nil }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text(match.league)
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(Palette.accent)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 14) {
+            header
 
-                if preferences.follows(match) {
-                    Image(systemName: "star.fill")
-                        .font(.caption2)
-                        .foregroundStyle(Palette.accent)
+            HStack(spacing: 12) {
+                VStack(spacing: 10) {
+                    team(match.homeTeam, logo: match.homeLogoURL, score: homeScore, trailing: isTrailing(homeScore, awayScore))
+                    team(match.awayTeam, logo: match.awayLogoURL, score: awayScore, trailing: isTrailing(awayScore, homeScore))
                 }
-                if match.isHot {
-                    Image(systemName: "flame.fill")
-                        .font(.caption2)
-                        .foregroundStyle(Palette.live)
-                }
-
-                Spacer(minLength: 8)
-
-                trailingStatus
+                if !hasScore { kickoff }
             }
 
-            ViewThatFits(in: .horizontal) {
-                wideFixture.frame(minWidth: 420)
-                narrowFixture
-            }
-
-            HStack(spacing: 8) {
-                channelText
-                Spacer()
-                if case .upcoming(let minutes) = status, minutes <= 90 {
-                    Text("\(minutes) 分钟后开赛")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Palette.accent)
-                }
-            }
+            if let footer { footer }
         }
         .touchCard()
         .accessibilityElement(children: .combine)
     }
 
-    private var wideFixture: some View {
-        HStack(spacing: 10) {
-            TeamCrest(url: match.homeLogoURL, teamName: match.homeTeam, size: TouchMetrics.crest)
-            Text(match.homeTeam)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Palette.primaryText)
-                .lineLimit(2)
-                // The card also has to survive an iPad's narrow middle
-                // column, where a two-word club name would otherwise wrap.
-                .minimumScaleFactor(0.75)
-                .frame(maxWidth: .infinity, alignment: .leading)
+    private var header: some View {
+        HStack(spacing: 6) {
+            Text(match.league)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            if preferences.follows(match) {
+                Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow)
+            }
+            if match.isHot {
+                Image(systemName: "flame.fill").font(.caption2).foregroundStyle(.orange)
+            }
+            Spacer(minLength: 8)
+            trailingStatus
+        }
+    }
 
-            Text(match.scoreText ?? "VS")
-                .font(.subheadline.monospacedDigit().weight(.bold))
-                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+    private func team(_ name: String, logo: URL?, score: Int?, trailing: Bool) -> some View {
+        HStack(spacing: 12) {
+            TeamCrest(url: logo, teamName: name, size: TouchMetrics.crest, framed: false)
+            Text(name)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(trailing ? .secondary : .primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .frame(width: 72)
-
-            Text(match.awayTeam)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Palette.primaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .multilineTextAlignment(.trailing)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            TeamCrest(url: match.awayLogoURL, teamName: match.awayTeam, size: TouchMetrics.crest)
-            }
-
-    }
-
-
-    private var narrowFixture: some View {
-        VStack(spacing: 12) {
-            narrowTeam(match.homeTeam, logo: match.homeLogoURL,
-                       score: match.scoreText == nil ? nil : match.providerState?.homeScore)
-            narrowTeam(match.awayTeam, logo: match.awayLogoURL,
-                       score: match.scoreText == nil ? nil : match.providerState?.awayScore)
-        }
-        .overlay(alignment: .trailing) {
-            if match.scoreText == nil {
-                Text("VS").font(.caption.weight(.heavy))
-                    .foregroundStyle(Palette.tertiaryText).frame(width: 52)
-            }
-        }
-    }
-
-    private func narrowTeam(_ name: String, logo: URL?, score: Int?) -> some View {
-        HStack(spacing: 10) {
-            TeamCrest(url: logo, teamName: name, size: 36)
-            Text(name).font(.subheadline.weight(.semibold))
-                .foregroundStyle(Palette.primaryText)
-                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(score.map(String.init) ?? " ")
-                .font(.title3.monospacedDigit().weight(.bold))
-                .lineLimit(1).minimumScaleFactor(0.6)
-                .foregroundStyle(Palette.primaryText).frame(width: 52, alignment: .trailing)
+            if let score {
+                Text("\(score)")
+                    .font(.system(.title2, design: .rounded).weight(.bold).monospacedDigit())
+                    .foregroundStyle(trailing ? .secondary : .primary)
+                    .contentTransition(.numericText(value: Double(score)))
+                    .animation(.snappy, value: score)
+            }
         }
-        .frame(minHeight: 40)
+        .frame(minHeight: 32)
+    }
+
+    /// Apple Sports greys out the side that is behind; a level game stays white.
+    private func isTrailing(_ mine: Int?, _ theirs: Int?) -> Bool {
+        guard let mine, let theirs else { return false }
+        return mine < theirs
+    }
+
+    /// Kickoff time takes the score column until there is a score.
+    private var kickoff: some View {
+        let shown = MatchSchedule.displayTime(for: match.time, now: now)
+        return VStack(alignment: .trailing, spacing: 2) {
+            Text(shown.clock)
+                .font(.system(.title3, design: .rounded).weight(.semibold).monospacedDigit())
+                .foregroundStyle(.primary)
+            if !shown.day.isEmpty {
+                Text(shown.day).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .fixedSize()
     }
 
     @ViewBuilder
     private var trailingStatus: some View {
-        let shown = MatchSchedule.displayTime(for: match.time, now: now)
         switch status {
         case .live(let label):
-            HStack(spacing: 6) {
-                LiveBadge(compact: true)
+            HStack(spacing: 5) {
+                TouchLiveDot()
                 Text(label)
-                    .font(.caption.monospacedDigit().weight(.bold))
+                    .font(.footnote.weight(.semibold).monospacedDigit())
                     .foregroundStyle(Palette.live)
             }
         case .finished:
-            Text("已结束 · \(shown.clock)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.tertiaryText)
+            Text("已结束").font(.footnote.weight(.medium)).foregroundStyle(.tertiary)
         case .scheduled:
-            Text("未开赛 · \(shown.clock)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.secondaryText)
+            Text("未开赛").font(.footnote.weight(.medium)).foregroundStyle(.secondary)
         case .interrupted(let label):
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.secondaryText)
+            Text(label).font(.footnote.weight(.medium)).foregroundStyle(.secondary)
+        case .upcoming(let minutes) where minutes <= 90:
+            Text("\(minutes) 分钟后开赛").font(.footnote.weight(.semibold)).foregroundStyle(Palette.accent)
         case .upcoming, .unknown:
-            Text(shown.day.isEmpty ? shown.clock : "\(shown.day) \(shown.clock)")
-                .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Palette.secondaryText)
+            EmptyView()
         }
     }
 
-    private var channelText: some View {
-        Group {
-            if let last = preferences.lastChannel(for: match.id) {
-                Label("上次 · \(last.name)", systemImage: "clock.arrow.circlepath")
-            } else if match.sources.isEmpty {
-                Label("暂无线路", systemImage: "nosign")
-            } else {
-                Label("\(match.sources.count) 条线路", systemImage: "dot.radiowaves.left.and.right")
-            }
+    /// Only the exceptions earn a line: where you left off, or no stream at all.
+    /// "3 条线路" on every card was noise.
+    private var footer: AnyView? {
+        if let last = preferences.lastChannel(for: match.id) {
+            return AnyView(
+                Label("上次看的 \(last.name)", systemImage: "clock.arrow.circlepath")
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            )
         }
-        .font(.caption)
-        .foregroundStyle(match.sources.isEmpty ? Palette.tertiaryText : Palette.secondaryText)
-        .lineLimit(1)
+        if match.sources.isEmpty {
+            return AnyView(
+                Label("暂无线路", systemImage: "nosign")
+                    .font(.caption).foregroundStyle(.tertiary)
+            )
+        }
+        return nil
     }
 }
 
 struct TouchSkeletonRow: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Shimmer().frame(width: 90, height: 12).clipShape(Capsule())
-            HStack(spacing: 10) {
-                Circle().fill(Palette.surface).frame(width: TouchMetrics.crest, height: TouchMetrics.crest)
-                Shimmer().frame(height: 16).clipShape(Capsule())
-                Circle().fill(Palette.surface).frame(width: TouchMetrics.crest, height: TouchMetrics.crest)
+        VStack(alignment: .leading, spacing: 14) {
+            Shimmer().frame(width: 80, height: 11).clipShape(Capsule())
+            ForEach(0..<2, id: \.self) { _ in
+                HStack(spacing: 12) {
+                    Shimmer().frame(width: TouchMetrics.crest, height: TouchMetrics.crest).clipShape(Circle())
+                    Shimmer().frame(width: 140, height: 14).clipShape(Capsule())
+                    Spacer()
+                    Shimmer().frame(width: 24, height: 18).clipShape(Capsule())
+                }
             }
-            Shimmer().frame(width: 70, height: 10).clipShape(Capsule())
         }
         .touchCard()
     }
 }
 
-/// Filter chip row. Horizontal so all categories stay one thumb-swipe away.
+/// Filter chips. Horizontal so all categories stay one thumb-swipe away. The
+/// two lead sports always show; any other empty category is hidden rather
+/// than offered as "热门 0".
 struct TouchCategoryBar: View {
     @Binding var selection: SportFilter
     let filters: [SportFilter]
     let counts: [SportFilter: Int]
 
+    private var shown: [SportFilter] {
+        filters.filter {
+            [.all, .basketball, .badminton].contains($0) || $0 == selection || (counts[$0] ?? 0) > 0
+        }
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(filters) { filter in
+                ForEach(shown) { filter in
                     let isSelected = selection == filter
                     Button {
-                        withAnimation(.easeOut(duration: 0.2)) { selection = filter }
+                        withAnimation(.snappy(duration: 0.25)) { selection = filter }
                     } label: {
-                        HStack(spacing: 6) {
-                            if let systemImage = filter.systemImage {
-                                Image(systemName: systemImage).font(.caption.weight(.semibold))
-                            }
-                            Text(filter.rawValue).font(.subheadline.weight(.semibold))
-                            Text("\(counts[filter] ?? 0)")
-                                .font(.caption2.monospacedDigit().weight(.bold))
-                                .foregroundStyle(isSelected ? Palette.backgroundTop.opacity(0.7) : Palette.tertiaryText)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .foregroundStyle(isSelected ? Palette.backgroundTop : Palette.secondaryText)
-                        .background(Capsule().fill(isSelected ? Palette.accent : Palette.surface))
-                        .overlay(Capsule().strokeBorder(isSelected ? .clear : Palette.hairline, lineWidth: 1))
+                        Text(filter.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 34)
+                            .foregroundStyle(isSelected ? Color.black : Color.primary)
+                            .background(
+                                Capsule().fill(isSelected ? Color.white : Color(uiColor: .tertiarySystemFill))
+                            )
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                    .accessibilityValue("\(counts[filter] ?? 0) 场")
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 4)
         }
+        .scrollClipDisabled()
     }
 }
 
@@ -399,5 +453,31 @@ struct TouchStatusState: View {
         }
         .padding(28)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// Resume card at the top of the list, styled like any other row.
+struct TouchContinueWatching: View {
+    let match: LiveMatch
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "play.circle.fill")
+                .font(.system(size: 34))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Palette.accent)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("继续观看").font(.headline)
+                Text("\(match.homeTeam) vs \(match.awayTeam)")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .touchCard()
+        .accessibilityElement(children: .combine)
     }
 }

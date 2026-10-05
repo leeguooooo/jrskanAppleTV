@@ -27,7 +27,7 @@ struct CompactMatchListScreen: View {
                     NavigationLink {
                         SettingsScreen()
                     } label: {
-                        Image(systemName: "gearshape.fill")
+                        Image(systemName: "gearshape")
                     }
                     .accessibilityLabel("设置")
                 }
@@ -65,10 +65,10 @@ struct CompactMatchListScreen: View {
     private var content: some View {
         if model.isLoading && model.matches.isEmpty {
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(0..<6, id: \.self) { _ in TouchSkeletonRow() }
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
             }
         } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
             TouchStatusState(
@@ -87,13 +87,12 @@ struct CompactMatchListScreen: View {
 
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10, pinnedViews: []) {
+            LazyVStack(alignment: .leading, spacing: 12) {
                 summary
                     .padding(.horizontal, 16)
 
-                ScoreFreshnessLine(now: now).padding(.horizontal, 16)
                 if !isSearching, model.filter != .recent, let match = model.continueMatch {
-                    Button { resumeMatchID = match.id; path.append(match) } label: { ContinueWatchingLabel(match: match) }
+                    Button { resumeMatchID = match.id; path.append(match) } label: { TouchContinueWatching(match: match) }
                         .buttonStyle(.plain).padding(.horizontal, 16)
                 }
 
@@ -128,47 +127,12 @@ struct CompactMatchListScreen: View {
     }
 
     private var summary: some View {
-        HStack(spacing: 8) {
-            Text(summaryLine)
-                .font(.footnote)
-                .foregroundStyle(Palette.secondaryText)
-            if MatchSchedule.viewerIsOffFeedTime(now: now) {
-                Label("本机时间", systemImage: "globe")
-                    .font(.caption2)
-                    .foregroundStyle(Palette.tertiaryText)
-            }
-        }
+        TouchListSummary(now: now)
     }
-
-    private var summaryLine: String {
-        var parts = ["共 \(model.matches.count) 场"]
-        let live = model.liveCount
-        if live > 0 { parts.append("\(live) 场进行中") }
-        if let updated = model.lastUpdated {
-            parts.append("赛程 \(Self.clockFormatter.string(from: updated))")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private static let clockFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
 
     private var sections: some View {
         ForEach(model.sections) { section in
-            HStack(spacing: 8) {
-                if section.status.isLive { LiveBadge(compact: true) }
-                Text(section.title)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(section.status.isLive ? Palette.live : Palette.primaryText)
-                Text("\(section.matches.count)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(Palette.tertiaryText)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
+            TouchSectionHeader(section: section)
 
             ForEach(section.matches) { match in
                 NavigationLink(value: match) {

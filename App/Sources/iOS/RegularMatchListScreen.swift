@@ -160,9 +160,8 @@ struct RegularMatchListScreen: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
                 summary.padding(.horizontal, 16)
-                ScoreFreshnessLine(now: now).padding(.horizontal, 16)
                 if !isSearching, model.filter != .recent, let match = model.continueMatch {
-                    Button { select(match, autoplay: true) } label: { ContinueWatchingLabel(match: match) }
+                    Button { select(match, autoplay: true) } label: { TouchContinueWatching(match: match) }
                         .buttonStyle(.plain).padding(.horizontal, 16)
                 }
 
@@ -218,48 +217,15 @@ struct RegularMatchListScreen: View {
     }
 
     private func sectionHeader(_ section: MatchSection) -> some View {
-        HStack(spacing: 8) {
-            if section.status.isLive { LiveBadge(compact: true) }
-            Text(section.title)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(section.status.isLive ? Palette.live : Palette.primaryText)
-            Text("\(section.matches.count)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Palette.tertiaryText)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
+        TouchSectionHeader(section: section)
     }
 
     private var summary: some View {
-        HStack(spacing: 8) {
-            Text(summaryLine)
-                .font(.footnote)
-                .foregroundStyle(Palette.secondaryText)
-            if MatchSchedule.viewerIsOffFeedTime(now: now) {
-                Label("本机时间", systemImage: "globe")
-                    .font(.caption2)
-                    .foregroundStyle(Palette.tertiaryText)
-            }
-            Spacer()
+        HStack {
+            TouchListSummary(now: now)
+            Spacer(minLength: 0)
         }
     }
-
-    private var summaryLine: String {
-        var parts = ["共 \(model.matches.count) 场"]
-        let live = model.liveCount
-        if live > 0 { parts.append("\(live) 场进行中") }
-        if let updated = model.lastUpdated {
-            parts.append("赛程 \(Self.clockFormatter.string(from: updated))")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private static let clockFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
 
     @ViewBuilder
     private var emptyFilterState: some View {

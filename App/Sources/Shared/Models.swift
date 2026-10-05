@@ -13,6 +13,12 @@ struct LiveMatch: Identifiable, Hashable, Sendable, Codable {
     var providerState: ProviderMatchState? = nil
 
     var scoreText: String? { providerState?.scoreText }
+
+    /// Sport code from the listing id, e.g. "4644105,1,4644105" → 1.
+    var listingSportCode: Int? {
+        let parts = id.split(separator: ",")
+        return parts.count == 3 ? Int(parts[1]) : nil
+    }
 }
 
 struct MatchSource: Identifiable, Hashable, Sendable, Codable {
@@ -156,6 +162,14 @@ enum MatchSchedule {
         SportFilter.basketballLeagues.contains { league.localizedCaseInsensitiveContains($0) }
     }
 
+    /// The listing's `data-lid` ("<id>,<sport>,<id>") carries the site's sport
+    /// code, the same value its own menu filters on: 1 football, 2 basketball,
+    /// 131 badminton. The league name covers rows from an older markup.
+    static func isBadminton(_ match: LiveMatch) -> Bool {
+        if match.listingSportCode == 131 { return true }
+        return ["羽毛球", "羽球", "BWF"].contains { match.league.localizedCaseInsensitiveContains($0) }
+    }
+
     static func kickoff(from raw: String, now: Date = Date()) -> Date? {
         let parts = raw.split(whereSeparator: { $0 == " " || $0 == "\u{00A0}" })
         guard parts.count == 2 else { return nil }
@@ -260,12 +274,14 @@ enum MatchSchedule {
 // MARK: - Filters
 
 enum SportFilter: String, CaseIterable, Identifiable {
-    case all = "全部"
-    case recent = "最近观看"
-    case followed = "关注"
-    case hot = "热门"
+    // Declaration order is chip order: the two sports watched most lead.
     case basketball = "篮球"
+    case badminton = "羽毛球"
+    case all = "全部"
     case football = "足球"
+    case hot = "热门"
+    case followed = "关注"
+    case recent = "最近观看"
 
     var id: String { rawValue }
 
@@ -276,6 +292,7 @@ enum SportFilter: String, CaseIterable, Identifiable {
         case .followed: return "star.fill"
         case .hot: return "flame.fill"
         case .basketball: return "basketball.fill"
+        case .badminton: return "figure.badminton"
         case .football: return "soccerball"
         }
     }
@@ -292,8 +309,10 @@ enum SportFilter: String, CaseIterable, Identifiable {
             return match.isHot
         case .basketball:
             return MatchSchedule.isBasketball(league: match.league)
+        case .badminton:
+            return MatchSchedule.isBadminton(match)
         case .football:
-            return !SportFilter.basketball.includes(match)
+            return !SportFilter.basketball.includes(match) && !SportFilter.badminton.includes(match)
         }
     }
 
