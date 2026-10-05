@@ -10,7 +10,8 @@ import Foundation
 ///
 /// Routes:
 ///   account         open the account screen at launch (pair with
-///                   `-account-mock member|free` for a signed-in state)
+///                   `-account-mock trial|member|expired|free`)
+///   membership      tvOS: open the scan-to-pay screen
 ///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter
 ///   play:<n>        open it and start the suggested channel

@@ -9,6 +9,7 @@ struct AccountScreen: View {
     @EnvironmentObject private var account: AccountSession
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @State private var appleNonce = ""
 
     var body: some View {
@@ -26,6 +27,10 @@ struct AccountScreen: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .task { await account.refreshIfStale(maxAge: 60) }
         .refreshable { await account.refreshAccount() }
+        // Coming back from the purchase page in Safari.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, account.isSignedIn { Task { await account.refreshAccount() } }
+        }
     }
 
     // MARK: Signed out
@@ -121,6 +126,11 @@ struct AccountScreen: View {
             Label(account.membership.summary(), systemImage: account.isMember ? "crown.fill" : "crown")
                 .foregroundStyle(account.isMember ? Palette.primaryText : Palette.secondaryText)
             Button {
+                openURL(AccountConfig.membershipURL)
+            } label: {
+                Label(account.membership.purchaseTitle(), systemImage: "creditcard")
+            }
+            Button {
                 Task { await account.refreshAccount() }
             } label: {
                 Label(account.isRefreshing ? "正在刷新…" : "刷新会员状态", systemImage: "arrow.clockwise")
@@ -129,7 +139,9 @@ struct AccountScreen: View {
         } header: {
             Text("会员")
         } footer: {
-            Text("开通与续费在账号中心进行，完成后回到这里刷新。")
+            Text(account.membership.isTrial == true && account.isMember
+                 ? "新账号赠送三个月会员。到期后 \(AccountConfig.priceLabel)，在网页上用微信或支付宝付款（爱发电），回到这里自动刷新。"
+                 : "在网页上用微信或支付宝付款（爱发电），每次续一个月，回到这里自动刷新。")
         }
 
         Section {

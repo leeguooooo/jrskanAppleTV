@@ -203,11 +203,34 @@ struct AccountView: View {
                 SettingsGroup(title: "会员") {
                     SettingsInfoRow(
                         title: account.membership.summary(),
-                        value: account.isMember
-                            ? "会员权益已在这台 Apple TV 上生效。"
-                            : "开通与续费请在手机或电脑上访问 \(AccountConfig.issuer.host() ?? "")，开通后回到这里刷新即可。",
+                        value: membershipDetail,
                         systemImage: account.isMember ? "crown.fill" : "crown"
                     )
+                    NavigationLink {
+                        MembershipPurchaseView()
+                    } label: {
+                        HStack(spacing: 24) {
+                            Image(systemName: "qrcode")
+                                .font(.title2)
+                                .foregroundStyle(Palette.accent)
+                                .frame(width: 48)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(account.membership.purchaseTitle())
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Palette.primaryText)
+                                Text("用手机扫码，微信或支付宝付款。")
+                                    .font(.callout)
+                                    .foregroundStyle(Palette.secondaryText)
+                            }
+                            Spacer(minLength: 20)
+                            Image(systemName: "chevron.right")
+                                .font(.callout.weight(.semibold))
+                                .foregroundStyle(Palette.tertiaryText)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.vertical, 22)
+                    }
+                    .buttonStyle(FocusCardButtonStyle())
                     SettingsActionRow(
                         title: account.isRefreshing ? "正在刷新…" : "刷新会员状态",
                         subtitle: refreshedText,
@@ -233,6 +256,18 @@ struct AccountView: View {
         }
     }
 
+    private var membershipDetail: String {
+        let membership = account.membership
+        if account.isMember {
+            return membership.isTrial == true
+                ? "新账号赠送三个月会员，到期后 \(AccountConfig.priceLabel) 继续使用。"
+                : "会员权益已在这台 Apple TV 上生效。"
+        }
+        return membership.hasLapsed(now: Date())
+            ? "会员已到期，\(AccountConfig.priceLabel) 即可继续。"
+            : "开通后会员权益在 Apple TV、iPhone、iPad 和 Mac 上通用。"
+    }
+
     private var refreshedText: String {
         guard let checked = account.membership.checkedAt else { return "从账号中心读取最新会员状态。" }
         return "上次更新 \(Self.updatedFormatter.string(from: checked))"
@@ -243,6 +278,69 @@ struct AccountView: View {
         formatter.dateFormat = "M月d日 HH:mm"
         return formatter
     }()
+}
+
+/// Pay on the phone: the TV shows a code for the account center's purchase
+/// page and watches the membership until the payment lands.
+struct MembershipPurchaseView: View {
+    @EnvironmentObject private var account: AccountSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var startingUntil: Date?
+    @State private var paid = false
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            HStack(alignment: .center, spacing: 90) {
+                QRCodeView(text: AccountConfig.membershipURL.absoluteString)
+                    .frame(width: 420, height: 420)
+                    .padding(28)
+                    .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.white))
+
+                VStack(alignment: .leading, spacing: 22) {
+                    Text(paid ? "开通成功" : "扫码开通会员")
+                        .font(.system(size: 56, weight: .bold))
+                        .foregroundStyle(Palette.primaryText)
+                    Text(AccountConfig.priceLabel)
+                        .font(.system(size: 44, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                    Text(paid
+                         ? account.membership.summary()
+                         : "用手机相机扫码，登录同一个账号后用微信或支付宝付款，每次续一个月。付款通过爱发电完成。")
+                        .font(.title3)
+                        .foregroundStyle(Palette.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Label(paid ? "按 Menu 返回" : "付款后这里会自动刷新…", systemImage: paid ? "checkmark.circle.fill" : "hourglass")
+                        .font(.callout)
+                        .foregroundStyle(paid ? Palette.accent : Palette.tertiaryText)
+                }
+                .frame(maxWidth: 760, alignment: .leading)
+            }
+            .padding(.horizontal, Metrics.gutter)
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .onExitCommand { dismiss() }
+        .task { await watchForPayment() }
+    }
+
+    /// Ten minutes of polling covers a slow checkout; any later payment shows
+    /// up on the next foreground refresh anyway.
+    private func watchForPayment() async {
+        startingUntil = account.membership.validUntil
+        for _ in 0..<120 {
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            await account.refreshAccount()
+            let membership = account.membership
+            let extended = membership.isTrial != true && membership.validUntil.map { new in
+                startingUntil.map { new > $0.addingTimeInterval(86400) } ?? true
+            } == true
+            if extended {
+                paid = true
+                return
+            }
+        }
+    }
 }
 
 /// Entry row for the Settings screen.

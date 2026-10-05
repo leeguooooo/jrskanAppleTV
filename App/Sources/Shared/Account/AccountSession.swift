@@ -152,19 +152,22 @@ final class AccountSession: ObservableObject {
 
 #if DEBUG
 extension AccountSession {
-    /// `-account-mock member|free` fakes a signed-in account so the screens
+    /// `-account-mock trial|member|expired|free` fakes a signed-in account so the screens
     /// can be checked on a simulator without a real sign-in.
     static func launchDefault() -> AccountSession {
         let args = CommandLine.arguments
         guard let index = args.firstIndex(of: "-account-mock"), index + 1 < args.count else { return AccountSession() }
-        let member = args[index + 1] == "member"
+        let mode = args[index + 1]
+        let active = mode == "member" || mode == "trial"
         let account = StoredAccount(
             tokens: AuthTokens(accessToken: "mock", refreshToken: "mock", idToken: nil, expiresAt: .distantFuture),
             profile: AccountProfile(sub: "mock", email: "viewer@example.com", name: "测试用户", picture: nil),
             membership: Membership(
-                activeKeys: member ? ["membership.all_apps"] : [],
-                validUntil: member ? Date().addingTimeInterval(86400 * 200) : nil,
-                checkedAt: Date()
+                activeKeys: active ? ["jrkan.premium"] : [],
+                validUntil: active ? Date().addingTimeInterval(86400 * (mode == "trial" ? 76.5 : 200)) : nil,
+                checkedAt: Date(),
+                isTrial: mode == "trial",
+                lapsedAt: mode == "expired" ? Date().addingTimeInterval(-86400 * 3) : nil
             )
         )
         return AccountSession(store: MemoryAccountStore(account), offline: true)
@@ -177,10 +180,26 @@ extension AccountSession {
 #endif
 
 extension Membership {
-    /// One line for the account screens: "会员 · 有效期至 2027-04-01".
+    /// One line for the account screens, e.g. "免费试用 · 剩余 12 天".
     func summary(now: Date = Date()) -> String {
-        guard isActive(now: now) else { return "未开通会员" }
+        guard isActive(now: now) else { return hasLapsed(now: now) ? "会员已过期" : "未开通会员" }
         guard let validUntil else { return "会员 · 长期有效" }
+        if isTrial == true { return "免费试用 · 剩余 \(daysLeft(now: now)) 天" }
         return "会员 · 有效期至 \(validUntil.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits)))"
+    }
+
+    func hasLapsed(now: Date) -> Bool {
+        lapsedAt != nil || (validUntil.map { $0 <= now } ?? false)
+    }
+
+    /// Partial days count as a day: "剩余 0 天" while it still works reads as a bug.
+    func daysLeft(now: Date) -> Int {
+        guard let validUntil else { return 0 }
+        return max(0, Int((validUntil.timeIntervalSince(now) / 86400).rounded(.up)))
+    }
+
+    /// The purchase button's title for the current state.
+    func purchaseTitle(now: Date = Date()) -> String {
+        isActive(now: now) && isTrial != true ? "续费 1 个月 · ¥1.99" : "开通会员 · \(AccountConfig.priceLabel)"
     }
 }

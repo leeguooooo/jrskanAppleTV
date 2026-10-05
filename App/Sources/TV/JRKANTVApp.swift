@@ -12,6 +12,8 @@ struct JRKANApp: App {
                 #if DEBUG
                 if DebugRoute.raw == "account" {
                     NavigationStack { AccountView() }
+                } else if DebugRoute.raw == "membership" {
+                    NavigationStack { MembershipPurchaseView() }
                 } else {
                     MatchListView()
                 }

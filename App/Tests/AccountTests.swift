@@ -111,6 +111,25 @@ final class AccountPrimitiveTests: XCTestCase {
         XCTAssertEqual(Membership(activeKeys: ["jrkan.premium"]).summary(now: now), "会员 · 长期有效")
     }
 
+    func testTrialAndLapsedSummaries() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let trial = Membership(activeKeys: ["jrkan.premium"], validUntil: now.addingTimeInterval(86400 * 11.2), isTrial: true)
+        XCTAssertEqual(trial.summary(now: now), "免费试用 · 剩余 12 天")
+        XCTAssertEqual(trial.purchaseTitle(now: now), "开通会员 · ¥1.99/月")
+        let paid = Membership(activeKeys: ["jrkan.premium"], validUntil: now.addingTimeInterval(86400 * 20), isTrial: false)
+        XCTAssertEqual(paid.purchaseTitle(now: now), "续费 1 个月 · ¥1.99")
+        XCTAssertEqual(Membership(lapsedAt: now.addingTimeInterval(-60)).summary(now: now), "会员已过期")
+        // A cached trial that ran out while offline also reads as lapsed.
+        XCTAssertEqual(Membership(activeKeys: ["jrkan.premium"], validUntil: now, isTrial: true).summary(now: now), "会员已过期")
+    }
+
+    func testOldCachedMembershipStillDecodes() throws {
+        let old = #"{"activeKeys":["jrkan.premium"],"checkedAt":1000}"#
+        let membership = try JSONDecoder().decode(Membership.self, from: Data(old.utf8))
+        XCTAssertNil(membership.isTrial)
+        XCTAssertNil(membership.lapsedAt)
+    }
+
     func testAuthorizeURLCarriesPKCEAndRedirect() throws {
         let pkce = PKCE(verifier: "dBjftJeZ4CVP-mJ92K1qUdx9hR1j6ZD3J7nM-tvqsiA")
         let url = AccountAPI(clientID: "leeguoo-jrkan-ios").authorizeURL(pkce: pkce, state: "s1")
@@ -177,6 +196,20 @@ final class AccountSessionTests: XCTestCase {
         }
         XCTAssertFalse(session.isSignedIn)
         XCTAssertEqual(session.lastError, AccountError.accountExists(nil).errorDescription)
+    }
+
+    func testMembershipReadsTrialSourceAndLapsedRows() async throws {
+        StubAccountServer.enqueue("/api/billing/entitlements", #"{"active_entitlement_keys":["jrkan.premium"],"entitlements":[{"entitlement_key":"jrkan.premium","status":"granted","valid_to":1007776000,"source":"promo","trial":true}],"expired_entitlements":[]}"#)
+        let trial = try await api().membership(accessToken: "a")
+        XCTAssertEqual(trial.isTrial, true)
+        XCTAssertEqual(trial.validUntil, Date(timeIntervalSince1970: 1_007_776_000))
+
+        StubAccountServer.reset()
+        StubAccountServer.enqueue("/api/billing/entitlements", #"{"active_entitlement_keys":[],"entitlements":[],"expired_entitlements":[{"entitlement_key":"jrkan.premium","source":"promo","valid_to":999000}]}"#)
+        let lapsed = try await api().membership(accessToken: "a")
+        XCTAssertFalse(lapsed.isActive(now: clock))
+        XCTAssertEqual(lapsed.lapsedAt, Date(timeIntervalSince1970: 999_000))
+        XCTAssertEqual(lapsed.summary(now: clock), "会员已过期")
     }
 
     func testConcurrentCallersShareOneRefresh() async throws {

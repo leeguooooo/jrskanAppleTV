@@ -17,6 +17,10 @@ enum AccountConfig {
     /// Either the cross-app membership or a JRKAN-only plan unlocks the perks.
     static let membershipKeys: Set<String> = ["membership.all_apps", "jrkan.premium"]
     static let manageURL = issuer.appending(path: "account")
+    /// Hosted purchase page: signs in if needed, then hands off to 爱发电
+    /// (WeChat Pay / Alipay). Payment never happens inside the app.
+    static let membershipURL = issuer.appending(path: "membership/jrkan")
+    static let priceLabel = "¥1.99/月"
     static let deviceURLText = "account.leeguoo.com/device"
 }
 
@@ -54,6 +58,11 @@ struct Membership: Codable, Equatable {
     /// nil with active keys means it never lapses.
     var validUntil: Date?
     var checkedAt: Date?
+    /// Only the free first-use trial is behind the active membership.
+    /// Optional so caches written by older builds still decode.
+    var isTrial: Bool?
+    /// When the last membership ran out, if it did.
+    var lapsedAt: Date?
 
     func isActive(now: Date) -> Bool {
         guard !activeKeys.isDisjoint(with: AccountConfig.membershipKeys) else { return false }
@@ -204,7 +213,16 @@ struct AccountAPI {
         }
         let validUntil: Date? = relevant.contains { $0.validTo == nil } ? nil
             : relevant.compactMap(\.validTo).max().map { Date(timeIntervalSince1970: TimeInterval($0)) }
-        return Membership(activeKeys: Set(payload.activeEntitlementKeys), validUntil: validUntil, checkedAt: now())
+        let lapsed = (payload.expiredEntitlements ?? [])
+            .filter { AccountConfig.membershipKeys.contains($0.entitlementKey) }
+            .compactMap(\.validTo).max()
+        return Membership(
+            activeKeys: Set(payload.activeEntitlementKeys),
+            validUntil: validUntil,
+            checkedAt: now(),
+            isTrial: !relevant.isEmpty && relevant.allSatisfy { $0.trial == true },
+            lapsedAt: lapsed.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        )
     }
 
     // MARK: Plumbing
@@ -221,11 +239,21 @@ struct AccountAPI {
             let entitlementKey: String
             let status: String
             let validTo: Int?
-            enum CodingKeys: String, CodingKey { case entitlementKey = "entitlement_key", status, validTo = "valid_to" }
+            /// The free first-use trial (the server marks it, source stays "promo").
+            let trial: Bool?
+            enum CodingKeys: String, CodingKey { case entitlementKey = "entitlement_key", status, validTo = "valid_to", trial }
+        }
+        struct Lapsed: Decodable {
+            let entitlementKey: String
+            let validTo: Int?
+            enum CodingKeys: String, CodingKey { case entitlementKey = "entitlement_key", validTo = "valid_to" }
         }
         let activeEntitlementKeys: [String]
         let entitlements: [Row]
-        enum CodingKeys: String, CodingKey { case activeEntitlementKeys = "active_entitlement_keys", entitlements }
+        let expiredEntitlements: [Lapsed]?
+        enum CodingKeys: String, CodingKey {
+            case activeEntitlementKeys = "active_entitlement_keys", entitlements, expiredEntitlements = "expired_entitlements"
+        }
     }
 
     private struct ErrorPayload: Decodable {
