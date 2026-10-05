@@ -49,6 +49,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
         ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
+        CODE_SIGN_ENTITLEMENTS: App/JRKANTV.entitlements
 
   # iPhone / iPad / Mac 一个 target。Mac 走 Mac Catalyst——它就是「iPad 应用跑在
   # Mac 上」，界面层与 iPad 完全共用，只有方向锁定和窗口尺寸按平台分叉。
@@ -103,6 +104,7 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         # 沙盒 entitlement 只能给 macOS：iOS 本来就在沙盒里，带上这个键会与
         # iOS 描述文件对不上而签名失败。
+        CODE_SIGN_ENTITLEMENTS: App/JRKANiOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: App/JRKANMac.entitlements
 
   JRKANTVTests:

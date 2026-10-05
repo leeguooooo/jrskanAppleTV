@@ -23,6 +23,7 @@ struct SettingsView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 44) {
+                        accountSection
                         playbackSection
                         historySection
                         aboutSection
@@ -54,7 +55,7 @@ struct SettingsView: View {
                 .font(.callout)
                 .foregroundStyle(Palette.tertiaryText)
 
-            Text("所有设置与记录只保存在这台 Apple TV 上。")
+            Text("设置、关注与观看记录只保存在这台 Apple TV 上。")
                 .font(.callout)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.top, 8)
@@ -62,6 +63,17 @@ struct SettingsView: View {
     }
 
     // MARK: Sections
+
+    private var accountSection: some View {
+        SettingsGroup(title: "账号") {
+            NavigationLink {
+                AccountView()
+            } label: {
+                AccountSettingsRow()
+            }
+            .buttonStyle(FocusCardButtonStyle())
+        }
+    }
 
     private var playbackSection: some View {
         SettingsGroup(title: "播放与刷新") {
@@ -111,7 +123,7 @@ struct SettingsView: View {
             )
             SettingsInfoRow(
                 title: "隐私",
-                value: "不需要账号，不收集任何个人信息，不接入分析或广告 SDK。关注与观看记录仅存于本机。",
+                value: "不登录也能使用。登录是可选的，只用于会员权益：账号中心保存你的邮箱与登录方式。不接入分析或广告 SDK，关注与观看记录仅存于本机。",
                 systemImage: "hand.raised.fill"
             )
             SettingsInfoRow(
@@ -132,7 +144,7 @@ struct SettingsView: View {
 
 // MARK: - Rows
 
-private struct SettingsGroup<Content: View>: View {
+struct SettingsGroup<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content
 
@@ -203,11 +215,12 @@ private struct SwitchGlyph: View {
     }
 }
 
-private struct SettingsActionRow: View {
+struct SettingsActionRow: View {
     let title: String
     let subtitle: String
     let systemImage: String
     var isDisabled = false
+    var tint = Palette.live
     let action: () -> Void
 
     var body: some View {
@@ -215,7 +228,7 @@ private struct SettingsActionRow: View {
             HStack(spacing: 24) {
                 Image(systemName: systemImage)
                     .font(.title2)
-                    .foregroundStyle(isDisabled ? Palette.tertiaryText : Palette.live)
+                    .foregroundStyle(isDisabled ? Palette.tertiaryText : tint)
                     .frame(width: 48)
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -236,7 +249,7 @@ private struct SettingsActionRow: View {
     }
 }
 
-private struct SettingsInfoRow: View {
+struct SettingsInfoRow: View {
     let title: String
     let value: String
     let systemImage: String

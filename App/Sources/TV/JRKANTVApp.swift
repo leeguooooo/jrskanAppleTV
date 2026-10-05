@@ -3,13 +3,26 @@ import SwiftUI
 @main
 struct JRKANApp: App {
     @StateObject private var model = MatchListModel()
+    @StateObject private var account = AccountSession.launchDefault()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            MatchListView()
+            Group {
+                #if DEBUG
+                if DebugRoute.raw == "account" {
+                    NavigationStack { AccountView() }
+                } else {
+                    MatchListView()
+                }
+                #else
+                MatchListView()
+                #endif
+            }
                 .environmentObject(model)
                 .environmentObject(model.preferences)
+                .environmentObject(account)
+                .task { await account.refreshIfStale() }
                 .task {
                     model.startAutoRefresh()
                     await model.loadIfNeeded()
@@ -21,6 +34,7 @@ struct JRKANApp: App {
                     if phase == .active {
                         model.startAutoRefresh()
                         Task { await model.refreshIfStale() }
+                        Task { await account.refreshIfStale() }
                     } else if phase == .background {
                         model.stopAutoRefresh()
                     }

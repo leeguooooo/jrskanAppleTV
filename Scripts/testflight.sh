@@ -4,9 +4,11 @@
 # 用 App Store Connect API 密钥做云端自动签名 + 上传，本机不需要在 Xcode 里登录账号，
 # 也不需要手工维护证书和描述文件。密钥需要 Admin 或 App Manager 角色。
 #
-# tvOS / iOS 归档阶段故意不签名：Xcode 归档时的自动签名只会找「开发」描述文件，
+# tvOS / iOS 归档阶段只做 ad-hoc 签名：Xcode 归档时的自动签名只会找「开发」描述文件，
 # 团队里没有登记对应设备时它建不出来，直接报 "Your team has no devices"。发布签名
 # 放到导出阶段做，那一步用 App Store 描述文件，跟设备无关。
+# 不能完全不签：entitlements（通过 Apple 登录）只在签名时写进包，无签名归档导出后
+# 会丢掉它，Apple 登录在 TestFlight 包里直接报错 1000。ad-hoc 签名不需要描述文件。
 #
 # Mac Catalyst 相反，必须签名归档：App 沙盒 entitlements 只有在签名时才写进包，
 # 无签名归档再导出会被商店打回 "App sandbox not enabled"。团队里登记了一台 Mac，
@@ -50,7 +52,7 @@ upload_one() {
   local archive="$OUT/$label.xcarchive" log="$OUT/$label.log"
   rm -rf "$archive" "$OUT/$label-export"
   mkdir -p "$OUT"
-  local sign=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
+  local sign=(CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER= AD_HOC_CODE_SIGNING_ALLOWED=YES)
   [ "$mode" = signed ] && sign=("${AUTH[@]}")
   echo "==> [$label] 归档 (build $BUILD_NUMBER, $mode)"
   if ! xcodebuild -project JRKANApple.xcodeproj -scheme "$scheme" -configuration Release \

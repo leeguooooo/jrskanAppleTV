@@ -8,6 +8,16 @@ struct SettingsScreen: View {
     var body: some View {
         Form {
             Section {
+                NavigationLink {
+                    AccountScreen()
+                } label: {
+                    AccountSummaryRow()
+                }
+            } header: {
+                Text("账号")
+            }
+
+            Section {
                 Toggle(isOn: $preferences.autoNextChannel) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("线路失效时自动换线")
@@ -58,7 +68,7 @@ struct SettingsScreen: View {
 
             Section {
                 infoRow("内容来源", "应用只读取公开网页上的赛程与线路，不托管、不重新分发任何视频，也不绕过登录、DRM、付费墙或地域限制。线路由第三方维护，可能随时失效。")
-                infoRow("隐私", "不需要账号，不收集任何个人信息，不接入分析或广告 SDK。关注与观看记录仅存于本机。")
+                infoRow("隐私", "不登录也能使用。登录是可选的，只用于会员权益：账号中心保存你的邮箱与登录方式。不接入分析或广告 SDK，关注与观看记录仅存于本机。")
             } header: {
                 Text("关于")
             } footer: {

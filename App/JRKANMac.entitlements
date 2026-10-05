@@ -8,5 +8,10 @@
 	<!-- 沙盒里默认连出站网络都不通；抓公开页面和拉 HLS 都要这一项。 -->
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- 通过 Apple 登录 leeguoo 账号中心。 -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

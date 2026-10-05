@@ -9,6 +9,8 @@ import Foundation
 ///     xcrun simctl launch <udid> com.leeguoo.jrskan.tv -route play:live
 ///
 /// Routes:
+///   account         open the account screen at launch (pair with
+///                   `-account-mock member|free` for a signed-in state)
 ///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter
 ///   play:<n>        open it and start the suggested channel
