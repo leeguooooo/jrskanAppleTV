@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirror hosts and some stream origins are plain http, same as the
+     NSAllowsArbitraryLoads exception the Apple targets carry. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

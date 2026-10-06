@@ -1,8 +1,9 @@
 # JRKAN Apple TV
 
-面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad / Mac 版。
+面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad / Mac 版，以及用 Kotlin 移植的安卓手机版（`android/`）。
 
 tvOS 17+ · iOS 17+ · macOS 14+（Mac Catalyst）· SwiftUI · AVFoundation · XcodeGen
+Android 8.0+ · Kotlin · Jetpack Compose · Media3
 
 ---
 
@@ -115,6 +116,38 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANLiveContract \
 
 > 模拟器测试和成功上传都不等于真机验收。完成标准是：在指定实体 Apple TV 上装上 TestFlight 构建，用遥控器打开应用、加载比赛列表、进入赛事并确认至少一条公开线路开始播放。
 
+## 安卓版
+
+`android/` 是安卓手机版，界面结构与 iPhone 一致：底部标签（比赛 / 篮球 / 羽毛球 / 足球 / 搜索）、比分板式的分组列表、详情页选线路、全屏播放与画中画、账号中心登录。业务逻辑是 `App/Sources/Shared` 的逐文件移植，规则、正则和中文文案保持一致：
+
+| 安卓 | 对应的 Swift |
+| --- | --- |
+| `data/Models.kt` | `Models.swift` |
+| `data/ListingParser.kt`、`EventSnapshot.kt`、`JrsClient.kt` | `JRSListingParser.swift`、`JRSClient.swift` |
+| `data/StreamResolver.kt` | `StreamResolver.swift`（JavaScriptCore 换成 Rhino 解释模式） |
+| `state/MatchListModel.kt`、`MatchPlaybackModel.kt`、`Preferences.kt` | 同名 Swift 文件 |
+| `account/*` | `Shared/Account/*`（只有网页 PKCE 登录，复用 iOS 的 client 和回调地址） |
+
+**站点一改，两边都要修。** 修完 Swift 后把同一个用例补进 `android/app/src/test` 对应的测试文件，两边测试跑同一批样例。真站契约测试：
+
+```bash
+cd android && ./gradlew :app:testDebugUnitTest            # 单元测试
+./gradlew :app:testDebugUnitTest --tests '*LiveSite*' -PjrkanLive=1 --rerun   # 真站：抓赛程、比分，并实际解析一条直播源
+./gradlew :app:assembleRelease                             # 正式签名包（需要下面的签名密钥）
+```
+
+编译需要 JDK 17+ 和 compileSdk 37（`sdkmanager "platforms;android-37.0"`）。
+
+**签名与发布**：正式签名密钥在 `~/.android-keys/jrkan-release.jks`（本机与 190 编译机各一份，密码在同目录的 `jrkan-release.properties`），CI 用的是仓库 Secrets 里的同一把（`ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`）。**这把密钥丢了，已装的用户就无法覆盖升级**，只能卸载重装。
+
+`.github/workflows/android.yml` 对 `android/` 的每次改动跑测试；推 `android-v*` 标签（或在 Actions 页手动运行）会打正式签名的 APK，挂到**草稿** Release 上：
+
+```bash
+git tag android-v1.0.1 && git push origin android-v1.0.1
+```
+
+与 Apple 端同一条产品决定：只给内部成员装，草稿 Release 不公开发布，不上架任何应用商店。
+
 ## 目录
 
 | 路径 | 内容 |
@@ -126,6 +159,8 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANLiveContract \
 | `assets/brand/` | 图标与插画原始素材、生成脚本、合成脚本 |
 | `assets/store/` | 商店截图（3840×2160）与 README 用的缩略版 |
 | `Scripts/` | TestFlight 上传脚本、导出配置、ASC API 最小客户端 |
+| `android/` | 安卓版（Gradle 工程，见上一节） |
+| `.github/workflows/android.yml` | 安卓测试与草稿 Release |
 | `docs/app-store-submission.html` | 上架准备：ASC 全部字段、隐私标签、审核信息模板与阻断项 |
 
 ## 边界

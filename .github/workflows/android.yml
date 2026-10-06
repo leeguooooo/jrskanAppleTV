@@ -1,0 +1,101 @@
+name: Android
+
+# Tests every change under android/. An `android-v*` tag (or a manual run)
+# also builds a release APK signed with the JRKAN key and attaches it to a
+# **draft** GitHub Release. The app is internal-only (see README), so the
+# release stays a draft for collaborators; nothing is published publicly.
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+    tags: ["android-v*"]
+  pull_request:
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name, e.g. 1.0.1"
+        required: true
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: android
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install the compile SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" > /dev/null
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports
+          path: android/app/build/reports/tests/
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/android-v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install the compile SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" > /dev/null
+      - name: Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            name="${{ inputs.version }}"
+          else
+            name="${GITHUB_REF_NAME#android-v}"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "tag=android-v$name" >> "$GITHUB_OUTPUT"
+          # Monotonic across runs so every build can update the last one.
+          echo "code=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+      - name: Build signed APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          JRKAN_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          JRKAN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          JRKAN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          JRKAN_VERSION_NAME: ${{ steps.version.outputs.name }}
+          JRKAN_VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/jrkan-release.jks"
+          export JRKAN_KEYSTORE="$RUNNER_TEMP/jrkan-release.jks"
+          ./gradlew :app:assembleRelease --console=plain
+          apk="JRKAN-${JRKAN_VERSION_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          shasum -a 256 "$apk" > "$apk.sha256"
+          rm "$RUNNER_TEMP/jrkan-release.jks"
+      - name: Attach to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          apk="JRKAN-${{ steps.version.outputs.name }}.apk"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "$apk" "$apk.sha256" --clobber
+          else
+            gh release create "$tag" "$apk" "$apk.sha256" --draft --target "$GITHUB_SHA" \
+              --title "JRKAN Android ${{ steps.version.outputs.name }}" \
+              --notes "内部测试版。下载 APK 安装（需允许安装未知来源应用），用同一个签名，后续版本可以直接覆盖安装。"
+          fi
