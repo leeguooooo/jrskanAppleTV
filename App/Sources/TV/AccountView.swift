@@ -307,7 +307,7 @@ struct MembershipPurchaseView: View {
                         .foregroundStyle(Palette.accent)
                     Text(paid
                          ? account.membership.summary()
-                         : "用手机相机扫码，登录同一个账号后用微信或支付宝付款，每次续一个月。付款通过爱发电完成。")
+                         : "用手机相机扫码，登录同一个账号后用微信或支付宝付款，每付一次开通 3 个月。付款通过爱发电完成。")
                         .font(.title3)
                         .foregroundStyle(Palette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

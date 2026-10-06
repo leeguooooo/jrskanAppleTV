@@ -200,6 +200,6 @@ extension Membership {
 
     /// The purchase button's title for the current state.
     func purchaseTitle(now: Date = Date()) -> String {
-        isActive(now: now) && isTrial != true ? "续费 1 个月 · ¥1.99" : "开通会员 · \(AccountConfig.priceLabel)"
+        isActive(now: now) && isTrial != true ? "续费 3 个月 · ¥5" : "开通会员 · \(AccountConfig.priceLabel)"
     }
 }

@@ -20,7 +20,7 @@ enum AccountConfig {
     /// Hosted purchase page: signs in if needed, then hands off to 爱发电
     /// (WeChat Pay / Alipay). Payment never happens inside the app.
     static let membershipURL = issuer.appending(path: "membership/jrkan")
-    static let priceLabel = "¥1.99/月"
+    static let priceLabel = "¥5 / 3 个月"
     static let deviceURLText = "account.leeguoo.com/device"
 }
 

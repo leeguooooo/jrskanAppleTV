@@ -115,9 +115,9 @@ final class AccountPrimitiveTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let trial = Membership(activeKeys: ["jrkan.premium"], validUntil: now.addingTimeInterval(86400 * 11.2), isTrial: true)
         XCTAssertEqual(trial.summary(now: now), "免费试用 · 剩余 12 天")
-        XCTAssertEqual(trial.purchaseTitle(now: now), "开通会员 · ¥1.99/月")
+        XCTAssertEqual(trial.purchaseTitle(now: now), "开通会员 · ¥5 / 3 个月")
         let paid = Membership(activeKeys: ["jrkan.premium"], validUntil: now.addingTimeInterval(86400 * 20), isTrial: false)
-        XCTAssertEqual(paid.purchaseTitle(now: now), "续费 1 个月 · ¥1.99")
+        XCTAssertEqual(paid.purchaseTitle(now: now), "续费 3 个月 · ¥5")
         XCTAssertEqual(Membership(lapsedAt: now.addingTimeInterval(-60)).summary(now: now), "会员已过期")
         // A cached trial that ran out while offline also reads as lapsed.
         XCTAssertEqual(Membership(activeKeys: ["jrkan.premium"], validUntil: now, isTrial: true).summary(now: now), "会员已过期")

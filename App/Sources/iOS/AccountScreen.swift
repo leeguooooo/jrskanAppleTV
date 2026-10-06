@@ -141,7 +141,7 @@ struct AccountScreen: View {
         } footer: {
             Text(account.membership.isTrial == true && account.isMember
                  ? "新账号赠送三个月会员。到期后 \(AccountConfig.priceLabel)，在网页上用微信或支付宝付款（爱发电），回到这里自动刷新。"
-                 : "在网页上用微信或支付宝付款（爱发电），每次续一个月，回到这里自动刷新。")
+                 : "在网页上用微信或支付宝付款（爱发电），每付一次开通 3 个月，回到这里自动刷新。")
         }
 
         Section {
