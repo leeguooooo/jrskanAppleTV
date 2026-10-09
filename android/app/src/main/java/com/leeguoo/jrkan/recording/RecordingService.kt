@@ -56,12 +56,13 @@ class RecordingService : Service() {
                     if (active.isEmpty()) flowOf(emptyList())
                     else combine(active.values.map { it.info }) { it.toList() }
                 }
-                .collectLatest { infos ->
-                    if (Recordings.active.value.isEmpty()) {
+                .combine(Recordings.exporting) { infos, exporting -> infos to exporting }
+                .collectLatest { (infos, exporting) ->
+                    if (Recordings.active.value.isEmpty() && exporting.isEmpty()) {
                         ServiceCompat.stopForeground(this@RecordingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     } else {
-                        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(infos))
+                        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(infos, exporting))
                     }
                 }
         }
@@ -86,13 +87,18 @@ class RecordingService : Service() {
         super.onDestroy()
     }
 
-    private fun notification(infos: List<RecordingInfo>): Notification {
-        val title = when (infos.size) {
-            0 -> "正在准备录像"
-            1 -> "正在录像 · ${infos[0].title}"
-            else -> "正在录制 ${infos.size} 场比赛"
+    private fun notification(infos: List<RecordingInfo>, exporting: Map<String, Double> = emptyMap()): Notification {
+        val title = when {
+            infos.size == 1 -> "正在录像 · ${infos[0].title}"
+            infos.size > 1 -> "正在录制 ${infos.size} 场比赛"
+            exporting.isNotEmpty() -> "正在生成带水印的视频"
+            else -> "正在准备录像"
         }
-        val text = infos.joinToString("  ") { "${duration(it.duration)} · ${size(it.bytes)}" }
+        val text = if (infos.isEmpty() && exporting.isNotEmpty()) {
+            "${(exporting.values.first() * 100).toInt()}% · 完成后保存在相册「影片/JRKAN」"
+        } else {
+            infos.joinToString("  ") { "${duration(it.duration)} · ${size(it.bytes)}" }
+        }
         val open = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_OPEN_RECORDINGS)
@@ -108,7 +114,7 @@ class RecordingService : Service() {
             .setContentTitle(title)
             .setContentText(text.ifEmpty { "录像保存在本机" })
             .setContentIntent(open)
-            .addAction(0, "停止录像", stop)
+            .apply { if (infos.isNotEmpty()) addAction(0, "停止录像", stop) }
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)

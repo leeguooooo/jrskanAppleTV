@@ -20,8 +20,8 @@ data class AppConfig(
     data class Watermark(
         val enabled: Boolean = true,
         val texts: List<String> = listOf("leeguoo.com"),
-        val motion: Motion = Motion.Hop,
-        val interval: Double = 30.0,
+        val motion: Motion = Motion.Drift,
+        val interval: Double = 8.0,
         val opacity: Double = 0.55,
         val hideForMembers: Boolean = false,
     )
@@ -55,9 +55,9 @@ data class AppConfig(
                 enabled = w["enabled"].bool() ?: base.enabled,
                 texts = texts.ifEmpty { base.texts },
                 motion = when (w["motion"].string()) {
-                    "drift" -> Motion.Drift
+                    "hop" -> Motion.Hop
                     "fixed" -> Motion.Fixed
-                    else -> Motion.Hop
+                    else -> Motion.Drift
                 },
                 interval = (w["interval"].number() ?: base.interval).coerceIn(5.0, 600.0),
                 opacity = (w["opacity"].number() ?: base.opacity).coerceIn(0.1, 1.0),

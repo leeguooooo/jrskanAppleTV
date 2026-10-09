@@ -16,7 +16,7 @@ test("clamps, trims and drops bad values with a problem each", () => {
     },
   });
   assert.deepEqual(config.watermark.texts, ["leeguoo.com", "x".repeat(40)]);
-  assert.equal(config.watermark.motion, "hop");
+  assert.equal(config.watermark.motion, "drift");
   assert.equal(config.watermark.interval, 5);
   assert.equal(config.watermark.opacity, 1);
   assert.equal(config.slots.home_banner.url, "");

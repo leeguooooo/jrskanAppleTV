@@ -11,15 +11,23 @@ export const DEFAULT_CONFIG = {
     enabled: true,
     // Shown in turn, one per hop; a second entry turns the watermark into a rotating ad.
     texts: ["leeguoo.com"],
-    // hop: fade out, reappear somewhere else · drift: glide slowly · fixed: bottom-right
-    motion: "hop",
-    interval: 30,
+    // drift: keeps gliding to a new random spot · hop: fade out, reappear elsewhere · fixed: bottom-right
+    motion: "drift",
+    interval: 8,
     opacity: 0.55,
     hideForMembers: false,
   },
   slots: {
     // A card at the top of the match list (iPhone / iPad / Mac / Android).
     home_banner: {
+      enabled: false,
+      title: "",
+      detail: "",
+      url: "",
+      hideForMembers: true,
+    },
+    // Burned into exported recordings: a strip in the bottom-left corner.
+    recording_banner: {
       enabled: false,
       title: "",
       detail: "",

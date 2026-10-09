@@ -1,9 +1,11 @@
 {
   "watermark": {
     "enabled": true,
-    "texts": ["leeguoo.com"],
-    "motion": "hop",
-    "interval": 30,
+    "texts": [
+      "leeguoo.com"
+    ],
+    "motion": "drift",
+    "interval": 8,
     "opacity": 0.55,
     "hideForMembers": false
   },
@@ -14,6 +16,13 @@
       "detail": "",
       "url": "",
       "hideForMembers": true
+    },
+    "recording_banner": {
+      "enabled": true,
+      "title": "更多高清直播",
+      "detail": "leeguoo.com",
+      "url": "https://leeguoo.com",
+      "hideForMembers": false
     }
   }
 }

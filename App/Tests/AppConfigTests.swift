@@ -29,7 +29,7 @@ final class AppConfigTests: XCTestCase {
         {"watermark":{"texts":[],"motion":"spin","interval":1,"opacity":"x"},"slots":{"home_banner":{"enabled":true,"title":""},"later":{"enabled":true,"title":"新广告位","url":"http://plain"}},"future":42}
         """)
         XCTAssertEqual(config.watermark.texts, ["leeguoo.com"])
-        XCTAssertEqual(config.watermark.motion, .hop)
+        XCTAssertEqual(config.watermark.motion, .drift)
         XCTAssertEqual(config.watermark.interval, 5)
         XCTAssertEqual(config.watermark.opacity, 0.55)
         XCTAssertNil(config.slot("home_banner", isMember: false), "no title, nothing to show")

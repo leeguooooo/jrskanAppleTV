@@ -18,8 +18,20 @@ struct RecordingInfo: Codable, Identifiable, Hashable, Sendable {
     /// switch, a reconnect); playback jumps over them.
     var gapCount = 0
     var endReason: String?
+    /// The shareable MP4 in Documents/录像 once it has been made; the
+    /// segments are deleted then.
+    var videoFile: String?
 
     var isFinished: Bool { endedAt != nil }
+
+    /// "10月9日 湖人 vs 勇士", safe as a file name.
+    var suggestedFileName: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月d日 HHmm"
+        let raw = "\(formatter.string(from: startedAt)) \(title)"
+        return raw.components(separatedBy: CharacterSet(charactersIn: "/\\:?*\"<>|")).joined(separator: "-")
+    }
 }
 
 /// One recording's folder: `info.json`, the append-only `segments.log` and
@@ -63,6 +75,26 @@ struct RecordingFolder: Sendable {
     func playlist(ended: Bool) -> String {
         RecordingPlaylist.render(entries(), ended: ended)
     }
+
+    /// The segments in order, for the MP4 export.
+    func segments() -> [TSRemuxer.Segment] {
+        entries().compactMap { entry in
+            if case .segment(let file, _, let gap) = entry {
+                return TSRemuxer.Segment(url: url.appendingPathComponent(file), discontinuity: gap)
+            }
+            return nil
+        }
+    }
+
+    var hasSegments: Bool { FileManager.default.fileExists(atPath: logURL.path) }
+
+    /// Everything but info.json, once the MP4 exists.
+    func removeMedia() {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+        for name in names where name != "info.json" {
+            try? FileManager.default.removeItem(at: url.appendingPathComponent(name))
+        }
+    }
 }
 
 /// Recordings live in Application Support, outside iCloud backup: a match is
@@ -82,9 +114,39 @@ struct RecordingStore: Sendable {
         return decoder
     }()
 
+    /// Finished MP4s, in Documents so the Files app shows them
+    /// (On My iPhone › JRKAN › 录像) and they can be shared like any video.
+    let videos: URL
+
+    init(root: URL, videos: URL? = nil) {
+        self.root = root
+        self.videos = videos ?? root.appendingPathComponent("Videos", isDirectory: true)
+    }
+
     static var standard: RecordingStore {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return RecordingStore(root: base.appendingPathComponent("Recordings", isDirectory: true))
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let documents = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return RecordingStore(root: base.appendingPathComponent("Recordings", isDirectory: true),
+                              videos: documents.appendingPathComponent("录像", isDirectory: true))
+    }
+
+    func videoURL(_ info: RecordingInfo) -> URL? {
+        guard let name = info.videoFile else { return nil }
+        let url = videos.appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// A free name for a new MP4: "<name>.mp4", then "<name> 2.mp4", …
+    func newVideoURL(named name: String) throws -> URL {
+        try FileManager.default.createDirectory(at: videos, withIntermediateDirectories: true)
+        var candidate = videos.appendingPathComponent("\(name).mp4")
+        var number = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = videos.appendingPathComponent("\(name) \(number).mp4")
+            number += 1
+        }
+        return candidate
     }
 
     func folder(_ id: String) -> RecordingFolder {
@@ -106,6 +168,9 @@ struct RecordingStore: Sendable {
     }
 
     func delete(_ id: String) throws {
+        if let info = folder(id).readInfo(), let video = videoURL(info) {
+            try? FileManager.default.removeItem(at: video)
+        }
         let url = folder(id).url
         if FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)

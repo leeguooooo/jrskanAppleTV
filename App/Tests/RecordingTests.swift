@@ -1,3 +1,4 @@
+import AVFoundation
 import CommonCrypto
 import XCTest
 #if os(tvOS)
@@ -275,5 +276,59 @@ final class RecordingTests: XCTestCase {
             }
         }
         return output.prefix(written)
+    }
+}
+
+/// The MP4 export: real H.264 (with B-frames) + AAC segments made by ffmpeg,
+/// the middle one after a discontinuity, remuxed and burned with overlays.
+final class RecordingExportTests: XCTestCase {
+    private func fixtureSegments() throws -> [TSRemuxer.Segment] {
+        let bundle = Bundle(for: Self.self)
+        return try (0...2).map { index in
+            let url = try XCTUnwrap(bundle.url(forResource: "recording-\(index)", withExtension: "mpegts"))
+            return TSRemuxer.Segment(url: url, discontinuity: index == 1)
+        }
+    }
+
+    func testRemuxKeepsEveryFrameAcrossADiscontinuity() async throws {
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("remux-\(UUID().uuidString).mp4")
+        defer { try? FileManager.default.removeItem(at: output) }
+        try TSRemuxer.remux(try fixtureSegments(), to: output)
+
+        let asset = AVURLAsset(url: output)
+        let duration = try await asset.load(.duration).seconds
+        XCTAssertEqual(duration, 6, accuracy: 0.3)
+        let video = try await asset.loadTracks(withMediaType: .video)
+        let audio = try await asset.loadTracks(withMediaType: .audio)
+        XCTAssertEqual(video.count, 1)
+        XCTAssertEqual(audio.count, 1)
+        let size = try await video[0].load(.naturalSize)
+        XCTAssertEqual(size, CGSize(width: 640, height: 360))
+    }
+
+    func testExportBurnsInWatermarkAndBanner() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var watermark = AppConfig.Watermark()
+        watermark.texts = ["leeguoo.com", "世界杯直播"]
+        watermark.interval = 2
+        let banner = AppConfig.Slot(enabled: true, title: "欧冠决赛今晚 3 点", detail: "高清线路已就绪")
+        let output = dir.appendingPathComponent("out.mp4")
+
+        try await RecordingExporter.export(
+            segments: try fixtureSegments(), intermediate: dir.appendingPathComponent("remux.mp4"),
+            output: output, overlay: .init(watermark: watermark, banner: banner), progress: { _ in })
+
+        let asset = AVURLAsset(url: output)
+        let duration = try await asset.load(.duration).seconds
+        XCTAssertEqual(duration, 6, accuracy: 0.3)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.appendingPathComponent("remux.mp4").path))
+        let generator = AVAssetImageGenerator(asset: asset)
+        let frame = try await generator.image(at: CMTime(seconds: 3, preferredTimescale: 600)).image
+        // For eyeballing: the simulator writes straight to the host's /tmp.
+        if let data = UIImage(cgImage: frame).pngData() {
+            try? data.write(to: URL(fileURLWithPath: "/tmp/jrkan-export-frame.png"))
+        }
     }
 }

@@ -29,7 +29,7 @@ class AppConfigTest {
             """{"watermark":{"texts":[],"motion":"spin","interval":1,"opacity":"x"},"slots":{"home_banner":{"enabled":true,"title":""},"later":{"enabled":true,"title":"新广告位","url":"http://plain"}},"future":42}""",
         )!!
         assertEquals(listOf("leeguoo.com"), config.watermark.texts)
-        assertEquals(AppConfig.Motion.Hop, config.watermark.motion)
+        assertEquals(AppConfig.Motion.Drift, config.watermark.motion)
         assertEquals(5.0, config.watermark.interval, 0.0)
         assertEquals(0.55, config.watermark.opacity, 0.0)
         assertNull("no title, nothing to show", config.slot("home_banner", isMember = false))

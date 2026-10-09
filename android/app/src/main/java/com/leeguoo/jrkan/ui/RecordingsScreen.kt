@@ -1,5 +1,7 @@
 package com.leeguoo.jrkan.ui
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
@@ -19,9 +21,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +73,9 @@ import java.util.Locale
 fun RecordingsScreen(onBack: () -> Unit) {
     val recordings by Recordings.recordings.collectAsState()
     val active by Recordings.active.collectAsState()
+    val exporting by Recordings.exporting.collectAsState()
+    val exportErrors by Recordings.exportErrors.collectAsState()
+    val context = LocalContext.current
     var playing by remember { mutableStateOf<RecordingInfo?>(null) }
     var confirmDelete by remember { mutableStateOf<RecordingInfo?>(null) }
 
@@ -112,7 +120,19 @@ fun RecordingsScreen(onBack: () -> Unit) {
                 finished.forEachIndexed { index, info ->
                     item(key = "done-${info.id}") {
                         GroupedCell(index, finished.size, onClick = { playing = info }, onLongClick = { confirmDelete = info }) {
-                            RecordingRow(info, null) {
+                            RecordingRow(info, null, exporting[info.id], exportErrors[info.id]) {
+                                val progress = exporting[info.id]
+                                when {
+                                    progress != null -> CircularProgressIndicator(
+                                        progress = { progress.toFloat() }, modifier = Modifier.padding(12.dp).size(22.dp), strokeWidth = 2.dp,
+                                    )
+                                    info.videoUri != null -> IconButton(onClick = { share(context, info) }) {
+                                        Icon(Icons.Outlined.Share, "分享", tint = Palette.accent)
+                                    }
+                                    exportErrors[info.id] != null -> IconButton(onClick = { Recordings.export(info.id) }) {
+                                        Icon(Icons.Outlined.Refresh, "重新生成视频", tint = Palette.tertiaryText)
+                                    }
+                                }
                                 IconButton(onClick = { confirmDelete = info }) {
                                     Icon(Icons.Outlined.Delete, "删除", tint = Palette.tertiaryText)
                                 }
@@ -122,7 +142,7 @@ fun RecordingsScreen(onBack: () -> Unit) {
                 }
                 item {
                     Text(
-                        "共 ${RecordingService.size(Recordings.totalBytes(recordings))}。录像只保存在本机，不会上传。",
+                        "录完会自动生成带水印的 MP4，保存在相册「影片/JRKAN」里，点分享就能发出去。录像只保存在本机，不会上传。",
                         fontSize = 12.sp, color = Palette.tertiaryText,
                         modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
                     )
@@ -147,7 +167,13 @@ fun RecordingsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun RecordingRow(info: RecordingInfo, recorder: HlsRecorder?, trailing: @Composable () -> Unit) {
+private fun RecordingRow(
+    info: RecordingInfo,
+    recorder: HlsRecorder?,
+    progress: Double? = null,
+    error: String? = null,
+    trailing: @Composable () -> Unit,
+) {
     val phase = recorder?.phase?.collectAsState()?.value
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -159,12 +185,18 @@ private fun RecordingRow(info: RecordingInfo, recorder: HlsRecorder?, trailing: 
                 "${info.league} · ${info.channelName} · ${dateFormat.format(Date(info.startedAt))}",
                 fontSize = 12.sp, color = Palette.secondaryText, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
-            val parts = mutableListOf(RecordingService.duration(info.duration), RecordingService.size(info.bytes))
+            val parts = mutableListOf(RecordingService.duration(info.duration))
+            when {
+                progress != null -> parts += "正在生成视频 ${(progress * 100).toInt()}%"
+                error != null -> parts += error
+                info.videoUri != null -> parts += "MP4"
+                else -> parts += RecordingService.size(info.bytes)
+            }
             if (info.gapCount > 0) parts += "${info.gapCount} 处缺口"
             when {
                 phase == HlsRecorder.Phase.Reconnecting -> parts += "正在重新连接…"
                 recorder != null -> parts += "录制中"
-                info.endReason != null -> parts += info.endReason
+                info.endReason != null && info.videoUri == null && progress == null -> parts += info.endReason
             }
             Text(
                 parts.joinToString(" · "), fontSize = 12.sp,
@@ -185,8 +217,8 @@ private fun RecordingPlayer(info: RecordingInfo, onClose: () -> Unit) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(
                 MediaItem.Builder()
-                    .setUri(Uri.fromFile(Recordings.playlistFile(info.id)))
-                    .setMimeType(MimeTypes.APPLICATION_M3U8)
+                    .setUri(Recordings.playbackUri(info))
+                    .apply { if (info.videoUri == null) setMimeType(MimeTypes.APPLICATION_M3U8) }
                     .build()
             )
             prepare()
@@ -214,6 +246,17 @@ private fun RecordingPlayer(info: RecordingInfo, onClose: () -> Unit) {
             Text(info.title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+}
+
+/** The system share sheet for the recording's MP4. */
+private fun share(context: Context, info: RecordingInfo) {
+    val uri = info.videoUri?.let(Uri::parse) ?: return
+    val send = Intent(Intent.ACTION_SEND)
+        .setType("video/mp4")
+        .putExtra(Intent.EXTRA_STREAM, uri)
+        .putExtra(Intent.EXTRA_TITLE, info.title)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(Intent.createChooser(send, "分享录像").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.CHINA)

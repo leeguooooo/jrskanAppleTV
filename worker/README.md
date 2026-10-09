@@ -26,11 +26,15 @@ pick them up on their next fetch.
 |---|---|
 | `watermark.enabled` | show the watermark at all |
 | `watermark.texts` | 1–10 strings of up to 40 characters, shown in turn, one per hop; a second entry makes it a rotating ad |
-| `watermark.motion` | `hop` (fade out, reappear elsewhere) · `drift` (glide slowly) · `fixed` (bottom-right) |
+| `watermark.motion` | `drift` (keeps gliding to a new random spot, the default) · `hop` (fade out, reappear elsewhere) · `fixed` (bottom-right) |
 | `watermark.interval` | seconds between hops, or the length of one drift leg (5–600) |
 | `watermark.opacity` | 0.1–1 |
 | `watermark.hideForMembers` | members don't see it |
 | `slots.home_banner` | card at the top of the match list on iPhone / iPad / Mac / Android: `enabled`, `title` (≤40), `detail` (≤80), `url` (https only, opens in the browser), `hideForMembers` |
+
+| `slots.recording_banner` | strip burned into the bottom-left of every exported recording (the MP4 people share): `enabled`, `title`, `detail`, `hideForMembers`; `url` is not clickable in a video |
+
+The watermark is burned into exported recordings too, moving the same way it does in the player.
 
 A new slot id can be added to `slots` without a Worker deploy; it shows up once a client draws it. tvOS only
 shows the watermark (no banner).

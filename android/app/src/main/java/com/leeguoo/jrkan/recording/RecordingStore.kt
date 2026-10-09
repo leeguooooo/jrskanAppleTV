@@ -23,8 +23,15 @@ data class RecordingInfo(
     /** Stretches the recorder could not fetch; playback jumps over them. */
     val gapCount: Int = 0,
     val endReason: String? = null,
+    /** The shareable MP4 (a MediaStore or FileProvider URI) once made; the segments are deleted then. */
+    val videoUri: String? = null,
 ) {
     val isFinished: Boolean get() = endedAt != null
+
+    /** "10月9日 1715 湖人 vs 勇士", safe as a file name. */
+    val suggestedFileName: String
+        get() = (java.text.SimpleDateFormat("M月d日 HHmm", java.util.Locale.CHINA).format(java.util.Date(startedAt)) + " " + title)
+            .replace(Regex("[/\\\\:?*\"<>|]"), "-")
 }
 
 /** One recording's folder: `info.json`, the append-only `segments.log` and the media it names. */
@@ -50,6 +57,13 @@ class RecordingFolder(val dir: File) {
 
     fun playlist(ended: Boolean): String = RecordingPlaylist.render(entries(), ended)
 
+    val hasSegments: Boolean get() = logFile.exists()
+
+    /** Everything but info.json, once the MP4 exists. */
+    fun removeMedia() {
+        dir.listFiles()?.filter { it.name != "info.json" }?.forEach { it.deleteRecursively() }
+    }
+
     /** ExoPlayer reads the playlist from disk; refresh it before each playback. */
     fun writePlaylist(ended: Boolean): File = playlistFile.also { it.writeText(playlist(ended)) }
 
@@ -59,8 +73,8 @@ class RecordingFolder(val dir: File) {
 }
 
 /**
- * Recordings live in the app's external files dir: no permission needed,
- * removed with the app, and not part of any backup (allowBackup is off).
+ * Recordings live in the app's private files dir until their MP4 is made:
+ * removed with the app, not part of any backup (allowBackup is off).
  */
 class RecordingStore(val root: File) {
     fun folder(id: String) = RecordingFolder(File(root, id))

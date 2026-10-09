@@ -86,6 +86,9 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIUserInterfaceStyle: Dark
+        # 录像生成的 MP4 放在 Documents/录像：「文件」App › 我的 iPhone › JRKAN 里能直接看到、分享。
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
         # 画中画 / 锁屏继续出声都需要
         UIBackgroundModes:
           - audio

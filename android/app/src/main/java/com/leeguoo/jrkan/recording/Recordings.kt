@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
+import android.net.Uri
+import com.leeguoo.jrkan.state.AppConfigStore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,12 +45,26 @@ object Recordings {
 
     private val watchers = mutableMapOf<String, Job>()
 
+    /** MP4 export progress (0…1) per recording, and failures to retry. */
+    private val _exporting = MutableStateFlow<Map<String, Double>>(emptyMap())
+    val exporting: StateFlow<Map<String, Double>> = _exporting
+    private val _exportErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val exportErrors: StateFlow<Map<String, String>> = _exportErrors
+    private val exportQueue = Channel<String>(Channel.UNLIMITED)
+    private val queued = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
     fun init(context: Context) {
         if (::appContext.isInitialized) return
         appContext = context.applicationContext
-        val root = appContext.getExternalFilesDir("recordings") ?: java.io.File(appContext.filesDir, "recordings")
+        // Segments are scratch until the MP4 lands in Movies/JRKAN; keep them private.
+        val root = java.io.File(appContext.filesDir, "recordings")
         store = RecordingStore(root)
-        scope.launch { reload(markingInterrupted = true) }
+        scope.launch {
+            reload(markingInterrupted = true)
+            exportPending()
+        }
+        // One export at a time, on the main thread (Transformer needs a Looper).
+        MainScope().launch { for (id in exportQueue) runExport(id) }
     }
 
     fun recorderFor(matchId: String): HlsRecorder? =
@@ -85,25 +105,87 @@ object Recordings {
     fun delete(id: String) {
         _active.value[id]?.stop()
         scope.launch {
+            store.folder(id).readInfo()?.videoUri?.let { uri ->
+                runCatching { appContext.contentResolver.delete(Uri.parse(uri), null, null) }
+            }
             store.delete(id)
             reload()
         }
     }
 
-    /** The playlist ExoPlayer opens; a running recording plays as a growing EVENT playlist. */
-    fun playlistFile(id: String) = store.folder(id).writePlaylist(ended = _active.value[id] == null)
+    // MARK: MP4 export
+
+    /** The saved MP4, if it still exists (the viewer may have deleted it in the gallery). */
+    fun videoUri(info: RecordingInfo): Uri? {
+        val uri = info.videoUri?.let(Uri::parse) ?: return null
+        return uri.takeIf {
+            runCatching { appContext.contentResolver.openFileDescriptor(it, "r")?.use { true } ?: false }.getOrDefault(false)
+        }
+    }
+
+    fun export(id: String) {
+        if (!queued.add(id)) return
+        _exportErrors.value = _exportErrors.value - id
+        exportQueue.trySend(id)
+    }
+
+    private fun exportPending() {
+        for (info in _recordings.value) {
+            if (info.isFinished && info.videoUri == null && info.id !in _active.value && store.folder(info.id).hasSegments) export(info.id)
+        }
+    }
+
+    private suspend fun runExport(id: String) {
+        try {
+            val folder = store.folder(id)
+            val info = folder.readInfo() ?: return
+            if (info.videoUri != null || !folder.hasSegments) return
+            _exporting.value = _exporting.value + (id to 0.0)
+            ContextCompat.startForegroundService(appContext, RecordingService.intent(appContext))
+            val config = AppConfigStore.config.value
+            val member = AppConfigStore.isMember.value
+            val overlay = RecordingExporter.Overlay(config.visibleWatermark(member), config.slot("recording_banner", member))
+            val playlist = withContext(Dispatchers.IO) { folder.writePlaylist(ended = true) }
+            val uri = RecordingExporter.export(appContext, info, playlist, overlay) { value ->
+                if (id in _exporting.value) _exporting.value = _exporting.value + (id to value)
+            }
+            withContext(Dispatchers.IO) {
+                folder.writeInfo(info.copy(videoUri = uri.toString()))
+                folder.removeMedia()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _exportErrors.value = _exportErrors.value + (id to "生成视频失败：${e.message ?: e.javaClass.simpleName}")
+        } finally {
+            queued.remove(id)
+            _exporting.value = _exporting.value - id
+            scope.launch { reload() }
+        }
+    }
+
+    /** What the player opens: the MP4 when made, else the playlist (a running one grows as an EVENT playlist). */
+    fun playbackUri(info: RecordingInfo): Uri =
+        videoUri(info) ?: Uri.fromFile(store.folder(info.id).writePlaylist(ended = _active.value[info.id] == null))
 
     @Synchronized
     private fun recorderDidFinish(recorder: HlsRecorder) {
         _active.value = _active.value - recorder.id
         watchers.remove(recorder.id)?.cancel()
         scope.launch { reload() }
-        // The service watches [active] and stops itself once it is empty.
+        if (recorder.info.value.segmentCount > 0) export(recorder.id)
+        // The service watches [active] and [exporting] and stops once both are empty.
     }
 
     private fun reload(markingInterrupted: Boolean = false) {
         val active = _active.value
-        _recordings.value = store.list().map { info ->
+        // An MP4 deleted in the gallery, with no segments left: nothing to keep.
+        val listed = store.list().filter { info ->
+            val gone = info.videoUri != null && !store.folder(info.id).hasSegments && videoUri(info) == null
+            if (gone) store.delete(info.id)
+            !gone
+        }
+        _recordings.value = listed.map { info ->
             active[info.id]?.info?.value ?: if (markingInterrupted && !info.isFinished) {
                 // The app was killed mid-recording; the segments are fine.
                 info.copy(endedAt = info.startedAt + (info.duration * 1000).toLong(), endReason = "应用被关闭，录像已中断")

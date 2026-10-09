@@ -32,11 +32,21 @@ struct RecordingsScreen: View {
             if !finished.isEmpty {
                 Section {
                     ForEach(finished) { info in
-                        Button { playing = info } label: { RecordingRow(info: info) }
-                            .tint(.primary)
-                            .contextMenu {
-                                Button("删除", systemImage: "trash", role: .destructive) { center.delete(info.id) }
+                        let video = center.videoURL(info)
+                        Button { playing = info } label: {
+                            RecordingRow(info: info, video: video, progress: center.exporting[info.id],
+                                         error: center.exportErrors[info.id])
+                        }
+                        .tint(.primary)
+                        .contextMenu {
+                            if let video {
+                                ShareLink(item: video) { Label("分享", systemImage: "square.and.arrow.up") }
+                                Button("在「文件」中显示", systemImage: "folder") { Self.reveal(center.videosDirectory) }
+                            } else if center.exportErrors[info.id] != nil {
+                                Button("重新生成视频", systemImage: "arrow.clockwise") { center.export(info.id) }
                             }
+                            Button("删除", systemImage: "trash", role: .destructive) { center.delete(info.id) }
+                        }
                     }
                     .onDelete { offsets in
                         for offset in offsets { center.delete(finished[offset].id) }
@@ -44,7 +54,13 @@ struct RecordingsScreen: View {
                 } header: {
                     Text("已录制")
                 } footer: {
-                    Text("共 \(Self.byteText(center.totalBytes))。录像只保存在本机，不会上传。")
+                    Text("录完会自动生成带水印的 MP4，存在「文件」App › 我的 iPhone › JRKAN › 录像，点右边的分享按钮就能发出去。录像只保存在本机，不会上传。")
+                }
+
+                Section {
+                    Button { Self.reveal(center.videosDirectory) } label: {
+                        Label("在「文件」中打开录像文件夹", systemImage: "folder")
+                    }
                 }
             }
 
@@ -80,6 +96,16 @@ struct RecordingsScreen: View {
             return "应用开着就会一直录，切到别的窗口或最小化都不影响；退出应用会停止录像。"
         }
         return "播放器在播放时（包括锁屏和画中画）可以在后台继续录。没有在播放时切到后台，iOS 会在几十秒后暂停应用，录像也随之暂停；回到应用后自动接着录，中间会缺一段。"
+    }
+
+    /// Opens the Files app (or Finder on a Mac) at the videos folder.
+    static func reveal(_ directory: URL) {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        if ProcessInfo.processInfo.isMacCatalystApp {
+            UIApplication.shared.open(directory)
+        } else if let url = URL(string: "shareddocuments://" + directory.path) {
+            UIApplication.shared.open(url)
+        }
     }
 
     static func byteText(_ bytes: Int64) -> String {
@@ -124,27 +150,55 @@ private struct ActiveRecordingRow: View {
 
 private struct RecordingRow: View {
     let info: RecordingInfo
+    let video: URL?
+    let progress: Double?
+    let error: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(info.title).font(.body.weight(.semibold)).lineLimit(1)
-            Text("\(info.league) · \(info.channelName) · \(info.startedAt.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption).foregroundStyle(Palette.secondaryText).lineLimit(1)
-            Text(detailText)
-                .font(.caption.monospacedDigit()).foregroundStyle(Palette.tertiaryText).lineLimit(2)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(info.title).font(.body.weight(.semibold)).lineLimit(1)
+                Text("\(info.league) · \(info.channelName) · \(info.startedAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption).foregroundStyle(Palette.secondaryText).lineLimit(1)
+                Text(detailText)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(error == nil ? Palette.tertiaryText : Color.orange)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            if let progress {
+                ProgressView(value: progress).progressViewStyle(.circular).controlSize(.small)
+            } else if let video {
+                ShareLink(item: video) {
+                    Image(systemName: "square.and.arrow.up").font(.body.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("分享")
+            }
         }
         .padding(.vertical, 2)
     }
 
     private var detailText: String {
-        var parts = [RecordingsScreen.durationText(info.duration), RecordingsScreen.byteText(info.bytes)]
+        var parts = [RecordingsScreen.durationText(info.duration)]
+        if let progress {
+            parts.append("正在生成视频 \(Int(progress * 100))%")
+        } else if let error {
+            parts.append("\(error) 长按可重试")
+        } else if let video {
+            let size = (try? video.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0
+            parts.append("MP4 · \(RecordingsScreen.byteText(size))")
+        } else {
+            parts.append(RecordingsScreen.byteText(info.bytes))
+        }
         if info.gapCount > 0 { parts.append("\(info.gapCount) 处缺口") }
-        if let reason = info.endReason { parts.append(reason) }
+        if let reason = info.endReason, video == nil, progress == nil { parts.append(reason) }
         return parts.joined(separator: " · ")
     }
 }
 
-/// Plays one recording through the loopback server. Separate from
+/// Plays one recording: its MP4 when made, else the segments through the
+/// loopback server. Separate from
 /// `PlayerSession`, which belongs to the live stream.
 private struct RecordingPlayerScreen: View {
     let info: RecordingInfo
@@ -168,7 +222,7 @@ private struct RecordingPlayerScreen: View {
         }
         .task {
             do {
-                let url = try await RecordingCenter.shared.playlistURL(for: info.id)
+                let url = try await RecordingCenter.shared.playbackURL(for: info)
                 // The live player keeps its stream; it just stops talking over this one.
                 PlayerSession.shared.player.pause()
                 let player = AVPlayer(url: url)

@@ -19,9 +19,10 @@ enum PlayerWatermark {
     }
 }
 
-/// The watermark text, driven by the remote config: it hops to a random spot
-/// every `interval` seconds (fading out and back in, rotating through the
-/// configured texts), drifts slowly, or sits bottom-right. It keeps out of
+/// The watermark text, driven by the remote config: by default it never stops
+/// gliding from one random spot to the next (one leg per `interval` seconds,
+/// rotating through the configured texts); it can also hop (fade out, reappear
+/// elsewhere) or sit bottom-right. It keeps out of
 /// the top and bottom bands, where the playback controls appear.
 final class WatermarkView: UIView {
     private let label = UILabel()
@@ -110,7 +111,7 @@ final class WatermarkView: UIView {
         case .drift:
             advanceText()
             UIView.animate(withDuration: settings.interval, delay: 0,
-                           options: [.curveEaseInOut, .beginFromCurrentState, .allowUserInteraction]) {
+                           options: [.curveLinear, .beginFromCurrentState, .allowUserInteraction]) {
                 self.label.frame.origin = self.randomOrigin()
             }
         }

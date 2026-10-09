@@ -36,6 +36,8 @@ struct JRKANiOSApp: App {
                 .tint(Palette.accent)
                 .task { await account.refreshIfStale() }
                 .task { await AppConfigStore.shared.refreshIfStale() }
+                // Loads the recordings and finishes any MP4 export cut short last time.
+                .task { _ = RecordingCenter.shared }
                 // @Published fires before the new value lands; read it on the next turn.
                 .onReceive(account.$stored) { _ in
                     Task { @MainActor in AppConfigStore.shared.isMember = account.isMember }

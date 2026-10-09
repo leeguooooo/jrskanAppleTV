@@ -14,6 +14,7 @@ struct RegularMatchListScreen: View {
     @State private var selectionAutoplay = false
     @State private var selectionToken = UUID()
     @State private var showsSettings = false
+    @State private var showsRecordings = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     #if DEBUG
@@ -32,6 +33,16 @@ struct RegularMatchListScreen: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onReceive(minuteTick) { now = $0 }
+        .sheet(isPresented: $showsRecordings) {
+            NavigationStack {
+                RecordingsScreen()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("完成") { showsRecordings = false }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $showsSettings) {
             NavigationStack {
                 SettingsScreen()
@@ -86,6 +97,13 @@ struct RegularMatchListScreen: View {
         .navigationTitle("JRKAN")
         .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
         .toolbar {
+            ToolbarItem {
+                Button {
+                    showsRecordings = true
+                } label: {
+                    Label("录像", systemImage: "film.stack")
+                }
+            }
             ToolbarItem {
                 Button {
                     showsSettings = true

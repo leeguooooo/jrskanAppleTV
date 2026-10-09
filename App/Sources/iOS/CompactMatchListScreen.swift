@@ -12,6 +12,7 @@ struct CompactMatchListScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
     @ObservedObject private var appConfig = AppConfigStore.shared
+    @ObservedObject private var recordings = RecordingCenter.shared
 
     @State private var now = Date()
     @State private var path = NavigationPath()
@@ -31,6 +32,17 @@ struct CompactMatchListScreen: View {
                 .toolbar {
                     if sport == .all {
                         ToolbarItem(placement: .topBarTrailing) { refinementMenu }
+                    }
+                    if !recordings.recordings.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            NavigationLink {
+                                RecordingsScreen()
+                            } label: {
+                                Image(systemName: recordings.active.isEmpty ? "film.stack" : "record.circle")
+                                    .foregroundStyle(recordings.active.isEmpty ? Palette.accent : Palette.live)
+                            }
+                            .accessibilityLabel("录像")
+                        }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {

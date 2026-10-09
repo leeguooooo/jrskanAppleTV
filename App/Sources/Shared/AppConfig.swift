@@ -11,9 +11,9 @@ struct AppConfig: Codable, Equatable {
         var enabled = true
         /// Shown in turn, one per hop.
         var texts = ["leeguoo.com"]
-        var motion = Motion.hop
+        var motion = Motion.drift
         /// Seconds between hops, or the length of one drift leg.
-        var interval: Double = 30
+        var interval: Double = 8
         var opacity: Double = 0.55
         var hideForMembers = false
 
