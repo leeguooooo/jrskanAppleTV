@@ -5,6 +5,7 @@ import com.leeguoo.jrkan.account.AccountSession
 import com.leeguoo.jrkan.account.SharedPreferencesAccountStore
 import com.leeguoo.jrkan.data.LiveMatch
 import com.leeguoo.jrkan.recording.Recordings
+import com.leeguoo.jrkan.state.AppConfigStore
 import com.leeguoo.jrkan.state.MatchListModel
 import com.leeguoo.jrkan.state.Preferences
 import kotlinx.coroutines.MainScope
@@ -26,11 +27,17 @@ class JrkanApp : Application() {
         preferences = Preferences.open(this)
         listModel = MatchListModel(preferences, scope)
         account = AccountSession(store = SharedPreferencesAccountStore(getSharedPreferences("jrkan-account", MODE_PRIVATE)))
+        AppConfigStore.init(this)
+        scope.launch { account.account.collect { AppConfigStore.isMember.value = account.isMember } }
     }
 
     /** Launch and return-to-foreground: pick up membership changes made elsewhere. */
     fun refreshAccountIfStale() {
         scope.launch { account.refreshIfStale() }
+    }
+
+    fun refreshConfigIfStale() {
+        scope.launch { AppConfigStore.refreshIfStale() }
     }
 
     fun handleSignInRedirect(uri: String) {

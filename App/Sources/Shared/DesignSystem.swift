@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import AVKit
 
@@ -6,25 +7,141 @@ enum PlayerWatermark {
     static func install(on controller: AVPlayerViewController) {
         controller.loadViewIfNeeded()
         guard let overlay = controller.contentOverlayView else { return }
+        let watermark = WatermarkView()
+        watermark.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(watermark)
+        NSLayoutConstraint.activate([
+            watermark.leadingAnchor.constraint(equalTo: overlay.leadingAnchor),
+            watermark.trailingAnchor.constraint(equalTo: overlay.trailingAnchor),
+            watermark.topAnchor.constraint(equalTo: overlay.topAnchor),
+            watermark.bottomAnchor.constraint(equalTo: overlay.bottomAnchor)
+        ])
+    }
+}
 
-        let label = UILabel()
-        label.text = "leeguoo.com"
+/// The watermark text, driven by the remote config: it hops to a random spot
+/// every `interval` seconds (fading out and back in, rotating through the
+/// configured texts), drifts slowly, or sits bottom-right. It keeps out of
+/// the top and bottom bands, where the playback controls appear.
+final class WatermarkView: UIView {
+    private let label = UILabel()
+    private var settings: AppConfig.Watermark?
+    private var subscription: AnyCancellable?
+    private var timer: Timer?
+    private var textIndex = 0
+    private var placed = false
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
         #if os(tvOS)
         label.font = .systemFont(ofSize: 24, weight: .semibold)
         #else
         label.font = .systemFont(ofSize: 16, weight: .semibold)
         #endif
-        label.textColor = .white.withAlphaComponent(0.55)
+        label.textColor = .white
         label.shadowColor = .black.withAlphaComponent(0.5)
         label.shadowOffset = CGSize(width: 0, height: 1)
-        label.isUserInteractionEnabled = false
-        label.isAccessibilityElement = false
-        label.translatesAutoresizingMaskIntoConstraints = false
-        overlay.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.trailingAnchor.constraint(equalTo: overlay.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            label.bottomAnchor.constraint(equalTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -20)
-        ])
+        addSubview(label)
+        subscription = AppConfigStore.shared.watermark
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.apply($0) }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    deinit { timer?.invalidate() }
+
+    private func apply(_ settings: AppConfig.Watermark?) {
+        self.settings = settings
+        label.isHidden = settings == nil
+        guard let settings else { return restartTimer() }
+        label.layer.removeAllAnimations()
+        label.alpha = settings.opacity
+        textIndex = 0
+        setText(settings.texts[0])
+        placed = false
+        setNeedsLayout()
+        restartTimer()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        restartTimer()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard let settings, bounds.width > 0 else { return }
+        if settings.motion == .fixed {
+            // Where the watermark always sat: the bottom-right corner of the safe area.
+            let corner = bounds.inset(by: safeAreaInsets).insetBy(dx: 20, dy: 20)
+            label.frame.origin = CGPoint(x: corner.maxX - label.bounds.width, y: corner.maxY - label.bounds.height)
+        } else if !placed || !area.insetBy(dx: -1, dy: -1).contains(label.frame) {
+            // First layout, or a rotation / resize left it outside the area.
+            label.frame.origin = randomOrigin()
+            placed = true
+            if settings.motion == .drift { step() }
+        }
+    }
+
+    private func restartTimer() {
+        timer?.invalidate()
+        timer = nil
+        guard window != nil, let settings, settings.motion != .fixed else { return }
+        let timer = Timer(timeInterval: settings.interval, repeats: true) { [weak self] _ in self?.step() }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    private func step() {
+        guard let settings, bounds.width > 0 else { return }
+        switch settings.motion {
+        case .fixed:
+            break
+        case .hop:
+            UIView.animate(withDuration: 0.6, animations: { self.label.alpha = 0 }, completion: { _ in
+                guard let settings = self.settings else { return }
+                self.advanceText()
+                self.label.frame.origin = self.randomOrigin()
+                UIView.animate(withDuration: 0.6) { self.label.alpha = settings.opacity }
+            })
+        case .drift:
+            advanceText()
+            UIView.animate(withDuration: settings.interval, delay: 0,
+                           options: [.curveEaseInOut, .beginFromCurrentState, .allowUserInteraction]) {
+                self.label.frame.origin = self.randomOrigin()
+            }
+        }
+    }
+
+    private func advanceText() {
+        guard let texts = settings?.texts, texts.count > 1 else { return }
+        textIndex = (textIndex + 1) % texts.count
+        setText(texts[textIndex])
+    }
+
+    private func setText(_ text: String) {
+        label.text = text
+        label.sizeToFit()
+    }
+
+    /// Inside the safe area with a margin, clear of the control bands.
+    private var area: CGRect {
+        let safe = bounds.inset(by: safeAreaInsets).insetBy(dx: 20, dy: 20)
+        let top = safe.minY + safe.height * 0.15
+        let bottom = safe.maxY - safe.height * 0.2
+        return CGRect(x: safe.minX, y: top, width: safe.width, height: max(0, bottom - top))
+    }
+
+    private func randomOrigin() -> CGPoint {
+        let area = area
+        let size = label.bounds.size
+        return CGPoint(
+            x: CGFloat.random(in: area.minX...max(area.minX, area.maxX - size.width)),
+            y: CGFloat.random(in: area.minY...max(area.minY, area.maxY - size.height))
+        )
     }
 }
 

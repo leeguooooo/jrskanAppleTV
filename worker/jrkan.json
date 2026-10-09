@@ -1,0 +1,19 @@
+{
+  "watermark": {
+    "enabled": true,
+    "texts": ["leeguoo.com"],
+    "motion": "hop",
+    "interval": 30,
+    "opacity": 0.55,
+    "hideForMembers": false
+  },
+  "slots": {
+    "home_banner": {
+      "enabled": false,
+      "title": "",
+      "detail": "",
+      "url": "",
+      "hideForMembers": true
+    }
+  }
+}

@@ -25,6 +25,11 @@ struct JRKANApp: App {
                 .environmentObject(model.preferences)
                 .environmentObject(account)
                 .task { await account.refreshIfStale() }
+                .task { await AppConfigStore.shared.refreshIfStale() }
+                // @Published fires before the new value lands; read it on the next turn.
+                .onReceive(account.$stored) { _ in
+                    Task { @MainActor in AppConfigStore.shared.isMember = account.isMember }
+                }
                 .task {
                     model.startAutoRefresh()
                     await model.loadIfNeeded()
@@ -37,6 +42,7 @@ struct JRKANApp: App {
                         model.startAutoRefresh()
                         Task { await model.refreshIfStale() }
                         Task { await account.refreshIfStale() }
+                        Task { await AppConfigStore.shared.refreshIfStale() }
                     } else if phase == .background {
                         model.stopAutoRefresh()
                     }

@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 app.listModel.startAutoRefresh()
                 app.listModel.refreshIfStale()
                 app.refreshAccountIfStale()
+                app.refreshConfigIfStale()
             }
 
             override fun onStop(owner: LifecycleOwner) = app.listModel.stopAutoRefresh()

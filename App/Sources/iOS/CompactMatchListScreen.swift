@@ -11,6 +11,7 @@ struct CompactMatchListScreen: View {
 
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
+    @ObservedObject private var appConfig = AppConfigStore.shared
 
     @State private var now = Date()
     @State private var path = NavigationPath()
@@ -86,6 +87,10 @@ struct CompactMatchListScreen: View {
 
     private var list: some View {
         List {
+            if sport == .all, let banner = appConfig.slot("home_banner") {
+                Section { ConfigBanner(slot: banner) }
+            }
+
             if sport == .all, model.filter == .all, let match = model.continueMatch {
                 Section {
                     Button { resumeMatchID = match.id; path.append(match) } label: {

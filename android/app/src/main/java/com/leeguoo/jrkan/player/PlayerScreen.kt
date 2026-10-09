@@ -10,6 +10,24 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import com.leeguoo.jrkan.data.AppConfig
+import com.leeguoo.jrkan.state.AppConfigStore
+import kotlin.random.Random
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,7 +85,7 @@ import com.leeguoo.jrkan.state.MatchPlaybackModel
 /**
  * Full-screen player. Media3's own controller does play/pause and the
  * timeline; on top sit close, channel switching, fill and PiP, plus the
- * same "leeguoo.com" watermark as the Apple players.
+ * same remote-configured watermark as the Apple players.
  */
 private val barsInsets: WindowInsets
     @Composable get() = WindowInsets.systemBarsIgnoringVisibility.union(WindowInsets.displayCutout)
@@ -105,16 +123,7 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
             },
         )
 
-        if (!inPictureInPicture) {
-            Text(
-                "leeguoo.com",
-                color = Color.White.copy(alpha = 0.55f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                // Sits above Media3's bottom bar so it never covers the settings gear.
-                modifier = Modifier.align(Alignment.BottomEnd).windowInsetsPadding(barsInsets).padding(end = 20.dp, bottom = 64.dp),
-            )
-        }
+        if (!inPictureInPicture) WatermarkOverlay()
 
         if (!inPictureInPicture && controlsVisible) {
             TopControls(model, state, fills, onPictureInPicture)
@@ -240,5 +249,65 @@ private fun RecordButton(model: MatchPlaybackModel, state: MatchPlaybackModel.St
             }
             DropdownMenuItem(text = { Text("停止录像") }, onClick = { menu = false; Recordings.stop(recorder.id) })
         }
+    }
+}
+
+/**
+ * The watermark from the remote config (WatermarkView in DesignSystem.swift):
+ * hops to a random spot every `interval` seconds, fading out and back in and
+ * rotating through the configured texts; drifts slowly; or sits bottom-right.
+ * It keeps out of the top and bottom bands, where the controls appear.
+ */
+@Composable
+private fun WatermarkOverlay() {
+    val config by AppConfigStore.config.collectAsState()
+    val member by AppConfigStore.isMember.collectAsState()
+    val settings = config.visibleWatermark(member) ?: return
+    val density = LocalDensity.current
+
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(barsInsets).padding(20.dp)) {
+        val areaWidth = constraints.maxWidth.toFloat()
+        val areaHeight = constraints.maxHeight.toFloat()
+        var textSize by remember { mutableStateOf(IntSize.Zero) }
+        var textIndex by remember(settings) { mutableIntStateOf(0) }
+        // Fractions of the free space, so a rotation keeps the text on screen.
+        var spot by remember(settings) { mutableStateOf(Offset(Random.nextFloat(), Random.nextFloat())) }
+        val alpha = remember(settings) { Animatable(settings.opacity.toFloat()) }
+
+        LaunchedEffect(settings) {
+            if (settings.motion == AppConfig.Motion.Fixed) return@LaunchedEffect
+            while (true) {
+                delay((settings.interval * 1000).toLong())
+                if (settings.motion == AppConfig.Motion.Hop) alpha.animateTo(0f, tween(600))
+                if (settings.texts.size > 1) textIndex = (textIndex + 1) % settings.texts.size
+                spot = Offset(Random.nextFloat(), Random.nextFloat())
+                if (settings.motion == AppConfig.Motion.Hop) alpha.animateTo(settings.opacity.toFloat(), tween(600))
+            }
+        }
+
+        val driftMillis = (settings.interval * 1000).toInt()
+        val fraction by animateOffsetAsState(
+            spot,
+            animationSpec = if (settings.motion == AppConfig.Motion.Drift) tween(driftMillis, easing = LinearEasing) else snap(),
+            label = "watermark",
+        )
+        val top = areaHeight * 0.15f
+        val bottom = areaHeight * 0.8f
+        val offset = if (settings.motion == AppConfig.Motion.Fixed) {
+            // Above Media3's bottom bar so it never covers the settings gear.
+            IntOffset((areaWidth - textSize.width).toInt(), (areaHeight - textSize.height - with(density) { 44.dp.toPx() }).toInt())
+        } else {
+            IntOffset(
+                (fraction.x * (areaWidth - textSize.width).coerceAtLeast(0f)).toInt(),
+                (top + fraction.y * (bottom - top - textSize.height).coerceAtLeast(0f)).toInt(),
+            )
+        }
+        Text(
+            settings.texts[textIndex.coerceIn(0, settings.texts.lastIndex)],
+            color = Color.White.copy(alpha = alpha.value),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.onSizeChanged { textSize = it }.offset { offset },
+        )
     }
 }

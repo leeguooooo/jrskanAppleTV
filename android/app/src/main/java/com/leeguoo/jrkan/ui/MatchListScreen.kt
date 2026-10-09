@@ -1,5 +1,12 @@
 package com.leeguoo.jrkan.ui
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import com.leeguoo.jrkan.data.AppConfig
+import com.leeguoo.jrkan.state.AppConfigStore
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,6 +85,9 @@ fun MatchListScreen(
     val favorites by model.preferences.favoriteTeams.collectAsState()
     val recent by model.preferences.recentWatches.collectAsState()
     val now = rememberNow()
+    val appConfig by AppConfigStore.config.collectAsState()
+    val member by AppConfigStore.isMember.collectAsState()
+    val uriHandler = LocalUriHandler.current
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val title = when {
@@ -125,6 +135,14 @@ fun MatchListScreen(
                                 color = Palette.secondaryText,
                                 modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 4.dp),
                             )
+                        }
+                        val banner = if (sport == SportFilter.All) appConfig.slot("home_banner", member) else null
+                        if (banner != null) {
+                            item(key = "banner") {
+                                Column(Modifier.padding(top = 12.dp)) {
+                                    GroupedCell(0, 1, onClick = banner.link?.let { link -> { uriHandler.openUri(link) } }) { ConfigBanner(banner) }
+                                }
+                            }
                         }
                         val resume = if (sport == SportFilter.All && filter == SportFilter.All) model.continueMatch(state.matches) else null
                         if (resume != null) {
@@ -233,5 +251,25 @@ private fun ContinueWatchingRow(match: LiveMatch) {
             Text("继续观看", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             Text("${match.homeTeam} vs ${match.awayTeam}", fontSize = 15.sp, color = Palette.secondaryText, maxLines = 1)
         }
+    }
+}
+
+/** The `home_banner` ad slot (ConfigBanner.swift), labelled 推广 so it never passes for a match. */
+@Composable
+private fun ConfigBanner(slot: AppConfig.Slot) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    "推广", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondaryText,
+                    modifier = Modifier.border(0.5.dp, Palette.separator, RoundedCornerShape(4.dp)).padding(horizontal = 5.dp, vertical = 1.dp),
+                )
+                Text(slot.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (slot.detail.isNotEmpty()) {
+                Text(slot.detail, fontSize = 12.sp, color = Palette.secondaryText, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        if (slot.link != null) Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = Palette.tertiaryText, modifier = Modifier.size(18.dp))
     }
 }

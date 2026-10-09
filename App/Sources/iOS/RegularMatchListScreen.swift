@@ -7,6 +7,7 @@ import SwiftUI
 struct RegularMatchListScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
+    @ObservedObject private var appConfig = AppConfigStore.shared
 
     @State private var now = Date()
     @State private var selection: LiveMatch?
@@ -160,6 +161,9 @@ struct RegularMatchListScreen: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
                 summary.padding(.horizontal, 16)
+                if !isSearching, let banner = appConfig.slot("home_banner") {
+                    ConfigBanner(slot: banner).touchCard().padding(.horizontal, 16)
+                }
                 if !isSearching, model.filter != .recent, let match = model.continueMatch {
                     Button { select(match, autoplay: true) } label: { TouchContinueWatching(match: match) }
                         .buttonStyle(.plain).padding(.horizontal, 16)

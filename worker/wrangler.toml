@@ -1,0 +1,15 @@
+# Remote config for the leeguoo apps (JRKAN first): watermark and ad slots.
+# Deploy: wrangler-accounts exec leeguooooo -- wrangler deploy   (account 3d050f54…, zone leeguoo.com)
+name = "leeguoo-app-config"
+main = "index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+routes = [{ pattern = "config.leeguoo.com", custom_domain = true }]
+
+[[kv_namespaces]]
+binding = "CONFIG"
+id = "875050c01d2a4d8a92656924273b9cfa"
+
+[observability]
+enabled = true
