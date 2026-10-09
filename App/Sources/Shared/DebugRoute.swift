@@ -11,6 +11,8 @@ import Foundation
 /// Routes:
 ///   account         open the account screen at launch (pair with
 ///                   `-account-mock trial|member|expired|free`)
+///   recordings      iOS: open the recordings list at launch
+///   recordings:play iOS: …and play the newest recording
 ///   membership      tvOS: open the scan-to-pay screen
 ///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter

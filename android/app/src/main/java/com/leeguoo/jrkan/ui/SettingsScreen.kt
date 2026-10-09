@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leeguoo.jrkan.BuildConfig
 import com.leeguoo.jrkan.data.SportFilter
+import com.leeguoo.jrkan.recording.RecordingService
+import com.leeguoo.jrkan.recording.Recordings
 import com.leeguoo.jrkan.state.MatchListModel
 
 /** Mirrors SettingsScreen.swift: account, playback, follows and history, about. */
@@ -45,8 +47,11 @@ fun SettingsScreen(
     model: MatchListModel,
     accountSummary: @Composable () -> Unit,
     onOpenAccount: () -> Unit,
+    onOpenRecordings: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val recordings by Recordings.recordings.collectAsState()
+    val activeRecordings by Recordings.active.collectAsState()
     val prefs = model.preferences
     val autoNext by prefs.autoNextChannel.collectAsState()
     val autoRefresh by prefs.autoRefresh.collectAsState()
@@ -86,6 +91,24 @@ fun SettingsScreen(
             item {
                 GroupedCell(1, 2) {
                     ToggleRow("自动刷新赛程与比分", "赛程每 5 分钟、比分每 30 秒检查；回到前台也会检查。", autoRefresh, prefs::setAutoRefresh)
+                }
+            }
+
+            item { GroupTitle("录像") }
+            item {
+                GroupedCell(0, 1, onClick = onOpenRecordings) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("录像", fontSize = 16.sp, modifier = Modifier.weight(1f))
+                        Text(
+                            when {
+                                activeRecordings.isNotEmpty() -> "${activeRecordings.size} 个正在录制"
+                                recordings.isEmpty() -> "无"
+                                else -> "${recordings.size} 个 · ${RecordingService.size(Recordings.totalBytes(recordings))}"
+                            },
+                            fontSize = 15.sp, color = Palette.secondaryText,
+                        )
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Palette.tertiaryText)
+                    }
                 }
             }
 

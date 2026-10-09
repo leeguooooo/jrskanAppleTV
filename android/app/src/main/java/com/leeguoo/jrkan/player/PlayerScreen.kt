@@ -3,9 +3,15 @@
 package com.leeguoo.jrkan.player
 
 import android.view.ViewGroup
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
@@ -22,9 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.outlined.FiberManualRecord
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,10 +54,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.leeguoo.jrkan.recording.HlsRecorder
+import com.leeguoo.jrkan.recording.RecordingService
+import com.leeguoo.jrkan.recording.Recordings
 import com.leeguoo.jrkan.state.MatchPlaybackModel
 
 /**
@@ -158,9 +171,74 @@ private fun TopControls(model: MatchPlaybackModel, state: MatchPlaybackModel.Sta
                 }
             }
         }
+        RecordButton(model, state)
         IconButton(onClick = { PlayerSession.toggleFill() }) {
             Icon(if (fills) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen, if (fills) "完整画面" else "铺满屏幕", tint = Color.White)
         }
         IconButton(onClick = onPictureInPicture) { Icon(Icons.Filled.PictureInPictureAlt, "画中画", tint = Color.White) }
+    }
+}
+
+/**
+ * Starts a recording of what is playing, or shows the running one with stop
+ * and "record this channel instead" once the viewer has switched channels.
+ * The first recording asks for notification permission: the foreground
+ * notification is where a background recording is seen and stopped.
+ */
+@Composable
+private fun RecordButton(model: MatchPlaybackModel, state: MatchPlaybackModel.State) {
+    val context = LocalContext.current
+    val active by Recordings.active.collectAsState()
+    val recorder = active.values.firstOrNull { it.info.value.matchId == model.match.id }
+    var menu by remember { mutableStateOf(false) }
+
+    fun start() {
+        val playback = state.playback ?: return
+        Recordings.start(model.match, model.resolvedChannels, playback.index, playback.url)
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { start() }
+
+    if (recorder == null) {
+        IconButton(
+            enabled = state.playback != null,
+            onClick = {
+                if (Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    start()
+                }
+            },
+        ) { Icon(Icons.Outlined.FiberManualRecord, "录像", tint = Color.White) }
+        return
+    }
+
+    val info by recorder.info.collectAsState()
+    val recordingIndex by recorder.sourceIndex.collectAsState()
+    val phase by recorder.phase.collectAsState()
+    Box {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color.Black.copy(alpha = 0.35f))
+                .clickable { menu = true }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(Icons.Filled.FiberManualRecord, null, tint = if (phase == HlsRecorder.Phase.Reconnecting) Color(0xFFFF9F0A) else Color(0xFFFF453A), modifier = Modifier.size(10.dp))
+            Text(RecordingService.duration(info.duration), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            val playing = state.playback
+            if (playing != null && playing.index != recordingIndex && playing.index in recorder.sources.indices) {
+                DropdownMenuItem(
+                    text = { Text("改录当前线路「${playing.sourceName}」") },
+                    onClick = { menu = false; recorder.switchSource(playing.index) },
+                )
+            }
+            DropdownMenuItem(text = { Text("停止录像") }, onClick = { menu = false; Recordings.stop(recorder.id) })
+        }
     }
 }

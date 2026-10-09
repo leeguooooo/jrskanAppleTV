@@ -4,6 +4,7 @@ import android.app.Application
 import com.leeguoo.jrkan.account.AccountSession
 import com.leeguoo.jrkan.account.SharedPreferencesAccountStore
 import com.leeguoo.jrkan.data.LiveMatch
+import com.leeguoo.jrkan.recording.Recordings
 import com.leeguoo.jrkan.state.MatchListModel
 import com.leeguoo.jrkan.state.Preferences
 import kotlinx.coroutines.MainScope
@@ -21,6 +22,7 @@ class JrkanApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Recordings.init(this)
         preferences = Preferences.open(this)
         listModel = MatchListModel(preferences, scope)
         account = AccountSession(store = SharedPreferencesAccountStore(getSharedPreferences("jrkan-account", MODE_PRIVATE)))

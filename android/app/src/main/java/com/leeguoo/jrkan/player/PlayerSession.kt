@@ -113,6 +113,11 @@ object PlayerSession {
 
     val isPlaying: Boolean get() = player?.isPlaying == true
 
+    /** A recording is about to play: the live stream stays loaded but stops talking over it. */
+    fun pauseForOtherPlayback() {
+        player?.playWhenReady = false
+    }
+
     private fun apply(context: Context, request: PlaybackRequest?) {
         val model = _model.value ?: return
         if (request == null) {

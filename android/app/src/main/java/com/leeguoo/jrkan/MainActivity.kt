@@ -43,6 +43,7 @@ import com.leeguoo.jrkan.ui.HomeScreen
 import com.leeguoo.jrkan.ui.JrkanTheme
 import com.leeguoo.jrkan.ui.MatchDetailScreen
 import com.leeguoo.jrkan.ui.Palette
+import com.leeguoo.jrkan.ui.RecordingsScreen
 import com.leeguoo.jrkan.ui.SettingsScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -50,6 +51,8 @@ import java.net.URLEncoder
 class MainActivity : ComponentActivity() {
     private val app get() = application as JrkanApp
     private var inPip by mutableStateOf(false)
+    /** Set by the recording notification; AppNavigation consumes it. */
+    private var openRecordings by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -58,6 +61,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         handleRedirect(intent)
+        if (intent?.action == ACTION_OPEN_RECORDINGS) openRecordings = true
 
         // Refresh on the way back to the foreground, stop polling in the background.
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -90,6 +94,13 @@ class MainActivity : ComponentActivity() {
     private fun AppNavigation() {
         val nav = rememberNavController()
         val context = LocalContext.current
+        LaunchedEffect(openRecordings) {
+            if (openRecordings) {
+                openRecordings = false
+                PlayerSession.dismiss()
+                nav.navigate("recordings") { launchSingleTop = true }
+            }
+        }
         NavHost(nav, startDestination = "home") {
             composable("home") {
                 HomeScreen(
@@ -128,8 +139,12 @@ class MainActivity : ComponentActivity() {
                     app.listModel,
                     accountSummary = { AccountSummary(app.account) },
                     onOpenAccount = { nav.navigate("account") },
+                    onOpenRecordings = { nav.navigate("recordings") },
                     onBack = { nav.popBackStack() },
                 )
+            }
+            composable("recordings") {
+                RecordingsScreen(onBack = { nav.popBackStack() })
             }
             composable("account") {
                 AccountRoute(app.account, onBack = { nav.popBackStack() })
@@ -189,11 +204,16 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleRedirect(intent)
+        if (intent.action == ACTION_OPEN_RECORDINGS) openRecordings = true
     }
 
     /** Account-center sign-in comes back as com.leeguoo.jrskan.tv:/oauth/callback?code=…&state=… */
     private fun handleRedirect(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme == "com.leeguoo.jrskan.tv") app.handleSignInRedirect(data.toString())
+    }
+
+    companion object {
+        const val ACTION_OPEN_RECORDINGS = "com.leeguoo.jrkan.OPEN_RECORDINGS"
     }
 }

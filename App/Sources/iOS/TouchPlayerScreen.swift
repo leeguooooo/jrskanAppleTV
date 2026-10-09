@@ -69,6 +69,8 @@ struct TouchPlayerScreen: View {
                 }
             }
 
+            RecordControl(model: model)
+
             Button {
                 session.fillsScreen.toggle()
             } label: {

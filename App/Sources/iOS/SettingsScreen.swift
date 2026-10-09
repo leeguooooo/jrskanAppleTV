@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
+    @ObservedObject private var recordings = RecordingCenter.shared
     @State private var clearedHistory = false
 
     var body: some View {
@@ -36,6 +37,20 @@ struct SettingsScreen: View {
                 }
             } header: {
                 Text("播放与刷新")
+            }
+
+            Section {
+                NavigationLink {
+                    RecordingsScreen()
+                } label: {
+                    LabeledContent {
+                        Text(recordingsSummary)
+                    } label: {
+                        Label("录像", systemImage: "record.circle")
+                    }
+                }
+            } header: {
+                Text("录像")
             }
 
             Section {
@@ -81,6 +96,12 @@ struct SettingsScreen: View {
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+    }
+
+    private var recordingsSummary: String {
+        if !recordings.active.isEmpty { return "\(recordings.active.count) 个正在录制" }
+        if recordings.recordings.isEmpty { return "无" }
+        return "\(recordings.recordings.count) 个 · \(RecordingsScreen.byteText(recordings.totalBytes))"
     }
 
     private func infoRow(_ title: String, _ value: String) -> some View {

@@ -20,6 +20,8 @@ struct JRKANiOSApp: App {
                 #if DEBUG
                 if DebugRoute.raw == "account" {
                     NavigationStack { AccountScreen() }
+                } else if DebugRoute.raw?.hasPrefix("recordings") == true {
+                    NavigationStack { RecordingsScreen() }
                 } else {
                     RootScreen()
                 }
@@ -39,10 +41,12 @@ struct JRKANiOSApp: App {
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
+                        RecordingCenter.shared.appWillEnterForeground()
                         model.startAutoRefresh()
                         Task { await model.refreshIfStale() }
                         Task { await account.refreshIfStale() }
                     } else if phase == .background {
+                        RecordingCenter.shared.appDidEnterBackground()
                         model.stopAutoRefresh()
                     }
                 }
