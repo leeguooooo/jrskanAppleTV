@@ -27,6 +27,7 @@ class MultiSportsTest {
         val clock = row.getValue("nowMs").jsonPrimitive.long
         val stats = MultiSportsClient.miguStatistics(row.getValue("statistics").jsonObject, "120000594063", match, clock)
         assertEquals(2, stats.playerTables.size)
+        assertEquals(listOf("migu:legacy-keep", "migu:app-keep"), MultiSportsClient.miguComments(row.getValue("comments").jsonObject, "120000594063", clock).map { it.id })
         assertTrue(MultiSportsClient.matches(listOf("上海久事", "福建晋江文旅"), "202610241915", "yyyyMMddHHmm", match, clock))
         assertFalse(MultiSportsClient.matches(listOf("上海久事", "北京控股"), "202610241915", "yyyyMMddHHmm", match, clock))
         assertFalse(MultiSportsClient.matches(listOf("上海久事", "福建晋江文旅"), "202610251915", "yyyyMMddHHmm", match, clock))
@@ -55,6 +56,7 @@ class MultiSportsTest {
         assertEquals(2, stats.playerTables.size)
         val comments = provider.comments(key)
         assertTrue(comments.all { it.id.startsWith("migu:") })
+        println("Shanghai/Fujian live: provider=${stats.sourceName}, playerTables=${stats.playerTables.size}, freshComments=${comments.size}")
     }
 
     @Test fun sharedMiguEspnCatalogAndCommentContract() {

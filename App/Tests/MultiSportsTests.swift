@@ -23,6 +23,8 @@ final class MultiSportsTests: XCTestCase {
         let now = Date(timeIntervalSince1970: (row["nowMs"] as! Double) / 1000)
         let value = try MultiSportsClient.miguStatistics(row["statistics"] as! [String: Any], id: row["id"] as! String, match: match, now: now)
         XCTAssertEqual(value.playerTables.count, 2)
+        let comments = MultiSportsClient.miguComments(row["comments"] as! [String: Any], id: row["id"] as! String, now: now)
+        XCTAssertEqual(comments.map(\.id), ["migu:legacy-keep", "migu:app-keep"])
         XCTAssertTrue(MultiSportsClient.matches(["上海久事", "福建晋江文旅"], start: "202610241915", format: "yyyyMMddHHmm", match: match, now: now))
         XCTAssertFalse(MultiSportsClient.matches(["上海久事", "北京控股"], start: "202610241915", format: "yyyyMMddHHmm", match: match, now: now))
         XCTAssertFalse(MultiSportsClient.matches(["上海久事", "福建晋江文旅"], start: "202610251915", format: "yyyyMMddHHmm", match: match, now: now))

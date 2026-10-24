@@ -11,3 +11,5 @@
 - Sports content priority is Tencent, Migu, then ESPN (statistics only). Recheck preferred sources every poll. Fill missing whole tables, label their sources, preserve scoreboard provenance and team orientation, and never synthesize ratings or replay old comments to fill an empty stream.
 
 - Compare explicit CBA sponsor aliases through the same canonical team map for Tencent and Migu on both platforms. Extend `contracts/multi-sports.json` when names change; never strip arbitrary city prefixes or merge Beijing/Beikong and Zhejiang/Guangsha.
+
+- Migu web comments bind `contentId/objectId` to the match; app comments use `contentId=100`, `commentType=5`, `contentType=40` and bind both `mId/objectId` to it. Test both shapes and reject conflicting IDs; never accept the shared contentId alone.

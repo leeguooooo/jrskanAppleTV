@@ -199,7 +199,10 @@ class MultiSportsClient(
             val seen = HashSet<String>()
             return objects(obj(root["body"])["commentInfoList"]).mapNotNull { row ->
                 val cid = text(row["commentId"]); val posted = text(row["createTime"]).toLongOrNull() ?: return@mapNotNull null
-                if (text(row["contentId"]) != id || text(row["objectId"]) != id || text(row["top"]) == "true" || cid.isEmpty() || !seen.add(cid) || now - posted >= 120_000 || posted - now >= 30_000) return@mapNotNull null
+                val contentID = text(row["contentId"]); val matchID = text(row["mId"])
+                val legacy = contentID == id && (matchID.isEmpty() || matchID == id)
+                val appComment = contentID == "100" && text(row["commentType"]) == "5" && text(row["contentType"]) == "40" && matchID == id
+                if (text(row["objectId"]) != id || !(legacy || appComment) || text(row["top"]) == "true" || cid.isEmpty() || !seen.add(cid) || now - posted >= 120_000 || posted - now >= 30_000) return@mapNotNull null
                 val message = text(row["body"]).replace(Regex("<[^>]*>"), "").filterNot(Char::isISOControl).trim()
                 if (message.isEmpty() || listOf("观赛群", "扫码", "http").any(message::contains)) return@mapNotNull null
                 val end = message.offsetByCodePoints(0, minOf(80, message.codePointCount(0, message.length)))

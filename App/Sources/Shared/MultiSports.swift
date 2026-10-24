@@ -216,7 +216,12 @@ actor MultiSportsClient {
         var seen = Set<String>()
         return (body["commentInfoList"] as? [[String: Any]] ?? []).compactMap { row -> SportsComment? in
             let cid = text(row["commentId"])
-            guard text(row["contentId"]) == id, text(row["objectId"]) == id, (row["top"] as? Bool) != true, !cid.isEmpty, seen.insert(cid).inserted, let stamp = Double(text(row["createTime"])) else { return nil }
+            let contentID = text(row["contentId"]), matchID = text(row["mId"])
+            let legacy = contentID == id && (matchID.isEmpty || matchID == id)
+            let appComment = contentID == "100" && text(row["commentType"]) == "5" && text(row["contentType"]) == "40" && matchID == id
+            guard text(row["objectId"]) == id, legacy || appComment,
+                  (row["top"] as? Bool) != true, !cid.isEmpty, seen.insert(cid).inserted,
+                  let stamp = Double(text(row["createTime"])) else { return nil }
             let posted = Date(timeIntervalSince1970: stamp / 1000)
             guard now.timeIntervalSince(posted) < 120, posted.timeIntervalSince(now) < 30 else { return nil }
             let value = text(row["body"]).replacingOccurrences(of: "<[^>]*>", with: "", options: .regularExpression).components(separatedBy: .controlCharacters).joined().trimmingCharacters(in: .whitespacesAndNewlines)

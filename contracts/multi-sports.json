@@ -971,6 +971,145 @@
           }
         ]
       }
+    },
+    "comments": {
+      "code": 200,
+      "body": {
+        "commentInfoList": [
+          {
+            "commentId": "app-keep",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "wrong-mid",
+            "contentId": 100,
+            "mId": "120000000001",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "wrong-object",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000000001",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "wrong-kind",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 25,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "gift",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 8,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "unbound",
+            "contentId": 100,
+            "mId": null,
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "old",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842179000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "future",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842331000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "pinned",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": true,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "app-keep",
+            "contentId": 100,
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 5,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          },
+          {
+            "commentId": "legacy-keep",
+            "contentId": "120000594063",
+            "mId": "120000594063",
+            "objectId": "120000594063",
+            "commentType": 0,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842290000,
+            "body": "好球"
+          },
+          {
+            "commentId": "legacy-conflict",
+            "contentId": "120000594063",
+            "mId": "other",
+            "objectId": "120000594063",
+            "commentType": 0,
+            "contentType": 40,
+            "top": false,
+            "createTime": 1792842299000,
+            "body": "上海加油"
+          }
+        ]
+      }
     }
   }
 }
