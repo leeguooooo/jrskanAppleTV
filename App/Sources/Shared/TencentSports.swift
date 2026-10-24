@@ -68,7 +68,7 @@ struct TencentSportsClient {
 
     static func matches(_ info: [String: Any], match: LiveMatch, mid: String, now: Date = Date()) -> Bool {
         guard text(info["mid"]) == mid,
-              Set([text(info["leftName"]), text(info["rightName"])]) == Set([match.homeTeam, match.awayTeam]),
+              Set([text(info["leftName"]), text(info["rightName"])].map(MultiSportsClient.canonical)) == Set([match.homeTeam, match.awayTeam].map(MultiSportsClient.canonical)),
               let kickoff = MatchSchedule.kickoff(from: match.time, now: now) else { return false }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")

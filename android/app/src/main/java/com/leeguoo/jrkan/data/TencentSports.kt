@@ -127,7 +127,7 @@ class TencentSportsClient(
         }
 
         fun matches(info: JsonObject, match: LiveMatch, mid: String, now: Long = System.currentTimeMillis()): Boolean {
-            if (text(info["mid"]) != mid || setOf(text(info["leftName"]), text(info["rightName"])) != setOf(match.homeTeam, match.awayTeam)) return false
+            if (text(info["mid"]) != mid || setOf(text(info["leftName"]), text(info["rightName"])).map(MultiSportsClient::canonical).toSet() != setOf(match.homeTeam, match.awayTeam).map(MultiSportsClient::canonical).toSet()) return false
             val kickoff = MatchSchedule.kickoff(match.time, now)?.toEpochMilli() ?: return false
             val start = try { LocalDateTime.parse(text(info["startTime"]), kickoffFormat).atZone(shanghai).toInstant().toEpochMilli() }
                 catch (_: Exception) { return false }

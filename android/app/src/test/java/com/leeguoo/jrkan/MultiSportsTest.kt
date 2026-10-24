@@ -17,6 +17,46 @@ class MultiSportsTest {
     private val channels = listOf(MatchSource("t", "中文高清Q", "https://fixture.example/play/kbs/?id=10022600102"))
     private fun migu() = MultiSportsClient.miguStatistics(fixture.getValue("migu").jsonObject, "120000588273", game(), now)
 
+    @Test fun cbaClubNamesMatchShanghaiFujianWithoutMergingDistinctClubs() = runTest {
+        val f = fixture; val row = f.getValue("shanghai").jsonObject
+        for ((name, expected) in f.getValue("cbaAliases").jsonObject) assertEquals(expected.jsonPrimitive.content, MultiSportsClient.canonical(name))
+        assertEquals("上海申花", MultiSportsClient.canonical("上海申花"))
+        assertNotEquals(MultiSportsClient.canonical("北京首钢"), MultiSportsClient.canonical("北京控股"))
+        assertNotEquals(MultiSportsClient.canonical("浙江稠州金租"), MultiSportsClient.canonical("浙江浙商证券"))
+        val match = game("上海", "福建", "10-24 19:35").copy(league = "CBA")
+        val clock = row.getValue("nowMs").jsonPrimitive.long
+        val stats = MultiSportsClient.miguStatistics(row.getValue("statistics").jsonObject, "120000594063", match, clock)
+        assertEquals(2, stats.playerTables.size)
+        assertTrue(MultiSportsClient.matches(listOf("上海久事", "福建晋江文旅"), "202610241915", "yyyyMMddHHmm", match, clock))
+        assertFalse(MultiSportsClient.matches(listOf("上海久事", "北京控股"), "202610241915", "yyyyMMddHHmm", match, clock))
+        assertFalse(MultiSportsClient.matches(listOf("上海久事", "福建晋江文旅"), "202610251915", "yyyyMMddHHmm", match, clock))
+        val mid = "100008:10011111111"
+        val info = buildJsonObject { put("mid", mid); put("leftName", "上海久事"); put("rightName", "福建晋江文旅"); put("startTime", "2026-10-24 19:35:00") }
+        assertTrue(TencentSportsClient.matches(info, match, mid, clock))
+        assertFalse(TencentSportsClient.matches(info, match, "wrong", clock))
+        val provider = MultiSportsClient(client = fixtureClient { request ->
+            when {
+                request.url.encodedPath == "/p/home/494d21a4d6ee453b8b86bd3bb7658ed6" -> FixtureReply("<script>window.__INITIAL_GROUPS_STATE__ = {\"rows\":[${row.getValue("catalog")}]};</script>")
+                request.url.encodedPath.endsWith("/120000594063") -> FixtureReply(row.getValue("statistics").toString())
+                else -> null
+            }
+        }, clock = { clock })
+        val key = provider.prepare(match, emptyList())!!
+        assertEquals("咪咕视频", provider.statistics(key, match).sourceName)
+    }
+
+    @Test fun liveShanghaiFujianCanMatchWithoutTencentEventID() = runTest {
+        assumeTrue(System.getProperty("jrkan.live") == "1")
+        val match = game("上海", "福建", "10-24 19:35").copy(league = "CBA")
+        val provider = MultiSportsClient()
+        val key = provider.prepare(match, emptyList())!!
+        val stats = provider.statistics(key, match)
+        assertEquals("migu:120000594063", stats.mid)
+        assertEquals(2, stats.playerTables.size)
+        val comments = provider.comments(key)
+        assertTrue(comments.all { it.id.startsWith("migu:") })
+    }
+
     @Test fun sharedMiguEspnCatalogAndCommentContract() {
         val data = fixture
         val m = migu()

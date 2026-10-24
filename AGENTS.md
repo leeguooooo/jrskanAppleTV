@@ -9,3 +9,5 @@
 - Android is internal testing only. Preserve the existing release signing key. Attach APK and SHA-256 to a **draft** GitHub Release; do not publish publicly unless explicitly requested. A missing production key must fail formal release builds.
 
 - Sports content priority is Tencent, Migu, then ESPN (statistics only). Recheck preferred sources every poll. Fill missing whole tables, label their sources, preserve scoreboard provenance and team orientation, and never synthesize ratings or replay old comments to fill an empty stream.
+
+- Compare explicit CBA sponsor aliases through the same canonical team map for Tencent and Migu on both platforms. Extend `contracts/multi-sports.json` when names change; never strip arbitrary city prefixes or merge Beijing/Beikong and Zhejiang/Guangsha.

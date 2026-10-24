@@ -13,6 +13,25 @@ final class MultiSportsTests: XCTestCase {
     private func game(_ home: String = "湖人", _ away: String = "快船", _ time: String = "10-24 10:00") -> LiveMatch {
         LiveMatch(id: "test", league: "NBA", time: time, homeTeam: home, awayTeam: away, homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: [])
     }
+    func testCBAClubNamesMatchShanghaiFujianWithoutMergingDistinctClubs() throws {
+        let f = try fixture(), row = f["shanghai"] as! [String: Any]
+        for (name, expected) in f["cbaAliases"] as! [String: String] { XCTAssertEqual(MultiSportsClient.canonical(name), expected) }
+        XCTAssertEqual(MultiSportsClient.canonical("上海申花"), "上海申花")
+        XCTAssertNotEqual(MultiSportsClient.canonical("北京首钢"), MultiSportsClient.canonical("北京控股"))
+        XCTAssertNotEqual(MultiSportsClient.canonical("浙江稠州金租"), MultiSportsClient.canonical("浙江浙商证券"))
+        let match = LiveMatch(id: "3941097", league: "CBA", time: "10-24 19:35", homeTeam: "上海", awayTeam: "福建", homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: [])
+        let now = Date(timeIntervalSince1970: (row["nowMs"] as! Double) / 1000)
+        let value = try MultiSportsClient.miguStatistics(row["statistics"] as! [String: Any], id: row["id"] as! String, match: match, now: now)
+        XCTAssertEqual(value.playerTables.count, 2)
+        XCTAssertTrue(MultiSportsClient.matches(["上海久事", "福建晋江文旅"], start: "202610241915", format: "yyyyMMddHHmm", match: match, now: now))
+        XCTAssertFalse(MultiSportsClient.matches(["上海久事", "北京控股"], start: "202610241915", format: "yyyyMMddHHmm", match: match, now: now))
+        XCTAssertFalse(MultiSportsClient.matches(["上海久事", "福建晋江文旅"], start: "202610251915", format: "yyyyMMddHHmm", match: match, now: now))
+        let mid = "100008:10011111111"
+        let info: [String: Any] = ["mid": mid, "leftName": "上海久事", "rightName": "福建晋江文旅", "startTime": "2026-10-24 19:35:00"]
+        XCTAssertTrue(TencentSportsClient.matches(info, match: match, mid: mid, now: now))
+        XCTAssertFalse(TencentSportsClient.matches(info, match: match, mid: "wrong", now: now))
+    }
+
     func testSharedMiguEspnAndCommentContractRejectsWrongMatch() throws {
         let f = try fixture(), now = Date(timeIntervalSince1970: (f["nowMs"] as! Double) / 1000)
         let m = try MultiSportsClient.miguStatistics(f["migu"] as! [String: Any], id: "120000588273", match: game(), now: now)

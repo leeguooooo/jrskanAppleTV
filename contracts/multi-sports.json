@@ -743,5 +743,234 @@
         }
       ]
     }
+  },
+  "cbaAliases": {
+    "上海久事": "上海",
+    "福建晋江文旅": "福建",
+    "广东东阳光": "广东",
+    "浙江稠州金租": "浙江",
+    "浙江浙商证券": "广厦",
+    "北京控股": "北控",
+    "北京首钢": "北京",
+    "深圳马可波罗": "深圳",
+    "山西汾酒": "山西",
+    "南京同曦宙光": "同曦",
+    "长白山恩都里": "吉林",
+    "四川锦城": "四川",
+    "天津先行者": "天津",
+    "山东高速": "山东",
+    "辽宁本钢": "辽宁",
+    "青岛崂山啤酒": "青岛",
+    "新疆广汇能源": "新疆",
+    "江苏肯帝亚": "江苏",
+    "广州智都集团": "广州",
+    "宁波町渥": "宁波",
+    "北京北汽": "北京",
+    "福建浔兴股份": "福建",
+    "浙江方兴渡": "广厦",
+    "南京头排苏酒": "同曦",
+    "南京同曦": "同曦",
+    "青岛国信制药": "青岛",
+    "青岛国信水产": "青岛",
+    "新疆伊力特": "新疆",
+    "广州朗肽海本": "广州",
+    "四川丰谷酒业": "四川",
+    "宁波富邦": "宁波"
+  },
+  "shanghai": {
+    "id": "120000594063",
+    "league": "CBA",
+    "home": "上海",
+    "away": "福建",
+    "time": "10-24 19:35",
+    "nowMs": 1792842300000,
+    "catalog": {
+      "pID": "120000594063",
+      "competitionName": "CBA",
+      "startTime": "202610241915",
+      "teams": [
+        {
+          "teamName": "上海久事"
+        },
+        {
+          "teamName": "福建晋江文旅"
+        }
+      ]
+    },
+    "statistics": {
+      "code": "200",
+      "BKB": {
+        "matchData": {
+          "competitionId": "2221401",
+          "competitionFullName": "中国篮球职业联赛",
+          "competitionShortName": "CBA",
+          "stageId": "78540177",
+          "stageName": "常规赛",
+          "matchDatetime": "2026-10-24 19:35:00",
+          "gameType": "1",
+          "quarters": [
+            {
+              "homeScore": "20",
+              "visitingScore": "22",
+              "quarter": "1"
+            }
+          ],
+          "matchTeam": {
+            "guest": {
+              "teamName": "福建晋江文旅",
+              "wcTeamId": "1600000601",
+              "teamScore": "22",
+              "matchTeamStat": {
+                "rebounds": {
+                  "hasPercentType": "0",
+                  "value": "6"
+                },
+                "points": {
+                  "hasPercentType": "0",
+                  "value": "22"
+                },
+                "trueShootingPct": {
+                  "hasPercentType": "1",
+                  "value": "82.6"
+                },
+                "threePointPercentage": {
+                  "hasPercentType": "1",
+                  "value": "75.0"
+                },
+                "turnovers": {
+                  "hasPercentType": "0",
+                  "value": "3"
+                },
+                "steals": {
+                  "hasPercentType": "0",
+                  "value": "1"
+                },
+                "assists": {
+                  "hasPercentType": "0",
+                  "value": "4"
+                },
+                "fieldGoalsPercentage": {
+                  "hasPercentType": "1",
+                  "value": "66.7"
+                }
+              }
+            },
+            "home": {
+              "teamName": "上海久事",
+              "wcTeamId": "1600001101",
+              "teamScore": "20",
+              "matchTeamStat": {
+                "rebounds": {
+                  "hasPercentType": "0",
+                  "value": "6"
+                },
+                "points": {
+                  "hasPercentType": "0",
+                  "value": "20"
+                },
+                "trueShootingPct": {
+                  "hasPercentType": "1",
+                  "value": "62.5"
+                },
+                "threePointPercentage": {
+                  "hasPercentType": "1",
+                  "value": "44.4"
+                },
+                "turnovers": {
+                  "hasPercentType": "0",
+                  "value": "2"
+                },
+                "steals": {
+                  "hasPercentType": "0",
+                  "value": "2"
+                },
+                "assists": {
+                  "hasPercentType": "0",
+                  "value": "5"
+                },
+                "fieldGoalsPercentage": {
+                  "hasPercentType": "1",
+                  "value": "50.0"
+                }
+              }
+            }
+          }
+        },
+        "matchPlayerStatBeanList": [
+          {
+            "rebounds": {
+              "hasPercentType": "0",
+              "value": "2"
+            },
+            "wcTeamId": "1600000601",
+            "points": {
+              "hasPercentType": "0",
+              "value": "7"
+            },
+            "seconds": {
+              "hasPercentType": "0",
+              "value": "476"
+            },
+            "trueShootingPct": {
+              "hasPercentType": "1",
+              "value": "70.0"
+            },
+            "plusMinus": {
+              "hasPercentType": "0",
+              "value": "2"
+            },
+            "nickName": "博特赖特",
+            "turnovers": {
+              "hasPercentType": "0",
+              "value": "2"
+            },
+            "steals": {
+              "hasPercentType": "0",
+              "value": "0"
+            },
+            "assists": {
+              "hasPercentType": "0",
+              "value": "1"
+            }
+          },
+          {
+            "rebounds": {
+              "hasPercentType": "0",
+              "value": "1"
+            },
+            "wcTeamId": "1600001101",
+            "points": {
+              "hasPercentType": "0",
+              "value": "3"
+            },
+            "seconds": {
+              "hasPercentType": "0",
+              "value": "476"
+            },
+            "trueShootingPct": {
+              "hasPercentType": "1",
+              "value": "50.0"
+            },
+            "plusMinus": {
+              "hasPercentType": "0",
+              "value": "-2"
+            },
+            "nickName": "古德温",
+            "turnovers": {
+              "hasPercentType": "0",
+              "value": "1"
+            },
+            "steals": {
+              "hasPercentType": "0",
+              "value": "1"
+            },
+            "assists": {
+              "hasPercentType": "0",
+              "value": "3"
+            }
+          }
+        ]
+      }
+    }
   }
 }
