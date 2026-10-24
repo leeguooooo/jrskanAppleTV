@@ -95,7 +95,7 @@ python3 assets/brand/build_assets.py
 ```bash
 Scripts/testflight.sh tvos            # 归档 → 用 ASC API 密钥云端签名 → 上传
 Scripts/testflight.sh ios             # iPhone / iPad 版
-Scripts/testflight.sh mac             # Mac Catalyst 版（必须签名归档，见脚本注释）
+Scripts/testflight.sh mac             # Mac Catalyst 版（归档后校验沙盒和 Apple 登录权限）
 Scripts/testflight.sh all 202609051   # 三端一起，指定构建号（缺省为 UTC 时间戳）
 ```
 
