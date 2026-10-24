@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// A stream that has already been resolved to a playable URL.
@@ -21,6 +22,7 @@ struct PlaybackRequest: Identifiable, Equatable {
 final class MatchPlaybackModel: ObservableObject {
     let match: LiveMatch
     let preferences: Preferences
+    let insights = MatchInsightsModel()
 
     /// Second-level channels from the source page; `nil` while loading, empty
     /// when the page gave nothing usable.
@@ -105,7 +107,14 @@ final class MatchPlaybackModel: ObservableObject {
     func nextUntriedIndex(after index: Int) -> Int? {
         let count = resolvedChannels.count
         guard count > 0 else { return nil }
-        for candidate in preferences.rankedIndices(for: resolvedChannels, matchID: match.id) {
+        let ranked = preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
+        let prefersBroadcast = resolvedChannels.indices.contains(index)
+            && !resolvedChannels[index].name.contains("主播")
+        let ordered = prefersBroadcast
+            ? ranked.filter { !resolvedChannels[$0].name.contains("主播") }
+                + ranked.filter { resolvedChannels[$0].name.contains("主播") }
+            : ranked
+        for candidate in ordered {
             if candidate != index, !stalledIndices.contains(candidate),
                !failedResolutionIndices.contains(candidate) { return candidate }
         }
@@ -222,7 +231,6 @@ final class MatchPlaybackModel: ObservableObject {
         confirmedRequestID = requestID
         preferences.recordPlaybackSuccess(match: match, source: resolvedChannels[request.index],
             index: request.index, startup: resolutionDuration + startupSeconds)
-        notice = nil
     }
 
     /// Keep the controller on screen during recovery. A confirmed stream gets

@@ -17,6 +17,7 @@ import SwiftUI
 struct TouchPlayerScreen: View {
     @ObservedObject var session: PlayerSession
     @ObservedObject var model: MatchPlaybackModel
+    @State private var showsStatistics = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -25,8 +26,14 @@ struct TouchPlayerScreen: View {
             PlayerContainer(controller: session.controller)
                 .ignoresSafeArea()
 
+            SportsDanmakuOverlay(model: model.insights).ignoresSafeArea()
+
             VStack(spacing: 8) {
                 overlay
+                if let notice = model.notice {
+                    Text(notice).font(.caption).foregroundStyle(.white)
+                        .padding(8).background(.black.opacity(0.6), in: Capsule())
+                }
                 if model.resolvingIndex != nil {
                     Label("正在恢复播放…", systemImage: "arrow.clockwise")
                         .font(.footnote).foregroundStyle(.white)
@@ -34,6 +41,7 @@ struct TouchPlayerScreen: View {
                 }
             }
         }
+        .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .onAppear { Orientation.enterLandscape() }
@@ -69,6 +77,7 @@ struct TouchPlayerScreen: View {
                 }
             }
 
+            PlayerInsightsControls(model: model.insights, showsStatistics: $showsStatistics)
             RecordControl(model: model)
 
             Button {
@@ -94,4 +103,23 @@ private struct PlayerContainer: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> AVPlayerViewController { controller }
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {}
+}
+
+private struct PlayerInsightsControls: View {
+    @ObservedObject var model: MatchInsightsModel
+    @Binding var showsStatistics: Bool
+    var body: some View {
+        HStack(spacing: 8) {
+            if model.mid != nil {
+                Button { model.danmakuEnabled.toggle() } label: {
+                    Image(systemName: model.danmakuEnabled ? "captions.bubble.fill" : "captions.bubble")
+                        .padding(8).background(.black.opacity(0.45), in: Circle())
+                }.accessibilityLabel(model.danmakuEnabled ? "关闭弹幕" : "开启弹幕")
+            }
+            Button { showsStatistics = true } label: {
+                Label("数据", systemImage: "chart.bar.xaxis")
+                    .font(.footnote).padding(8).background(.black.opacity(0.45), in: Capsule())
+            }
+        }
+    }
 }

@@ -14,6 +14,7 @@ import SwiftUI
 struct PlayerPresenter: UIViewControllerRepresentable {
     @Binding var request: PlaybackRequest?
     let match: LiveMatch
+    @ObservedObject var insights: MatchInsightsModel
     let channels: [MatchSource]
     let onSelectChannel: (Int) -> Void
     let onStall: (UUID, String) -> Void
@@ -30,6 +31,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         coordinator.onStall = onStall
         coordinator.onConfirmed = onConfirmed
         coordinator.onDismiss = onStop
+        coordinator.insights = insights
 
         guard let request else {
             coordinator.dismissIfPresenting(from: host)
@@ -40,7 +42,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             request,
             from: host,
             metadata: metadataItems(for: request),
-            menuItems: menuItems(currentIndex: request.index)
+            menuItems: menuItems(currentIndex: request.index, statsPresenter: { coordinator.presentStatistics() })
         )
     }
 
@@ -52,8 +54,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
 
     /// Channel switching lives in the transport bar so the viewer never has to
     /// back out to the detail screen mid-match.
-    private func menuItems(currentIndex: Int) -> [UIMenuElement] {
-        guard channels.count > 1 else { return [] }
+    private func menuItems(currentIndex: Int, statsPresenter: (() -> Void)?) -> [UIMenuElement] {
+
 
         let actions = channels.enumerated().map { index, source -> UIAction in
             let action = UIAction(title: source.name) { _ in
@@ -64,7 +66,19 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             return action
         }
 
-        return [UIMenu(title: "切换线路", options: .displayInline, children: actions)]
+        let toggle = UIAction(title: insights.danmakuEnabled ? "关闭弹幕" : "开启弹幕",
+                              image: UIImage(systemName: "captions.bubble")) { _ in
+            insights.danmakuEnabled.toggle()
+        }
+        let stats = UIAction(title: "比赛数据", image: UIImage(systemName: "chart.bar.xaxis")) { _ in
+            // Present on the active native player, preserving tvOS Menu handling.
+            statsPresenter?()
+        }
+        var items: [UIMenuElement] = channels.count > 1
+            ? [UIMenu(title: "切换线路", options: .displayInline, children: actions)] : []
+        if insights.mid != nil { items.append(toggle) }
+        items.append(stats)
+        return items
     }
 
     /// Populates the tvOS Info panel. Without this the panel shows the bare
@@ -95,6 +109,15 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         var onStall: (UUID, String) -> Void = { _, _ in }
         var onConfirmed: (UUID, TimeInterval) -> Void = { _, _ in }
         var onDismiss: () -> Void = {}
+
+        var insights: MatchInsightsModel?
+        private var commentsHost: UIHostingController<SportsDanmakuOverlay>?
+
+        func presentStatistics() {
+            guard let insights, let controller, controller.presentedViewController == nil else { return }
+            let panel = UIHostingController(rootView: SportsStatsSheet(model: insights))
+            controller.present(panel, animated: true)
+        }
 
         private weak var controller: AVPlayerViewController?
         private var shownRequestID: UUID?
@@ -134,6 +157,22 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             controller.transportBarCustomMenuItems = menuItems
             controller.delegate = self
             PlayerWatermark.install(on: controller)
+            if let insights, let overlay = controller.contentOverlayView {
+                let host = UIHostingController(rootView: SportsDanmakuOverlay(model: insights))
+                controller.addChild(host)
+                host.view.backgroundColor = .clear
+                host.view.isUserInteractionEnabled = false
+                host.view.translatesAutoresizingMaskIntoConstraints = false
+                overlay.addSubview(host.view)
+                NSLayoutConstraint.activate([
+                    host.view.leadingAnchor.constraint(equalTo: overlay.leadingAnchor),
+                    host.view.trailingAnchor.constraint(equalTo: overlay.trailingAnchor),
+                    host.view.topAnchor.constraint(equalTo: overlay.topAnchor),
+                    host.view.bottomAnchor.constraint(equalTo: overlay.bottomAnchor)
+                ])
+                host.didMove(toParent: controller)
+                commentsHost = host
+            }
             self.controller = controller
 
             host.present(controller, animated: true) {
@@ -147,6 +186,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             stallWatchdog?.cancel()
             stallWatchdog = nil
             shownRequestID = nil
+            commentsHost = nil
 
             guard let controller, controller.presentingViewController != nil else {
                 self.controller = nil
@@ -200,6 +240,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             playerViewController.player = nil
             controller = nil
             shownRequestID = nil
+            commentsHost = nil
             onDismiss()
         }
     }

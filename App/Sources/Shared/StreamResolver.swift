@@ -216,40 +216,75 @@ struct StreamResolver {
         throw lastError
     }
 
-    func generatedIframeURL(
-        in html: String,
-        playerScript: String,
-        pageURL: URL
-    ) -> URL? {
-        guard
-            let encodedValue = html.regexCaptures(
-                #"(?is)var\s+encodedStr\s*=\s*[\"']([^\"']+)[\"']"#
-            ).first?[safe: 1],
-            let context = JSContext()
-        else {
-            return nil
-        }
-
-        context.setObject(encodedValue, forKeyedSubscript: "encodedStr" as NSString)
-        context.evaluateScript(
-            #"""
-            var __playerElement = { innerHTML: "" };
-            var navigator = { userAgent: "iPhone" };
-            var document = {
-              getElementById: function() { return __playerElement; }
-            };
-            """#
-        )
-        context.evaluateScript(playerScript)
-        guard
-            context.exception == nil,
-            let generatedHTML = context.objectForKeyedSubscript("__playerElement")?
-                .objectForKeyedSubscript("innerHTML")?.toString()
-        else {
-            return nil
-        }
-        return iframeURLs(in: generatedHTML, pageURL: pageURL).first
+    func generatedIframeURL(in html: String, playerScript: String, pageURL: URL) -> URL? {
+        playerScriptResult(in: html, playerScript: playerScript, pageURL: pageURL).url
     }
+
+    /// A fresh, network-free JS environment for each pass. Requests are executed
+    /// by URLSession only after native URL validation; scripts never get a bridge
+    /// to Foundation, application storage, or the user's cookies.
+    func playerScriptResult(in html: String, playerScript: String, pageURL: URL,
+                            responses: [String] = []) -> (url: URL?, requests: [URL]) {
+        guard playerScript.utf8.count <= 512_000, let context = JSContext() else { return (nil, []) }
+        let encoded = html.regexCaptures(#"(?is)var\s+encodedStr\s*=\s*["']([^"']+)["']"#).first?[safe: 1]
+        let config = html.regexCaptures(#"(?is)playerUrlBase64\s*:\s*["']([^"']+)["']"#).first?[safe: 1]
+        let payload = html.regexCaptures(#"(?is)["']en_str["']\s*:\s*["']([^"']+)["']"#).first?[safe: 1]
+        guard encoded != nil || payload != nil else { return (nil, []) }
+        context.setObject(pageURL.absoluteString, forKeyedSubscript: "__pageURL" as NSString)
+        context.setObject(responses, forKeyedSubscript: "__responses" as NSString)
+        context.setObject(encoded ?? "", forKeyedSubscript: "encodedStr" as NSString)
+        context.setObject(["playerUrlBase64": config ?? ""], forKeyedSubscript: "playerConfig" as NSString)
+        context.setObject(["en_str": payload ?? ""], forKeyedSubscript: "playerData" as NSString)
+        let decode: @convention(block) (String) -> String? = { value in
+            guard let data = Data(base64Encoded: value) else { return nil }
+            return String(data: data, encoding: .isoLatin1)
+        }
+        let encode: @convention(block) (String) -> String? = { value in
+            value.data(using: .isoLatin1)?.base64EncodedString()
+        }
+        context.setObject(decode, forKeyedSubscript: "atob" as NSString)
+        context.setObject(encode, forKeyedSubscript: "btoa" as NSString)
+        context.evaluateScript(Self.playerPrelude)
+        context.evaluateScript(playerScript)
+        guard context.exception == nil else { return (nil, []) }
+        let frames = context.objectForKeyedSubscript("__frames")?.toArray() as? [String] ?? []
+        let written = context.objectForKeyedSubscript("__container")?.objectForKeyedSubscript("innerHTML")?.toString() ?? ""
+        let url = frames.compactMap { makeURL(from: $0, relativeTo: pageURL) }.first
+            ?? iframeURLs(in: written, pageURL: pageURL).first
+        let requests = (context.objectForKeyedSubscript("__requests")?.toArray() as? [String] ?? [])
+            .compactMap { URL(string: $0) }
+        return (url, requests)
+    }
+
+    private static let playerPrelude = #"""
+    var window = this, self = this;
+    var __frames = [], __requests = [];
+    var __container = {
+      innerHTML: '', textContent: '',
+      appendChild: function(node) { if (node.src) __frames.push(node.src); },
+      replaceChildren: function(node) { this.appendChild(node); }
+    };
+    var document = {
+      location: {href: __pageURL}, referrer: '', cookie: '',
+      getElementById: function() { return __container; },
+      createElement: function() { return {style:{}, setAttribute:function(k,v) {this[k]=v;}}; },
+      write: function() {}
+    };
+    var navigator = {userAgent:'iPhone',maxTouchPoints:0};
+    var console = {log:function(){},error:function(){},warn:function(){},info:function(){},debug:function(){},exception:function(){},trace:function(){}};
+    var setTimeout=function(){return 0},setInterval=setTimeout,clearTimeout=function(){},clearInterval=clearTimeout;
+    var TextEncoder=function(){};
+    TextEncoder.prototype.encode=function(text){var s=unescape(encodeURIComponent(text));return Uint8Array.from(s,function(c){return c.charCodeAt(0);});};
+    var TextDecoder=function(){};
+    TextDecoder.prototype.decode=function(bytes){var s='';for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);return decodeURIComponent(escape(s));};
+    var crypto={getRandomValues:function(bytes){for(var i=0;i<bytes.length;i++) bytes[i]=Math.floor(Math.random()*256);return bytes;}};
+    var URLSearchParams=function(values){this.values=values;};
+    URLSearchParams.prototype.toString=function(){var v=this.values;return Object.keys(v).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(v[k]);}).join('&');};
+    var URL=function(value){var m=/^(https?):\/\/([^\/?#]+)([^#]*)(#.*)?$/i.exec(value);if(!m)throw Error('Invalid URL');this.hostname=m[2];this.username='';this.password='';this.hash=m[4]||'';if(m[2].indexOf('@')>=0)this.username='invalid';};
+    // Only record requests here. Native code validates and fetches the supported API.
+    // No AbortController: the page skips speculative media probes and selects its fallback URL.
+    var fetch=function(url){var i=__requests.length;__requests.push(String(url));if(i>=__responses.length)return new Promise(function(){});var data=JSON.parse(__responses[i]);return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve(data);}});};
+    """#
 
     func evaluateEncryptedHLSURL(
         libraryScript: String,
@@ -298,17 +333,34 @@ struct StreamResolver {
     }
 
     private func generatedIframeURL(in html: String, pageURL: URL) async throws -> URL? {
-        guard
-            html.range(of: "encodedStr") != nil,
-            let rawScriptURL = html.regexCaptures(
-                #"(?is)<script[^>]+src\s*=\s*[\"']([^\"']*pjs\.js[^\"']*)[\"']"#
-            ).first?[safe: 1],
-            let scriptURL = makeURL(from: rawScriptURL, relativeTo: pageURL)
-        else {
-            return nil
+        let isDataPlayer = html.range(of: #"["']en_str["']\s*:"#, options: .regularExpression) != nil
+        guard html.contains("encodedStr") || isDataPlayer else { return nil }
+        let scripts = html.regexCaptures(#"(?is)<script[^>]+src\s*=\s*["']([^"']+)["']"#)
+            .compactMap { $0[safe: 1] }
+        let rawScript = scripts.first { raw in
+            guard let url = makeURL(from: raw, relativeTo: pageURL) else { return false }
+            return url.lastPathComponent == "pjs.js"
+                || (isDataPlayer && url.host == "im-imgs-bucket.oss-accelerate.aliyuncs.com"
+                    && url.path.hasSuffix(".js") && url.lastPathComponent.count > 20)
         }
-        let playerScript = try await fetchText(from: scriptURL, referer: pageURL)
-        return generatedIframeURL(in: html, playerScript: playerScript, pageURL: pageURL)
+        guard let rawScript, let scriptURL = makeURL(from: rawScript, relativeTo: pageURL) else { return nil }
+        let script = try await fetchText(from: scriptURL, referer: pageURL)
+        var responses: [String] = []
+        for _ in 0..<2 {
+            try Task.checkCancellation()
+            let savedResponses = responses
+            let result = await Task.detached(priority: .userInitiated) {
+                playerScriptResult(in: html, playerScript: script, pageURL: pageURL, responses: savedResponses)
+            }.value
+            try Task.checkCancellation()
+            if let url = result.url { return url }
+            guard responses.isEmpty, let request = result.requests.first,
+                  request.scheme == "https", request.host == "infozb6.video.qq.com",
+                  request.port == nil, request.user == nil, request.password == nil,
+                  request.path == "/cgi-bin/getliveinfo" else { return nil }
+            responses.append(try await fetchText(from: request, referer: pageURL))
+        }
+        return nil
     }
 
     private func encryptedHLSURL(in html: String, pageURL: URL) async throws -> URL? {

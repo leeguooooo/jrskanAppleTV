@@ -57,7 +57,7 @@ upload_one() {
   echo "==> [$label] 归档 (build $BUILD_NUMBER, $mode)"
   if ! xcodebuild -project JRKANApple.xcodeproj -scheme "$scheme" -configuration Release \
       -destination "$dest" -archivePath "$archive" \
-      CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+      -jobs "${XCODE_JOBS:-2}" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
       "${sign[@]}" archive > "$log" 2>&1; then
     grep -E 'error:' "$log" >&2; echo "[$label] 归档失败，完整日志 $log" >&2; return 1
   fi

@@ -231,6 +231,58 @@ final class StreamResolverTests: XCTestCase {
         )
     }
 
+    func testCreatesConfiguredIframeWithDOMPlayerAndPreservesBase64Payload() {
+        let html = #"""
+        window.playerConfig = {playerUrlBase64: "aHR0cHM6Ly9wbGF5ZXIuZXhhbXBsZS9wYXBzLmh0bWw/aWQ9"};
+        var encodedStr = "a+b/c==";
+        """#
+        let script = #"""
+        var base = new URL(atob(window.playerConfig.playerUrlBase64));
+        var frame = document.createElement('iframe');
+        frame.src = atob(window.playerConfig.playerUrlBase64) + encodedStr;
+        frame.setAttribute('allow', 'autoplay; fullscreen');
+        document.getElementById('myElement').appendChild(frame);
+        """#
+        XCTAssertEqual(resolver.generatedIframeURL(in: html, playerScript: script,
+            pageURL: URL(string: "https://fixture.example/kbs/")!)?.absoluteString,
+            "https://player.example/paps.html?id=a+b/c==")
+    }
+
+    func testDataPlayerFetchIsStagedAndCanReplaceContainerChildren() {
+        let html = #"var playerData = {"en_str":"payload"};"#
+        let script = #"""
+        async function load() {
+            var response = await fetch('https://infozb6.video.qq.com/cgi-bin/getliveinfo?id=' + playerData.en_str);
+            var data = await response.json();
+            var frame = document.createElement('iframe');
+            frame.src = 'https://player.example/paps.html?id=' + encodeURIComponent(data.payload);
+            document.getElementById('showcontent').replaceChildren(frame);
+        }
+        load();
+        """#
+        let page = URL(string: "https://fixture.example/vxt/")!
+        let first = resolver.playerScriptResult(in: html, playerScript: script, pageURL: page)
+        XCTAssertNil(first.url)
+        XCTAssertEqual(first.requests.first?.host, "infozb6.video.qq.com")
+        let second = resolver.playerScriptResult(in: html, playerScript: script, pageURL: page,
+            responses: [#"{"payload":"a+b/c=="}"#])
+        XCTAssertEqual(second.url?.absoluteString, "https://player.example/paps.html?id=a%2Bb%2Fc%3D%3D")
+    }
+
+    @MainActor
+    func testSelectedHDTriesAnotherHDBeforeSuccessfulHostChannel() async {
+        let preferences = Preferences(store: UserDefaults(suiteName: UUID().uuidString)!)
+        let sources = ["主播解说①", "中文高清 Q②", "中文高清 M③"].enumerated().map { i, name in
+            MatchSource(id: String(i), name: name, pageURL: URL(string: "https://fixture.example/\(i).html")!)
+        }
+        let match = LiveMatch(id: "hd", league: "NBA", time: "10-24 10:00", homeTeam: "湖人", awayTeam: "快船",
+            homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: sources)
+        preferences.recordPlaybackSuccess(match: match, source: sources[0], index: 0, startup: 1)
+        let model = MatchPlaybackModel(match: match, preferences: preferences)
+        XCTAssertEqual(model.nextUntriedIndex(after: 1), 2)
+        XCTAssertEqual(model.nextUntriedIndex(after: 0), 1)
+    }
+
     func testEvaluatesEncryptedPlayerPageToHLSURL() {
         let pageURL = URL(string: "https://cloud.example/player/paps.html?id=payload")!
         let libraryScript = "var CryptoLibraryLoaded = true;"

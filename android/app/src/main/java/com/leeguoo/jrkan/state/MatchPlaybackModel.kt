@@ -95,7 +95,12 @@ class MatchPlaybackModel(
     /** The highest-ranked channel not yet failed this visit. */
     fun nextUntriedIndex(after: Int): Int? {
         val state = _state.value
-        return preferences.rankedIndices(resolvedChannels, match.id).firstOrNull {
+        val ranked = preferences.rankedIndices(resolvedChannels, match.id)
+        val ordered = if (resolvedChannels.getOrNull(after)?.name?.contains("主播") == false)
+            ranked.filter { !resolvedChannels[it].name.contains("主播") } +
+                ranked.filter { resolvedChannels[it].name.contains("主播") }
+            else ranked
+        return ordered.firstOrNull {
             it != after && it !in state.stalledIndices && it !in state.failedResolutionIndices
         }
     }

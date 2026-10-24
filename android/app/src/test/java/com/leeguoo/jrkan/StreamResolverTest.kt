@@ -15,7 +15,39 @@ import org.junit.Test
 
 /** Port of App/Tests/StreamResolverTests.swift (the data-layer cases). */
 class StreamResolverTest {
-    private val resolver = StreamResolver()
+    @Test fun createsConfiguredIframeWithDomPlayer() {
+        val html = """window.playerConfig = {playerUrlBase64: "aHR0cHM6Ly9wbGF5ZXIuZXhhbXBsZS9wYXBzLmh0bWw/aWQ9"}; var encodedStr = "a+b/c==";"""
+        val script = """
+            var base = new URL(atob(window.playerConfig.playerUrlBase64));
+            var frame = document.createElement('iframe');
+            frame.src = atob(window.playerConfig.playerUrlBase64) + encodedStr;
+            document.getElementById('myElement').appendChild(frame);
+        """
+        assertEquals("https://player.example/paps.html?id=a+b/c==",
+            resolver.generatedIframeUrl(html, script, "https://fixture.example/kbs/"))
+    }
+
+    @Test fun dataPlayerFetchIsStagedAndCanReplaceChildren() {
+        val html = """var playerData = {"en_str":"payload"};"""
+        val script = """
+            async function load() {
+                var response = await fetch('https://infozb6.video.qq.com/cgi-bin/getliveinfo?id=' + playerData.en_str);
+                var data = await response.json();
+                var frame = document.createElement('iframe');
+                frame.src = 'https://player.example/paps.html?id=' + encodeURIComponent(data.payload);
+                document.getElementById('showcontent').replaceChildren(frame);
+            }
+            load();
+        """
+        val first = resolver.playerScriptResult(html, script, "https://fixture.example/vxt/")
+        assertNull(first.url)
+        assertTrue(first.requests.first().startsWith("https://infozb6.video.qq.com/"))
+        val second = resolver.playerScriptResult(html, script, "https://fixture.example/vxt/",
+            listOf("""{"payload":"a+b/c=="}"""))
+        assertEquals("https://player.example/paps.html?id=a%2Bb%2Fc%3D%3D", second.url)
+    }
+
+    private val resolver = StreamResolver(trace = { println(it) })
 
     /** ResolverFixtureProtocol from the Swift tests. */
     private val fixtures: OkHttpClient = fixtureClient { request ->

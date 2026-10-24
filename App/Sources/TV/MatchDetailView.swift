@@ -9,6 +9,7 @@ struct MatchDetailView: View {
     @EnvironmentObject private var listModel: MatchListModel
 
     @State private var now = Date()
+    @State private var showsStatistics = false
     @FocusState private var focusedChannelID: String?
 
     @Environment(\.dismiss) private var dismiss
@@ -36,13 +37,18 @@ struct MatchDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 40) {
                     hero
+                    Button { showsStatistics = true } label: {
+                        Label("比赛数据与技术统计", systemImage: "chart.bar.xaxis")
+                    }
                     channelSection
+                    SportsInsightsSection(model: model.insights, match: match, channels: model.resolvedChannels)
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.vertical, 46)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
         // Hiding the navigation bar also takes away the stack's own Menu-to-pop
         // handling, so Menu fell through to the system and quit the app instead
         // of going back one level. Pop explicitly.
@@ -57,6 +63,7 @@ struct MatchDetailView: View {
             PlayerPresenter(
                 request: $model.playback,
                 match: match,
+                insights: model.insights,
                 channels: model.resolvedChannels,
                 onSelectChannel: { index in
                     Task { await model.startPlayback(at: index) }

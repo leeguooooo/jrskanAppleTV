@@ -6,6 +6,7 @@ struct MatchDetailScreen: View {
     @EnvironmentObject private var listModel: MatchListModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var now = Date()
+    @State private var showsStatistics = false
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private let autoplay: Bool
@@ -30,6 +31,7 @@ struct MatchDetailScreen: View {
                 VStack(alignment: .leading, spacing: 22) {
                     hero
                     channelSection
+                    SportsInsightsSection(model: model.insights, match: match, channels: model.resolvedChannels)
                 }
                 .padding(horizontalSizeClass == .compact ? 16 : 28)
                 .padding(.bottom, 32)
@@ -43,6 +45,15 @@ struct MatchDetailScreen: View {
         .navigationTitle(match.league)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showsStatistics = true } label: { Label("数据", systemImage: "chart.bar.xaxis") }
+            }
+        }
+        .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
+        #if DEBUG
+        .onAppear { if CommandLine.arguments.contains("-show-stats") { showsStatistics = true } }
+        #endif
         .onReceive(minuteTick) { now = $0 }
         .task(id: match.id) {
             await model.loadChannels()

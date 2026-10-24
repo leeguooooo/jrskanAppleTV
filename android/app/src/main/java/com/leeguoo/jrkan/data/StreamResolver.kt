@@ -193,32 +193,136 @@ class StreamResolver(
         return generatedIframeUrl(html, playerScript, page)?.toString()
     }
 
-    private fun generatedIframeUrl(html: String, playerScript: String, pageUrl: HttpUrl): HttpUrl? {
-        val encodedValue = html.regexCaptures("""(?is)var\s+encodedStr\s*=\s*["']([^"']+)["']""")
-            .firstOrNull()?.getOrNull(1) ?: return null
-        val generatedHtml = Js.run({ trace("rhino error in pjs.js: $it") }) { context, scope ->
-            ScriptableObject.putProperty(scope, "encodedStr", encodedValue)
-            context.evaluateString(
-                scope,
-                """
-                var __playerElement = { innerHTML: "" };
-                var navigator = { userAgent: "iPhone" };
-                var document = {
-                  getElementById: function() { return __playerElement; }
-                };
-                """.trimIndent(),
-                "prelude",
-                1,
-                null,
-            )
-            context.evaluateString(scope, playerScript, "pjs.js", 1, null)
-            val element = ScriptableObject.getProperty(scope, "__playerElement") as? Scriptable
-                ?: return@run null
-            Context.toString(ScriptableObject.getProperty(element, "innerHTML"))
-        } ?: return null
-        trace("rhino pjs.js wrote ${generatedHtml.take(200)}")
-        return iframeUrls(generatedHtml, pageUrl).firstOrNull()
+    data class PlayerScriptResult(val url: String?, val requests: List<String>)
+
+    fun playerScriptResult(html: String, playerScript: String, pageUrl: String,
+                           responses: List<String> = emptyList()): PlayerScriptResult {
+        val page = pageUrl.toHttpUrlOrNull() ?: return PlayerScriptResult(null, emptyList())
+        if (playerScript.length > 512_000) return PlayerScriptResult(null, emptyList())
+        fun value(pattern: String) = html.regexCaptures(pattern).firstOrNull()?.getOrNull(1)
+        val encoded = value("""(?is)var\s+encodedStr\s*=\s*["']([^"']+)["']""")
+        val config = value("""(?is)playerUrlBase64\s*:\s*["']([^"']+)["']""")
+        val payload = value("""(?is)["']en_str["']\s*:\s*["']([^"']+)["']""")
+        if (encoded == null && payload == null) return PlayerScriptResult(null, emptyList())
+        return Js.run({ trace("rhino error in player script: ${it.javaClass.simpleName}: ${it.message}") }) { context, scope ->
+            ScriptableObject.putProperty(scope, "__pageURL", pageUrl)
+            ScriptableObject.putProperty(scope, "encodedStr", encoded ?: "")
+            val configObject = context.newObject(scope)
+            ScriptableObject.putProperty(configObject, "playerUrlBase64", config ?: "")
+            ScriptableObject.putProperty(scope, "playerConfig", configObject)
+            val dataObject = context.newObject(scope)
+            ScriptableObject.putProperty(dataObject, "en_str", payload ?: "")
+            ScriptableObject.putProperty(scope, "playerData", dataObject)
+            val responseArray = context.newArray(scope, responses.size)
+            responses.forEachIndexed { index, value -> responseArray.put(index, responseArray, value) }
+            ScriptableObject.putProperty(scope, "__responses", responseArray)
+            for ((name, decode) in listOf("atob" to true, "btoa" to false)) {
+                ScriptableObject.putProperty(scope, name, object : org.mozilla.javascript.BaseFunction() {
+                    override fun call(cx: Context, scope: Scriptable, thisObj: Scriptable, args: Array<out Any>): Any {
+                        val text = Context.toString(args.firstOrNull() ?: "")
+                        return if (decode) String(java.util.Base64.getDecoder().decode(text), Charsets.ISO_8859_1)
+                            else java.util.Base64.getEncoder().encodeToString(text.toByteArray(Charsets.ISO_8859_1))
+                    }
+                })
+            }
+            context.evaluateString(scope, PLAYER_PRELUDE, "prelude", 1, null)
+            // Rhino has generators and Promises, but no async-function syntax.
+            // Replay the single native-fetched response synchronously. No live
+            // network or concurrency is exposed to the page in either pass.
+            val executable = if (payload != null) {
+                context.evaluateString(scope, """
+                    fetch = function(url) {
+                        var i = __requests.length;
+                        __requests.push(String(url));
+                        if (i >= __responses.length) return {ok:false,status:0,json:function(){return {};}};
+                        var value = JSON.parse(__responses[i]);
+                        return {ok:true,status:200,json:function(){return value;}};
+                    };
+                """.trimIndent(), "native-replay", 1, null)
+                synchronousReplayScript(playerScript)
+            } else playerScript
+            context.evaluateString(scope, executable, "player.js", 1, null)
+            context.processMicrotasks()
+            fun strings(name: String): List<String> {
+                val values = ScriptableObject.getProperty(scope, name) as? org.mozilla.javascript.NativeArray
+                    ?: return emptyList()
+                return (0 until values.length.toInt()).map { Context.toString(values.get(it, values)) }
+            }
+            val container = ScriptableObject.getProperty(scope, "__container") as Scriptable
+            val written = Context.toString(ScriptableObject.getProperty(container, "innerHTML"))
+            val requests = strings("__requests")
+            val url = if (requests.size > responses.size) null else
+                strings("__frames").firstNotNullOfOrNull { makeUrl(it, page) }
+                    ?: iframeUrls(written, page).firstOrNull()
+            trace("rhino pjs.js wrote ${if (url != null) "iframe" else "no iframe"}")
+            PlayerScriptResult(url?.toString(), requests)
+        } ?: PlayerScriptResult(null, emptyList())
     }
+
+    private fun generatedIframeUrl(html: String, playerScript: String, pageUrl: HttpUrl): HttpUrl? =
+        playerScriptResult(html, playerScript, pageUrl.toString()).url?.toHttpUrlOrNull()
+
+    /** Remove async/await code tokens for frozen-response replay, preserving
+     * quoted payloads, template strings and comments verbatim. */
+    private fun synchronousReplayScript(script: String): String {
+        val output = StringBuilder()
+        var i = 0
+        while (i < script.length) {
+            val start = i
+            val ch = script[i]
+            if (ch == '\'' || ch == '"' || ch == '`') {
+                i++
+                while (i < script.length) {
+                    if (script[i] == '\\') { i = (i + 2).coerceAtMost(script.length); continue }
+                    if (script[i++] == ch) break
+                }
+            } else if (script.startsWith("//", i)) {
+                i = script.indexOf('\n', i).let { if (it < 0) script.length else it }
+            } else if (script.startsWith("/*", i)) {
+                i = script.indexOf("*/", i + 2).let { if (it < 0) script.length else it + 2 }
+            } else if (ch.isLetter() || ch == '_' || ch == '$') {
+                i++
+                while (i < script.length && (script[i].isLetterOrDigit() || script[i] == '_' || script[i] == '$')) i++
+                val token = script.substring(start, i)
+                var next = i
+                while (next < script.length && script[next].isWhitespace()) next++
+                if ((token == "async" && script.startsWith("function", next)) ||
+                    (token == "await" && i < script.length && script[i].isWhitespace())) continue
+            } else i++
+            output.append(script, start, i)
+        }
+        return output.toString()
+    }
+
+    private val PLAYER_PRELUDE = """
+var window = this, self = this;
+var __frames = [], __requests = [];
+var __container = {
+  innerHTML: '', textContent: '',
+  appendChild: function(node) { if (node.src) __frames.push(node.src); },
+  replaceChildren: function(node) { this.appendChild(node); }
+};
+var document = {
+  location: {href: __pageURL}, referrer: '', cookie: '',
+  getElementById: function() { return __container; },
+  createElement: function() { return {style:{}, setAttribute:function(k,v) {this[k]=v;}}; },
+  write: function() {}
+};
+var navigator = {userAgent:'iPhone',maxTouchPoints:0};
+var console = {log:function(){},error:function(){},warn:function(){},info:function(){},debug:function(){},exception:function(){},trace:function(){}};
+var setTimeout=function(){return 0},setInterval=setTimeout,clearTimeout=function(){},clearInterval=clearTimeout;
+var TextEncoder=function(){};
+TextEncoder.prototype.encode=function(text){var s=unescape(encodeURIComponent(text));return Uint8Array.from(s,function(c){return c.charCodeAt(0);});};
+var TextDecoder=function(){};
+TextDecoder.prototype.decode=function(bytes){var s='';for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);return decodeURIComponent(escape(s));};
+var crypto={getRandomValues:function(bytes){for(var i=0;i<bytes.length;i++) bytes[i]=Math.floor(Math.random()*256);return bytes;}};
+var URLSearchParams=function(values){this.values=values;};
+URLSearchParams.prototype.toString=function(){var v=this.values;return Object.keys(v).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(v[k]);}).join('&');};
+var URL=function(value){var m=/^(https?):\/\/([^\/?#]+)([^#]*)(#.*)?$/i.exec(value);if(!m)throw Error('Invalid URL');this.hostname=m[2];this.username='';this.password='';this.hash=m[4]||'';if(m[2].indexOf('@')>=0)this.username='invalid';};
+// Only record requests here. Native code validates and fetches the supported API.
+// No AbortController: the page skips speculative media probes and selects its fallback URL.
+var fetch=function(url){var i=__requests.length;__requests.push(String(url));if(i>=__responses.length)return new Promise(function(){});var data=JSON.parse(__responses[i]);return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve(data);}});};
+    """.trimIndent()
 
     /** Runs index.min.js plus the page script and calls `decryptUrlWithExpiry`. */
     fun evaluateEncryptedHlsUrl(libraryScript: String, pageScript: String, pageUrl: String): String? {
@@ -261,13 +365,29 @@ class StreamResolver(
     }
 
     private suspend fun generatedIframeUrl(html: String, pageUrl: HttpUrl): HttpUrl? {
-        if (!html.contains("encodedStr")) return null
-        val rawScriptUrl = html.regexCaptures("""(?is)<script[^>]+src\s*=\s*["']([^"']*pjs\.js[^"']*)["']""")
-            .firstOrNull()?.getOrNull(1) ?: return null
-        val scriptUrl = makeUrl(rawScriptUrl, pageUrl) ?: return null
-        val playerScript = fetchPage(scriptUrl, pageUrl.toString()).first
-        trace("rhino path: pjs.js from $scriptUrl")
-        return withContext(Dispatchers.Default) { generatedIframeUrl(html, playerScript, pageUrl) }
+        val isDataPlayer = html.regexContains("""["']en_str["']\s*:""")
+        if (!html.contains("encodedStr") && !isDataPlayer) return null
+        val scriptUrl = html.regexCaptures("""(?is)<script[^>]+src\s*=\s*["']([^"']+)["']""")
+            .mapNotNull { it.getOrNull(1)?.let { raw -> makeUrl(raw, pageUrl) } }
+            .firstOrNull { url -> url.pathSegments.last() == "pjs.js" ||
+                (isDataPlayer && url.host == "im-imgs-bucket.oss-accelerate.aliyuncs.com" &&
+                    url.pathSegments.last().endsWith(".js") && url.pathSegments.last().length > 20) }
+            ?: return null
+        val script = fetchPage(scriptUrl, pageUrl.toString()).first
+        val responses = mutableListOf<String>()
+        repeat(2) {
+            currentCoroutineContext().ensureActive()
+            val result = withContext(Dispatchers.Default) {
+                playerScriptResult(html, script, pageUrl.toString(), responses)
+            }
+            result.url?.toHttpUrlOrNull()?.let { return it }
+            val request = result.requests.firstOrNull()?.toHttpUrlOrNull() ?: return null
+            if (responses.isNotEmpty() || request.scheme != "https" || request.host != "infozb6.video.qq.com" ||
+                request.port != 443 || request.username.isNotEmpty() || request.password.isNotEmpty() ||
+                request.encodedPath != "/cgi-bin/getliveinfo") return null
+            responses.add(fetchPage(request, pageUrl.toString()).first)
+        }
+        return null
     }
 
     private suspend fun encryptedHlsUrl(html: String, pageUrl: HttpUrl): HttpUrl? {
