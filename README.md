@@ -141,10 +141,14 @@ xcodebuild -project JRKANApple.xcodeproj -scheme JRKANLiveContract \
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest            # 单元测试
 ./gradlew :app:testDebugUnitTest --tests '*LiveSite*' -PjrkanLive=1 --rerun   # 真站：抓赛程、比分，并实际解析一条直播源
-./gradlew :app:assembleRelease                             # 正式签名包（需要下面的签名密钥）
+./gradlew :app:assembleDebug                               # 本地界面调试；正式包由下方工作流生成版本号并签名
 ```
 
-编译需要 JDK 17+ 和 compileSdk 37（`sdkmanager "platforms;android-37.0"`）。
+编译需要 JDK 17+ 和 compileSdk 37（`sdkmanager "platforms;android-37.0"`）。正式 Release 打包必须提供已有发布密钥、`JRKAN_VERSION_NAME` 和递增的 `JRKAN_VERSION_CODE`，缺失时会失败，不会回退到 debug 签名。
+
+安卓手机版现已同步本轮苹果端的 Q/M 优先级、点比赛自动播放、默认收起手动选线、腾讯公开评论弹幕和比赛数据面板。「本场概况」包含分节得分及球队对比；「技术统计」支持切换球队，固定姓名列并横向滚动其余指标。横屏使用紧凑比分条。评论/统计只在界面恢复到前台时轮询，故障不触发换源。
+
+跨端样例在 `contracts/tencent-sports.json`，Apple 与 Android 测试共同读取。完整差异与验收边界见 [平台对齐记录](docs/platform-parity.md)。
 
 **签名与发布**：正式签名密钥在 `~/.android-keys/jrkan-release.jks`（本机与 190 编译机各一份，密码在同目录的 `jrkan-release.properties`），CI 用的是仓库 Secrets 里的同一把（`ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`）。**这把密钥丢了，已装的用户就无法覆盖升级**，只能卸载重装。
 

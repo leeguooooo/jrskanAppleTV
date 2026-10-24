@@ -151,6 +151,20 @@ class RecordingTest {
     // MARK: recorder
 
     @Test
+    fun preservesPublisherTimestampDiscontinuitiesWithoutInventingNetworkGaps() = runBlocking {
+        val loader = ScriptedLoader()
+        loader.script(base + "media.m3u8", "#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\ns0.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:2,\ns1.ts\n#EXT-X-ENDLIST\n")
+        loader.files[base + "s0.ts"] = "zero".toByteArray()
+        loader.files[base + "s1.ts"] = "one".toByteArray()
+        val (recorder, folder) = makeRecorder(loader, base + "media.m3u8")
+        recorder.run()
+        val segments = folder.entries().filterIsInstance<RecordedEntry.Segment>()
+        assertEquals(listOf(false, true), segments.map { it.discontinuity })
+        assertEquals(0, recorder.info.value.gapCount)
+        assertTrue(folder.playlist(ended = true).contains("#EXT-X-DISCONTINUITY\n"))
+    }
+
+    @Test
     fun recordsSlidingWindowAndMarksGap() = runBlocking {
         val loader = ScriptedLoader()
         loader.script(base + "master.m3u8", "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nmedia.m3u8\n")

@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -85,6 +86,43 @@ class ExperienceTest {
         assertEquals(setOf(0, 1, 2), model.state.value.failedResolutionIndices)
         assertEquals(4, model.nextUntriedIndex(model.state.value.playback!!.index))
         model.stopPlayback()
+    }
+
+    @Test
+    fun dataAndCommentFailureCannotMutatePlaybackOrChannelFailures() {
+        val prefs = Preferences(MemoryPreferences())
+        val source = MatchSource("q", "中文高清 Q", "https://fixture.example/play/kbs/?id=10022600102")
+        val game = match().copy(league = "NBA", sources = listOf(source))
+        val broken = object : com.leeguoo.jrkan.data.SportsDataProvider {
+            override suspend fun verify(match: LiveMatch, mid: String) {}
+            override suspend fun statistics(mid: String, match: LiveMatch): com.leeguoo.jrkan.data.SportsSnapshot = throw java.io.IOException("statistics offline")
+            override suspend fun comments(mid: String): List<com.leeguoo.jrkan.data.SportsComment> = throw java.io.IOException("comments offline")
+        }
+        val insights = com.leeguoo.jrkan.state.MatchInsightsModel(broken)
+        val model = MatchPlaybackModel(game, prefs, scope, StreamResolver(streams), SourcePageClient(streams), insights = insights)
+        model.startSuggestedPlayback()
+        waitUntil { model.state.value.playback != null }
+        val playing = model.state.value.playback
+        val watch = scope.launch { insights.watch(game, listOf(source)) }
+        waitUntil { insights.state.value.mid != null && insights.state.value.status.contains("中断") }
+        val comments = scope.launch { insights.watchComments() }
+        Thread.sleep(30)
+        assertEquals(playing, model.state.value.playback)
+        assertTrue(model.state.value.failedResolutionIndices.isEmpty())
+        assertTrue(model.state.value.stalledIndices.isEmpty())
+        assertNull(model.state.value.errorMessage)
+        watch.cancel(); comments.cancel(); model.stopPlayback()
+    }
+
+    @Test
+    fun returningFromPlayerDoesNotAutoplayAgain() = runBlocking {
+        val model = MatchPlaybackModel(match(), Preferences(MemoryPreferences()), scope, StreamResolver(streams), SourcePageClient(streams))
+        model.openMatch(autoplay = true)
+        waitUntil { model.state.value.playback != null }
+        model.stopPlayback()
+        model.openMatch(autoplay = true)
+        Thread.sleep(30)
+        assertNull(model.state.value.playback)
     }
 
     @Test

@@ -38,6 +38,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,87 +71,65 @@ fun MatchDetailScreen(
     val listState by listModel.state.collectAsState()
     val state by playback.state.collectAsState()
     val favorites by listModel.preferences.favoriteTeams.collectAsState()
-    val autoNext by listModel.preferences.autoNextChannel.collectAsState()
+    val playerModel by com.leeguoo.jrkan.player.PlayerSession.model.collectAsState()
+    var showsChannels by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    var showsStatistics by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     val now = rememberNow()
-    // Live data comes from the list; a match no longer listed shows without it.
     val match = listState.matches.firstOrNull { it.id == playback.match.id } ?: playback.match.copy(providerState = null)
-
-    LaunchedEffect(match.id) {
-        playback.loadChannels()
-        if (autoplay) playback.startSuggestedPlayback()
-    }
-
+    if (playerModel !== playback) SportsInsightsBinding(playback)
+    LaunchedEffect(match.id) { playback.openMatch(autoplay) }
     Scaffold(
         containerColor = Palette.background,
         topBar = {
-            TopAppBar(
-                title = { Text(match.league, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            TopAppBar(title = { Text(match.league, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.background),
-            )
+                actions = { IconButton(onClick = { showsStatistics = true }, enabled = state.channels != null) {
+                    Icon(Icons.Filled.BarChart, "比赛数据")
+                } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.background))
         },
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = listContentPadding) {
             item { Hero(match, now, favorites, listModel.preferences, listState.scoresUpdatedAt) }
-
+            state.errorMessage?.let { message -> item { Notice(message, Icons.Filled.Warning, Palette.live) } }
             item {
-                Row(
-                    Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("选择线路", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    val count = state.channels?.size ?: 0
-                    if (count > 0) Text("  $count 条可用", fontSize = 13.sp, color = Palette.secondaryText)
-                    Spacer(Modifier.weight(1f))
-                    if (autoNext && playback.resolvedChannels.size > 1) {
-                        Text("失效自动换", fontSize = 12.sp, color = Palette.tertiaryText)
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (state.channels == null || state.resolvingIndex != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            val source = state.resolvingIndex?.let { playback.resolvedChannels.getOrNull(it) }
+                            Text(if (state.channels == null) "正在寻找中文高清…" else "正在打开${source?.name ?: "直播"}…", color = Palette.secondaryText)
+                        }
+                    } else if (match.sources.isEmpty()) {
+                        Text("这场比赛还没有直播线路，开赛前后再试。", color = Palette.secondaryText)
+                    } else {
+                        androidx.compose.material3.Button(onClick = { playback.startSuggestedPlayback() }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Filled.PlayArrow, null)
+                            Text(if (state.errorMessage == null) "播放比赛" else "重新播放")
+                        }
+                    }
+                    TextButton(onClick = { showsChannels = !showsChannels }, enabled = state.channels != null && state.resolvingIndex == null) {
+                        Text(if (showsChannels) "收起手动线路" else "手动切换线路")
                     }
                 }
             }
-
-            state.channelNotice?.let { item { Notice(it, Icons.Filled.Info, Palette.secondaryText) } }
-            state.notice?.let { item { Notice(it, Icons.Filled.Info, Palette.accent) } }
-            state.errorMessage?.let { message ->
-                item {
-                    Notice(message, Icons.Filled.Warning, Palette.live, playback.retryActionTitle) { playback.retryAfterError() }
-                }
-            }
-
-            when {
-                match.sources.isEmpty() -> item {
-                    Box(Modifier.height(260.dp)) {
-                        EmptyState(
-                            Icons.Filled.SignalWifiStatusbarConnectedNoInternet4,
-                            "这场比赛还没有线路",
-                            "开赛前后线路才会陆续上线，稍后回来看看。",
-                        )
-                    }
-                }
-                state.channels == null -> items(3) { GroupedCell(it, 3) { PlaceholderRow() } }
-                else -> {
-                    val channels = playback.resolvedChannels
-                    val remembered = playback.rememberedChannel
-                    channels.forEachIndexed { index, source ->
-                        item(key = "c$index-${source.id}") {
-                            GroupedCell(
-                                index, channels.size,
-                                onClick = { if (state.resolvingIndex == null) playback.startPlayback(index) },
-                                dividerInset = 70.dp,
-                            ) {
-                                ChannelRow(
-                                    number = index + 1,
-                                    name = source.name,
-                                    subtitle = playback.subtitle(source, index),
-                                    busy = state.resolvingIndex == index,
-                                    lastWatched = remembered?.id == source.id,
-                                )
-                            }
+            if (showsChannels) {
+                state.channelNotice?.let { item { Notice(it, Icons.Filled.Info, Palette.secondaryText) } }
+                val channels = playback.resolvedChannels
+                val remembered = playback.rememberedChannel
+                channels.forEachIndexed { index, source ->
+                    item(key = "c$index-${source.id}") {
+                        GroupedCell(index, channels.size, onClick = {
+                            if (state.resolvingIndex == null) playback.startPlayback(index)
+                        }, dividerInset = 70.dp) {
+                            ChannelRow(index + 1, source.name, playback.subtitle(source, index),
+                                state.resolvingIndex == index, remembered?.id == source.id)
                         }
                     }
                 }
             }
         }
     }
+    if (showsStatistics) SportsStatsDialog(playback.insights) { showsStatistics = false }
 }
 
 @Composable

@@ -51,6 +51,10 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Subtitles
+import com.leeguoo.jrkan.ui.SportsStatsDialog
+import com.leeguoo.jrkan.ui.SportsInsightsBinding
 import androidx.compose.material.icons.outlined.FiberManualRecord
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -97,6 +101,13 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
     val state by model.state.collectAsState()
     val fills by PlayerSession.fillsScreen.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
+    var showsStatistics by remember { mutableStateOf(false) }
+    var visibleNotice by remember { mutableStateOf<String?>(null) }
+    SportsInsightsBinding(model, enabled = !inPictureInPicture)
+    LaunchedEffect(state.notice) {
+        visibleNotice = state.notice
+        if (visibleNotice != null) { delay(6_000); visibleNotice = null }
+    }
     val player = remember { PlayerSession.player(context) }
 
     BackHandler { PlayerSession.dismiss() }
@@ -124,12 +135,13 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
         )
 
         if (!inPictureInPicture) WatermarkOverlay()
+        SportsDanmakuOverlay(model.insights, inPictureInPicture)
 
         if (!inPictureInPicture && controlsVisible) {
-            TopControls(model, state, fills, onPictureInPicture)
+            TopControls(model, state, fills, onPictureInPicture) { showsStatistics = true }
         }
 
-        val notice = state.notice ?: if (state.resolvingIndex != null) "正在切换线路…" else null
+        val notice = visibleNotice ?: if (state.resolvingIndex != null) "正在切换线路…" else null
         if (notice != null && !inPictureInPicture) {
             Text(
                 notice,
@@ -143,12 +155,14 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
             )
         }
     }
+    if (showsStatistics) SportsStatsDialog(model.insights) { showsStatistics = false }
 }
 
 @Composable
-private fun TopControls(model: MatchPlaybackModel, state: MatchPlaybackModel.State, fills: Boolean, onPictureInPicture: () -> Unit) {
+private fun TopControls(model: MatchPlaybackModel, state: MatchPlaybackModel.State, fills: Boolean, onPictureInPicture: () -> Unit, onStatistics: () -> Unit) {
     var channelMenu by remember { mutableStateOf(false) }
     val match = model.match
+    val insights by model.insights.state.collectAsState()
     Row(
         Modifier
             .fillMaxWidth()
@@ -180,6 +194,13 @@ private fun TopControls(model: MatchPlaybackModel, state: MatchPlaybackModel.Sta
                 }
             }
         }
+        if (insights.mid != null) {
+            IconButton(onClick = { model.insights.toggleDanmaku() }) {
+                Icon(Icons.Filled.Subtitles, if (insights.danmakuEnabled) "关闭弹幕" else "开启弹幕",
+                    tint = if (insights.danmakuEnabled) Color.White else Color.White.copy(alpha = 0.45f))
+            }
+        }
+        IconButton(onClick = onStatistics) { Icon(Icons.Filled.BarChart, "比赛数据", tint = Color.White) }
         RecordButton(model, state)
         IconButton(onClick = { PlayerSession.toggleFill() }) {
             Icon(if (fills) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen, if (fills) "完整画面" else "铺满屏幕", tint = Color.White)
@@ -202,7 +223,7 @@ private fun RecordButton(model: MatchPlaybackModel, state: MatchPlaybackModel.St
     var menu by remember { mutableStateOf(false) }
 
     fun start() {
-        val playback = state.playback ?: return
+        val playback = model.state.value.playback ?: return
         Recordings.start(model.match, model.resolvedChannels, playback.index, playback.url)
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { start() }

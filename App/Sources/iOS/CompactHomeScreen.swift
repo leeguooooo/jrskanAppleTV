@@ -114,7 +114,7 @@ struct TouchSearchScreen: View {
             .scrollDismissesKeyboard(.immediately)
             .navigationTitle("搜索")
             .navigationDestination(for: LiveMatch.self) { match in
-                MatchDetailScreen(match: match, preferences: preferences, autoplay: false)
+                MatchDetailScreen(match: match, preferences: preferences, autoplay: true)
             }
             .searchable(text: $model.searchText, prompt: "球队或联赛")
         }

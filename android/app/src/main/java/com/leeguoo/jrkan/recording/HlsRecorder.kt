@@ -276,7 +276,7 @@ class HlsRecorder(
 
         val name = String.format(Locale.ROOT, "%06d.%s", number, fileExtension(segment.url))
         folder.writeFile(name, payload)
-        folder.append(RecordedEntry.Segment(name, segment.duration, discontinuity))
+        folder.append(RecordedEntry.Segment(name, segment.duration, discontinuity || segment.discontinuity))
         _info.update {
             it.copy(
                 segmentCount = number,

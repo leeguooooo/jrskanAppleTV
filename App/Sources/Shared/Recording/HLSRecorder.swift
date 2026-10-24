@@ -314,7 +314,7 @@ final class HLSRecorder: ObservableObject, Identifiable {
 
         let name = String(format: "%06d.%@", number, Self.fileExtension(for: segment.url))
         try folder.writeFile(name, data: payload)
-        try folder.append(.segment(file: name, duration: segment.duration, discontinuity: discontinuity))
+        try folder.append(.segment(file: name, duration: segment.duration, discontinuity: discontinuity || segment.discontinuity))
         info.segmentCount = number
         info.duration += segment.duration
         info.bytes += Int64(payload.count)

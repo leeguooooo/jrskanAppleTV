@@ -1,0 +1,30 @@
+{
+  "mid": "100000:10022600102",
+  "nowMs": 1000000,
+  "channels": [
+    {"name":"主播解说①","url":"https://fixture.example/play/sm.html?id=439","priority":5,"mid":null},
+    {"name":"中文高清 Q⑦","url":"https://fixture.example/play/kbs/?id=10022600102&id2=","priority":0,"mid":"100000:10022600102"},
+    {"name":"中文高清Ｑ⑥","url":"https://fixture.example/play/vxt/?id=10022600102&id2=","priority":0,"mid":"100000:10022600102"},
+    {"name":"中文高清⑤","url":"https://fixture.example/play/txf/?id=10022600101&id2=","priority":2,"mid":"100000:10022600101"},
+    {"name":"中文高清 M⑧","url":"https://fixture.example/play/mgxl/?id=00588273","priority":1,"mid":null},
+    {"name":"纬来体育⑤","url":"https://fixture.example/play/vl/?id=vl","priority":2,"mid":null},
+    {"name":"高清直播⑨","url":"https://fixture.example/play/pao/?id=1000","priority":3,"mid":null}
+  ],
+  "statistics": {
+    "teamInfo":{"leftName":"快船","rightName":"湖人","leftGoal":"0","quarterDesc":"第一节"},
+    "periodGoals":{"head":["1st","总分"],"rows":[["-","0","0"],["-","2","2"]]},
+    "teamStats":[{"text":"得分","leftVal":"0","rightVal":"2"},{"text":"篮板","rightVal":"1"}],
+    "playerStats":{
+      "left":[{"head":["号码/球员","时间","得分"]},{"row":["77","球员甲","1'00","0"]},{"row":["broken"]}],
+      "right":[{"head":["号码/球员","时间","得分"]},{"row":["10","球员乙","1'00","2"]}]
+    }
+  },
+  "comments":{"list":[
+    {"commentId":"keep","mid":"100000:10022600102","type":"0","postTime":"990","content":"<b>好球</b>[打call/]\n"},
+    {"commentId":"keep","mid":"100000:10022600102","type":"0","postTime":"990","content":"重复"},
+    {"commentId":"old","mid":"100000:10022600102","type":"0","postTime":"100","content":"过期"},
+    {"commentId":"wrong","mid":"100000:other","type":"0","postTime":"990","content":"其他比赛"},
+    {"commentId":"gift","mid":"100000:10022600102","type":"2","postTime":"990","content":"礼物"},
+    {"commentId":"future","mid":"100000:10022600102","type":"0","postTime":"2000","content":"未来时间"}
+  ]}
+}

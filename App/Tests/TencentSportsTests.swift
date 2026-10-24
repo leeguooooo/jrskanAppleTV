@@ -12,6 +12,26 @@ final class TencentSportsTests: XCTestCase {
                   homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: sources)
     }
 
+    func testSharedAndroidAppleContract() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let bytes = try Data(contentsOf: root.appendingPathComponent("contracts/tencent-sports.json"))
+        let fixture = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        for row in try XCTUnwrap(fixture["channels"] as? [[String: Any]]) {
+            let source = MatchSource(id: "shared", name: row["name"] as! String, pageURL: URL(string: row["url"] as! String)!)
+            XCTAssertEqual(source.playbackPriority, row["priority"] as? Int)
+            XCTAssertEqual(TencentSportsClient.candidateMID(match: match(), channels: [source]), row["mid"] as? String)
+        }
+        let snapshot = try TencentSportsClient.parseStatistics(try XCTUnwrap(fixture["statistics"] as? [String: Any]), mid: mid)
+        XCTAssertEqual(snapshot.score, "0 : —")
+        XCTAssertEqual(snapshot.tables.count, 4)
+        XCTAssertEqual(snapshot.tables[1].rows[1], ["篮板", "—", "1"])
+        XCTAssertEqual(snapshot.playerTables[0].rows, [["77 球员甲", "1'00", "0"]])
+        let comments = TencentSportsClient.parseComments(try XCTUnwrap(fixture["comments"] as? [String: Any]), mid: mid,
+            now: Date(timeIntervalSince1970: (fixture["nowMs"] as! Double) / 1000))
+        XCTAssertEqual(comments.map(\.id), ["keep"])
+        XCTAssertEqual(comments.first?.text, "好球")
+    }
+
     func testComparisonBarsPreserveZerosAndRejectMissingAndInvalidValues() {
         XCTAssertEqual(SportsStatComparison(row: ["得分", "60", "40"])?.leftShare, 0.6)
         XCTAssertEqual(SportsStatComparison(row: ["命中率", "40% (4/10)", "60% (6/10)"])?.leftShare, 0.4)

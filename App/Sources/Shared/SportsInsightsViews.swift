@@ -57,9 +57,10 @@ struct SportsStatsContent: View {
     @ObservedObject var model: MatchInsightsModel
     @State private var tab: SportsDataTab = .overview
     @State private var selectedTeam = 0
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: verticalSizeClass == .compact ? 16 : 24) {
             if let snapshot = model.snapshot {
                 scoreboard(snapshot)
                 tabBar
@@ -120,7 +121,22 @@ struct SportsStatsContent: View {
 
     private func scoreboard(_ snapshot: SportsSnapshot) -> some View {
         let scores = snapshot.score.components(separatedBy: ":").map { $0.trimmingCharacters(in: .whitespaces) }
-        return VStack(spacing: 18) {
+        return Group {
+        if verticalSizeClass == .compact {
+            HStack(spacing: 10) {
+                TeamCrest(url: snapshot.leftBadge, teamName: snapshot.left, size: 26)
+                Text(snapshot.left).font(.subheadline)
+                Text(scores[safe: 0] ?? "—").font(.title2.monospacedDigit().bold()).foregroundStyle(SportsDataStyle.left)
+                Spacer(minLength: 8)
+                Text(snapshot.period).font(.caption).foregroundStyle(Palette.secondaryText)
+                Spacer(minLength: 8)
+                Text(scores[safe: 1] ?? "—").font(.title2.monospacedDigit().bold()).foregroundStyle(SportsDataStyle.right)
+                Text(snapshot.right).font(.subheadline)
+                TeamCrest(url: snapshot.rightBadge, teamName: snapshot.right, size: 26)
+            }
+            .padding(10).background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
+        } else {
+        VStack(spacing: 18) {
             Text(snapshot.period).font(.subheadline.weight(.semibold)).foregroundStyle(SportsDataStyle.left)
             HStack(alignment: .center, spacing: 14) {
                 scoreTeam(snapshot.left, badge: snapshot.leftBadge, tint: SportsDataStyle.left)
@@ -137,6 +153,8 @@ struct SportsStatsContent: View {
         }
         .padding(.vertical, 22).padding(.horizontal, 14)
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+        }
+        }
     }
 
     private var scoreSize: CGFloat {

@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.util.UUID
 
 /** A stream already resolved to a playable URL. */
@@ -34,6 +36,7 @@ class MatchPlaybackModel(
     private val resolver: StreamResolver = StreamResolver(),
     private val sourcePages: SourcePageClient = SourcePageClient(),
     private val clock: () -> Long = System::currentTimeMillis,
+    val insights: MatchInsightsModel = MatchInsightsModel(),
 ) {
     data class State(
         /** null while loading, empty when the page gave nothing usable. */
@@ -46,6 +49,8 @@ class MatchPlaybackModel(
         val stalledIndices: Set<Int> = emptySet(),
         val failedResolutionIndices: Set<Int> = emptySet(),
     )
+
+    private var didOpenMatch = false
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state
@@ -110,6 +115,14 @@ class MatchPlaybackModel(
     fun retryAfterError() {
         val current = _state.value.playback?.index ?: -1
         startPlayback(nextUntriedIndex(current) ?: 0)
+    }
+
+    suspend fun openMatch(autoplay: Boolean) {
+        if (didOpenMatch) return
+        loadChannels()
+        currentCoroutineContext().ensureActive()
+        didOpenMatch = true
+        if (autoplay) startSuggestedPlayback()
     }
 
     suspend fun loadChannels() {
@@ -211,7 +224,6 @@ class MatchPlaybackModel(
         preferences.recordPlaybackSuccess(
             match, resolvedChannels[request.index], request.index, resolutionMillis / 1000.0 + startupSeconds,
         )
-        _state.update { it.copy(notice = null) }
     }
 
     /**

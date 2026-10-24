@@ -134,6 +134,22 @@ final class RecordingTests: XCTestCase {
 
     // MARK: - Recorder
 
+    func testPreservesPublisherTimestampDiscontinuitiesWithoutInventingNetworkGaps() async throws {
+        let loader = ScriptedLoader()
+        let media = base.appendingPathComponent("media.m3u8")
+        loader.script(media, ["#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\ns0.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:2,\ns1.ts\n#EXT-X-ENDLIST\n"])
+        loader.file(base.appendingPathComponent("s0.ts"), Data("zero".utf8))
+        loader.file(base.appendingPathComponent("s1.ts"), Data("one".utf8))
+        let (recorder, folder) = try makeRecorder(loader: loader, streamURL: media)
+        await recorder.run()
+        let entries = folder.entries()
+        let discontinuities = entries.compactMap { entry -> Bool? in
+            if case .segment(_, _, let value) = entry { return value }; return nil
+        }
+        XCTAssertEqual(discontinuities, [false, true])
+        XCTAssertEqual(recorder.info.gapCount, 0)
+    }
+
     func testRecordsSlidingWindowAndMarksGap() async throws {
         let loader = ScriptedLoader()
         let master = base.appendingPathComponent("master.m3u8")

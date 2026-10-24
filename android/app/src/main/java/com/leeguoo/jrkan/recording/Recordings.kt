@@ -156,6 +156,7 @@ object Recordings {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            android.util.Log.e("JRKANRecording", "MP4 export failed", e)
             _exportErrors.value = _exportErrors.value + (id to "生成视频失败：${e.message ?: e.javaClass.simpleName}")
         } finally {
             queued.remove(id)

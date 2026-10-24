@@ -6,10 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Release signing comes from the environment in CI and from
-// ~/.android-keys/jrkan-release.properties on a developer machine. Without
-// either, release builds fall back to the debug key so `assembleRelease`
-// still works locally — such an APK just cannot update a CI-signed install.
+// Keep the existing production key. Debug builds and tests need no key;
+// formal release packaging below fails rather than silently using a debug key.
 val signingProps = Properties().apply {
     val file = File(System.getProperty("user.home"), ".android-keys/jrkan-release.properties")
     if (file.exists()) file.inputStream().use { load(it) }
@@ -63,9 +61,21 @@ android {
         unitTests.isReturnDefaultValues = true
         // `-PjrkanLive=1` opts into LiveSiteContractTest (hits the real site).
         unitTests.all { test ->
+            test.systemProperty("jrkan.contracts", rootProject.projectDir.parentFile.resolve("contracts").absolutePath)
             test.systemProperty("jrkan.live", project.findProperty("jrkanLive")?.toString() ?: "")
             test.testLogging { events("failed", "skipped"); showStandardStreams = false }
         }
+    }
+}
+
+val productionSigningConfigured = signingValue("JRKAN_KEYSTORE", "storeFile") != null
+val explicitReleaseVersion = System.getenv("JRKAN_VERSION_CODE") != null && System.getenv("JRKAN_VERSION_NAME") != null
+tasks.matching { it.name in setOf("validateSigningRelease", "packageRelease", "bundleRelease") }.configureEach {
+    inputs.property("productionSigningConfigured", productionSigningConfigured)
+    inputs.property("explicitReleaseVersion", explicitReleaseVersion)
+    doFirst {
+        check(inputs.properties["productionSigningConfigured"] == true) { "正式发布需要已有的 JRKAN 发布签名，禁止回退到 debug key。" }
+        check(inputs.properties["explicitReleaseVersion"] == true) { "正式发布必须提供 JRKAN_VERSION_NAME 和递增的 JRKAN_VERSION_CODE。" }
     }
 }
 

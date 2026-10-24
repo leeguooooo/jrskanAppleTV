@@ -8,10 +8,10 @@ name: Android
 on:
   push:
     branches: [main]
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "contracts/**", "App/Sources/Shared/**", ".github/workflows/android.yml"]
     tags: ["android-v*"]
   pull_request:
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "contracts/**", "App/Sources/Shared/**", ".github/workflows/android.yml"]
   workflow_dispatch:
     inputs:
       version:
@@ -60,12 +60,15 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" > /dev/null
       - name: Version
         id: version
+        env:
+          RELEASE_VERSION_INPUT: ${{ inputs.version }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            name="${{ inputs.version }}"
+            name="$RELEASE_VERSION_INPUT"
           else
             name="${GITHUB_REF_NAME#android-v}"
           fi
+          [[ "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]] || { echo "Invalid version" >&2; exit 1; }
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "tag=android-v$name" >> "$GITHUB_OUTPUT"
           # Monotonic across runs so every build can update the last one.
@@ -81,9 +84,10 @@ jobs:
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/jrkan-release.jks"
           export JRKAN_KEYSTORE="$RUNNER_TEMP/jrkan-release.jks"
-          ./gradlew :app:assembleRelease --console=plain
+          ./gradlew :app:assembleRelease --no-configuration-cache --console=plain
           apk="JRKAN-${JRKAN_VERSION_NAME}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
           shasum -a 256 "$apk" > "$apk.sha256"
           rm "$RUNNER_TEMP/jrkan-release.jks"
       - name: Attach to draft release
@@ -93,6 +97,7 @@ jobs:
           tag="${{ steps.version.outputs.tag }}"
           apk="JRKAN-${{ steps.version.outputs.name }}.apk"
           if gh release view "$tag" > /dev/null 2>&1; then
+            [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true ] || { echo "Refusing to replace a published release" >&2; exit 1; }
             gh release upload "$tag" "$apk" "$apk.sha256" --clobber
           else
             gh release create "$tag" "$apk" "$apk.sha256" --draft --target "$GITHUB_SHA" \

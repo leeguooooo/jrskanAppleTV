@@ -77,6 +77,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             JrkanTheme {
+                if (BuildConfig.DEBUG && intent.hasExtra("jrkan_qa")) {
+                    com.leeguoo.jrkan.ui.ParityQaScreen(intent, app)
+                    val qaPlaying by PlayerSession.isPresented.collectAsState()
+                    LaunchedEffect(qaPlaying) { applyPlayerChrome(qaPlaying) }
+                } else {
                 val presented by PlayerSession.isPresented.collectAsState()
                 val playerModel by PlayerSession.model.collectAsState()
                 Box(Modifier.fillMaxSize().background(Palette.background)) {
@@ -87,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 LaunchedEffect(presented) { applyPlayerChrome(presented) }
+                }
             }
         }
     }
