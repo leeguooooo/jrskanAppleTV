@@ -27,6 +27,9 @@ final class TencentSportsTests: XCTestCase {
         XCTAssertEqual(TencentSportsClient.candidateMID(match: match(), channels: [source("10022600102")]), mid)
         XCTAssertNil(TencentSportsClient.candidateMID(match: match(), channels: [source("10022600102"), source("10022600103")]))
         XCTAssertNil(TencentSportsClient.candidateMID(match: match(), channels: [source("439")]))
+        let alternateTencent = MatchSource(id: "txf", name: "中文高清⑤", pageURL:
+            URL(string: "https://play.example/play/txf/?id=10022600101&id2=")!)
+        XCTAssertEqual(TencentSportsClient.candidateMID(match: match(), channels: [alternateTencent]), "100000:10022600101")
     }
 
     func testMatchingRequiresTeamsStartTimeAndExactEventID() {

@@ -53,7 +53,7 @@ struct TencentSportsClient {
         default: return nil
         }
         let ids = Set(channels.compactMap { source -> String? in
-            guard ["kbs", "vxt"].contains(source.pageURL.path.split(separator: "/").last.map(String.init) ?? ""),
+            guard ["kbs", "vxt", "txf"].contains(source.pageURL.path.split(separator: "/").last.map(String.init) ?? ""),
                   let value = URLComponents(url: source.pageURL, resolvingAgainstBaseURL: true)?
                     .queryItems?.first(where: { $0.name == "id" })?.value,
                   value.range(of: #"^[0-9]{10,12}$"#, options: .regularExpression) != nil else { return nil }
