@@ -44,6 +44,35 @@ final class MultiSportsTests: XCTestCase {
         XCTAssertEqual(reoriented.comparisonTable?.rows.first?[1], m.comparisonTable?.rows.first?[2])
         XCTAssertEqual(reoriented.periodTable?.rows.first?.first, "快船")
     }
+    func testAlreadyDisplayedTencentBatchAllowsFreshMiguComments() async throws {
+        let f = try fixture()
+        let catalog = String(data: try JSONSerialization.data(withJSONObject: f["catalog"]!), encoding: .utf8)!
+        let now = Date().timeIntervalSince1970
+        let detail: [String: Any] = ["code": 0, "data": ["matchInfo": ["mid": "100000:10022600102", "leftName": "湖人", "rightName": "快船", "startTime": "2026-10-24 10:00:00"]]]
+        let comments: [String: Any] = ["code": 0, "data": ["list": [["commentId": "one", "mid": "100000:10022600102", "type": "0", "postTime": now - 1, "content": "腾讯新评论"]]]]
+        let migu: [String: Any] = ["code": 200, "body": ["commentInfoList": [["commentId": "two", "contentId": "120000588273", "objectId": "120000588273", "createTime": (now - 1) * 1000, "body": "咪咕新评论", "top": false]]]]
+        let detailBytes = try JSONSerialization.data(withJSONObject: detail), commentBytes = try JSONSerialization.data(withJSONObject: comments), miguBytes = try JSONSerialization.data(withJSONObject: migu)
+        MultiFixtureProtocol.handler = { request in
+            switch request.url!.path {
+            case "/kbs/matchDetail": return detailBytes
+            case "/dmComment/liveList": return commentBytes
+            default:
+                if request.url!.path.contains("/p/home/") { return Data("<script>window.__INITIAL_GROUPS_STATE__ = {\"rows\":[\(catalog)]};</script>".utf8) }
+                return miguBytes
+            }
+        }
+        defer { MultiFixtureProtocol.handler = nil }
+        let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [MultiFixtureProtocol.self]
+        let client = MultiSportsClient(tencent: TencentSportsClient(session: URLSession(configuration: config)))
+        let channels = [MatchSource(id: "t", name: "中文高清Q", pageURL: URL(string: "https://fixture.example/play/kbs/?id=10022600102")!)]
+        let first = try await client.comments(match: game(), channels: channels)
+        XCTAssertEqual(first.map(\.id), ["tencent:one"])
+        let next = try await client.comments(match: game(), channels: channels, excluding: ["tencent:one"])
+        XCTAssertEqual(next.map(\.id), ["migu:two"])
+        let empty = try await client.comments(match: game(), channels: channels, excluding: ["tencent:one", "migu:two"])
+        XCTAssertTrue(empty.isEmpty)
+    }
+
     func testNetworkFallbackWithoutTencentIDAndPreferredSourceRecovery() async throws {
         let f = try fixture()
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

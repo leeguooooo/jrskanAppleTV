@@ -74,6 +74,8 @@ class MultiSportsTest {
         assertEquals("腾讯体育", client.statistics(key, game()).sourceName)
         assertEquals("tencent:preferred", client.comments(key).single().id)
         assertEquals(previous, fetches)
+        assertEquals("migu:keep", client.comments(key, setOf("tencent:preferred")).single().id)
+        assertTrue(client.comments(key, setOf("tencent:preferred", "migu:keep")).isEmpty())
         val noTencent = client.prepare(game(), emptyList())!!
         assertEquals("咪咕视频", client.statistics(noTencent, game()).sourceName)
     }

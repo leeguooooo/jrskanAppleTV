@@ -91,7 +91,7 @@ class MatchInsightsModel(
             currentCoroutineContext().ensureActive()
             if (_state.value.mid != mid || !_state.value.danmakuEnabled) return
             try {
-                val comments = provider.comments(mid)
+                val comments = provider.comments(mid, seen.toSet())
                 currentCoroutineContext().ensureActive()
                 if (_state.value.mid != mid || !_state.value.danmakuEnabled) return
                 val added = comments.filter { seen.add(it.id) }

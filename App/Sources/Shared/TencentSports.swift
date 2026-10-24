@@ -235,7 +235,7 @@ final class MatchInsightsModel: ObservableObject {
         guard danmakuEnabled, let key = mid, let context else { return }
         while !Task.isCancelled, danmakuEnabled, mid == key {
             do {
-                let batch = try await client.comments(match: context.0, channels: context.1)
+                let batch = try await client.comments(match: context.0, channels: context.1, excluding: Set(seen))
                 try Task.checkCancellation()
                 guard danmakuEnabled, mid == key else { return }
                 for comment in batch where !seen.contains(comment.id) {

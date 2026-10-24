@@ -46,6 +46,7 @@ interface SportsDataProvider {
         val value = statistics(mid, match); onPartial(value); return value
     }
     suspend fun statistics(mid: String, match: LiveMatch): SportsSnapshot
+    suspend fun comments(mid: String, excluding: Set<String>): List<SportsComment> = comments(mid).filter { it.id !in excluding }
     suspend fun comments(mid: String): List<SportsComment>
 }
 

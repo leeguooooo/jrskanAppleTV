@@ -39,7 +39,7 @@ actor MultiSportsClient {
         return value
     }
 
-    func comments(match: LiveMatch, channels: [MatchSource]) async throws -> [SportsComment] {
+    func comments(match: LiveMatch, channels: [MatchSource], excluding: Set<String> = []) async throws -> [SportsComment] {
         if let mid = TencentSportsClient.candidateMID(match: match, channels: channels) {
             do {
                 let verificationKey = key(match) + mid
@@ -49,12 +49,13 @@ actor MultiSportsClient {
                     verifiedTencent.insert(verificationKey)
                 }
                 let rows = try await tencent.comments(mid: mid)
-                if !rows.isEmpty { return rows.map { SportsComment(id: "tencent:" + $0.id, text: $0.text, postedAt: $0.postedAt) } }
+                let fresh = rows.map { SportsComment(id: "tencent:" + $0.id, text: $0.text, postedAt: $0.postedAt) }.filter { !excluding.contains($0.id) }
+                if !fresh.isEmpty { return fresh }
             } catch { try Task.checkCancellation() }
         }
         let id = try await miguID(match)
         let root = try await json("https://webapi.miguvideo.com/gateway/interaction/v2/comment/1/20/\(id)/40/NEW?clientType=1")
-        return Self.miguComments(root, id: id)
+        return Self.miguComments(root, id: id).filter { !excluding.contains($0.id) }
     }
 
     static func complete(_ value: SportsSnapshot) -> Bool {

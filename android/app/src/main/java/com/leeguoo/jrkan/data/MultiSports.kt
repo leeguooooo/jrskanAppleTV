@@ -61,7 +61,9 @@ class MultiSportsClient(
         } catch (e: CancellationException) { throw e } catch (_: Exception) { currentCoroutineContext().ensureActive() }
         return select(values) ?: throw invalid()
     }
-    override suspend fun comments(mid: String): List<SportsComment> {
+    override suspend fun comments(mid: String): List<SportsComment> = fetchComments(mid, emptySet())
+    override suspend fun comments(mid: String, excluding: Set<String>): List<SportsComment> = fetchComments(mid, excluding)
+    private suspend fun fetchComments(mid: String, excluding: Set<String>): List<SportsComment> {
         val context = contexts[mid] ?: throw invalid()
         TencentSportsClient.candidateMid(context.match, context.channels)?.let { id ->
             try {
@@ -71,12 +73,12 @@ class MultiSportsClient(
                     if (verifiedTencent.size > 20) verifiedTencent.clear()
                     verifiedTencent += verificationKey
                 }
-                val rows = tencent.comments(id)
-                if (rows.isNotEmpty()) return rows.map { it.copy(id = "tencent:${it.id}") }
+                val rows = tencent.comments(id).map { it.copy(id = "tencent:${it.id}") }.filter { it.id !in excluding }
+                if (rows.isNotEmpty()) return rows
             } catch (e: CancellationException) { throw e } catch (_: Exception) { currentCoroutineContext().ensureActive() }
         }
         val id = miguID(mid, context.match)
-        return miguComments(json("https://webapi.miguvideo.com/gateway/interaction/v2/comment/1/20/$id/40/NEW?clientType=1"), id, clock())
+        return miguComments(json("https://webapi.miguvideo.com/gateway/interaction/v2/comment/1/20/$id/40/NEW?clientType=1"), id, clock()).filter { it.id !in excluding }
     }
     private suspend fun miguID(key: String, match: LiveMatch): String {
         miguIDs[key]?.let { return it }
