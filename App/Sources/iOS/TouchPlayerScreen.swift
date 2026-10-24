@@ -18,6 +18,7 @@ struct TouchPlayerScreen: View {
     @ObservedObject var session: PlayerSession
     @ObservedObject var model: MatchPlaybackModel
     @State private var showsStatistics = false
+    @State private var visibleNotice: String?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -30,7 +31,7 @@ struct TouchPlayerScreen: View {
 
             VStack(spacing: 8) {
                 overlay
-                if let notice = model.notice {
+                if let notice = visibleNotice {
                     Text(notice).font(.caption).foregroundStyle(.white)
                         .padding(8).background(.black.opacity(0.6), in: Capsule())
                 }
@@ -41,13 +42,20 @@ struct TouchPlayerScreen: View {
                 }
             }
         }
+        .task(id: model.notice) {
+            visibleNotice = model.notice
+            guard visibleNotice != nil else { return }
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled else { return }
+            visibleNotice = nil
+        }
         .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .onAppear { Orientation.enterLandscape() }
         .onDisappear {
             Orientation.restoreDefault()
-            session.screenDidDisappear()
+            if !showsStatistics { session.screenDidDisappear() }
         }
     }
 

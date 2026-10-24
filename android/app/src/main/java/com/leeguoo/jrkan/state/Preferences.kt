@@ -141,6 +141,8 @@ class Preferences(private val store: SharedPreferences, private val clock: () ->
             val aRemembered = a.successes > 0 && sources[lhs].name == last
             val bRemembered = b.successes > 0 && sources[rhs].name == last
             when {
+                sources[lhs].playbackPriority != sources[rhs].playbackPriority ->
+                    sources[lhs].playbackPriority.compareTo(sources[rhs].playbackPriority)
                 aCooling != bCooling -> if (aCooling) 1 else -1
                 aRemembered != bRemembered -> if (aRemembered) -1 else 1
                 a.reliability != b.reliability -> b.reliability.compareTo(a.reliability)

@@ -16,7 +16,6 @@ struct CompactMatchListScreen: View {
 
     @State private var now = Date()
     @State private var path = NavigationPath()
-    @State private var resumeMatchID: String?
     #if DEBUG
     @State private var appliedDebugRoute = false
     #endif
@@ -54,17 +53,15 @@ struct CompactMatchListScreen: View {
                     }
                 }
                 .navigationDestination(for: LiveMatch.self) { match in
-                    MatchDetailScreen(match: match, preferences: preferences, autoplay: resumeMatchID == match.id)
+                    MatchDetailScreen(match: match, preferences: preferences, autoplay: true)
                 }
         }
-        .onChange(of: path.count) { _, count in if count == 0 { resumeMatchID = nil } }
         .onReceive(minuteTick) { now = $0 }
         #if DEBUG
         .onChange(of: model.isLoading) { _, loading in
             guard sport == .all, !loading, !model.matches.isEmpty, !appliedDebugRoute, path.isEmpty else { return }
             if DebugRoute.raw == "resume", let match = model.continueMatch {
                 appliedDebugRoute = true
-                resumeMatchID = match.id
                 path.append(match)
             } else if let target = DebugRoute.target(in: model.filteredMatches) {
                 appliedDebugRoute = true
@@ -105,7 +102,7 @@ struct CompactMatchListScreen: View {
 
             if sport == .all, model.filter == .all, let match = model.continueMatch {
                 Section {
-                    Button { resumeMatchID = match.id; path.append(match) } label: {
+                    Button { path.append(match) } label: {
                         ContinueWatchingRow(match: match)
                     }
                     .tint(.primary)

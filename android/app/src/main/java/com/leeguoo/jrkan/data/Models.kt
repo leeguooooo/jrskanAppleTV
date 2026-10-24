@@ -45,7 +45,19 @@ data class MatchSource(
     val id: String,
     val name: String,
     val pageUrl: String,
-)
+) {
+    val playbackPriority: Int
+        get() {
+            val label = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFKC).uppercase(java.util.Locale.ROOT)
+            if (label.contains("主播")) return 5
+            val chinese = label.contains("中文") || label.contains("腾讯")
+            if (chinese && Regex("(?:^|[^A-Z])Q(?:[^A-Z]|$)").containsMatchIn(label)) return 0
+            if (chinese && Regex("(?:^|[^A-Z])M(?:[^A-Z]|$)").containsMatchIn(label)) return 1
+            if (chinese || label.contains("纬来") || label.contains("緯來")) return 2
+            if (label.contains("高清") || label.contains("超清")) return 3
+            return 4
+        }
+}
 
 /** Status codes and period clocks used by jrs03.com's page.live script. */
 @Serializable

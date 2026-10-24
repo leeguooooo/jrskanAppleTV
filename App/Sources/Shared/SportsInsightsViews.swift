@@ -2,102 +2,323 @@ import AVKit
 import Combine
 import SwiftUI
 
-struct SportsInsightsSection: View {
+/// Kept on the match route, independent of whether the data panel is open.
+struct SportsInsightsLifecycle: ViewModifier {
     @ObservedObject var model: MatchInsightsModel
     let match: LiveMatch
     let channels: [MatchSource]
     @Environment(\.scenePhase) private var scenePhase
-
-    var body: some View {
-        SportsStatsContent(model: model)
-            .task(id: "\(scenePhase)-\(channels.map(\.id).joined(separator: ","))") {
-                guard scenePhase == .active else { return }
-                await model.watch(match: match, channels: channels)
-            }
+    func body(content: Content) -> some View {
+        content.task(id: "\(scenePhase)-\(channels.map(\.id).joined(separator: ","))") {
+            guard scenePhase == .active else { return }
+            await model.watch(match: match, channels: channels)
+        }
     }
+}
+
+private enum SportsDataTab: String, CaseIterable {
+    case overview = "本场概况"
+    case players = "技术统计"
+}
+
+private enum SportsDataStyle {
+    static let left = Color(red: 0.24, green: 0.53, blue: 1)
+    static let right = Color(red: 1, green: 0.65, blue: 0.29)
+    static let line = Color.white.opacity(0.09)
+    #if os(tvOS)
+    static let rowHeight: CGFloat = 58
+    static let playerWidth: CGFloat = 210
+    static let cellWidth: CGFloat = 94
+    #else
+    static let rowHeight: CGFloat = 44
+    static let playerWidth: CGFloat = 116
+    static let cellWidth: CGFloat = 60
+    #endif
+}
+
+/// Values are parsed only for the comparison bars; the provider's original
+/// strings remain the visible source of truth, including zero and missing data.
+struct SportsStatComparison {
+    let left: Double
+    let right: Double
+    init?(row: [String]) {
+        func number(_ text: String?) -> Double? {
+            guard let text, let match = text.regexCaptures(#"^\s*([0-9]+(?:\.[0-9]+)?)"#).first?[safe: 1],
+                  let value = Double(match), value.isFinite else { return nil }
+            return value
+        }
+        guard let left = number(row[safe: 1]), let right = number(row[safe: 2]) else { return nil }
+        self.left = left; self.right = right
+    }
+    var leftShare: Double { left + right == 0 ? 0.5 : left / (left + right) }
 }
 
 struct SportsStatsContent: View {
     @ObservedObject var model: MatchInsightsModel
+    @State private var tab: SportsDataTab = .overview
+    @State private var selectedTeam = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("比赛数据与技术统计").font(.headline)
+        VStack(alignment: .leading, spacing: 24) {
             if let snapshot = model.snapshot {
-                HStack {
-                    Text("\(snapshot.left)  \(snapshot.score)  \(snapshot.right)").font(.headline.monospacedDigit())
-                    Spacer()
-                    Text(snapshot.period).font(.subheadline)
+                scoreboard(snapshot)
+                tabBar
+                if tab == .overview {
+                    if let periods = snapshot.periodTable { periodScores(periods) }
+                    if let comparison = snapshot.comparisonTable { teamComparison(comparison, snapshot: snapshot) }
+                    if snapshot.periodTable == nil && snapshot.comparisonTable == nil { noStatistics }
+                } else {
+                    playerStatistics(snapshot)
                 }
-                ForEach(Array(snapshot.tables.enumerated()), id: \.offset) { _, table in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(table.title).font(.subheadline.weight(.semibold))
-                        if table.title == "球队技术统计" {
-                            VStack(spacing: 12) {
-                                comparisonRow(table.headers, header: true)
-                                ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
-                                    comparisonRow(row, header: false)
-                                }
-                            }
-                            .font(.subheadline.monospacedDigit())
-                        } else {
-                            ScrollView(.horizontal) {
-                                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 10) {
-                                    tableRow(table.headers, header: true)
-                                    ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
-                                        tableRow(row, header: false)
-                                    }
-                                }
-                                .font(.callout.monospacedDigit())
-                                .padding(.vertical, 8)
-                            }
-                            #if os(tvOS)
-                            .focusable()
-                            #endif
-                            Text("左右滚动查看全部列").font(.caption2).foregroundStyle(Palette.secondaryText)
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle")
+                    Text("腾讯体育  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 更新")
+                }
+                .font(.caption).foregroundStyle(Palette.secondaryText)
+            } else {
+                VStack(spacing: 14) {
+                    Image(systemName: "chart.bar.xaxis").font(.largeTitle).foregroundStyle(SportsDataStyle.left)
+                    Text(model.status).font(.subheadline).foregroundStyle(Palette.secondaryText)
+                }
+                .frame(maxWidth: .infinity, minHeight: 180)
+            }
+            if model.snapshot != nil && !model.status.isEmpty {
+                Label(model.status, systemImage: "clock.arrow.circlepath")
+                    .font(.caption).foregroundStyle(Palette.secondaryText)
+            }
+        }
+        #if DEBUG
+        .onAppear { if CommandLine.arguments.contains("-stats-players") { tab = .players } }
+        #endif
+        .foregroundStyle(Palette.primaryText)
+        .frame(maxWidth: 1200)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(SportsDataTab.allCases, id: \.self) { item in
+                Button { tab = item } label: {
+                    VStack(spacing: 12) {
+                        Text(item.rawValue).font(.headline)
+                        Capsule().fill(tab == item ? SportsDataStyle.left : .clear).frame(width: 56, height: 3)
+                    }
+                    .foregroundStyle(tab == item ? SportsDataStyle.left : Palette.secondaryText)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                #if os(tvOS)
+                .buttonStyle(.bordered)
+                #else
+                .buttonStyle(.plain)
+                #endif
+                .accessibilityAddTraits(tab == item ? [.isSelected] : [])
+            }
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(SportsDataStyle.line).frame(height: 1) }
+    }
+
+    private func scoreboard(_ snapshot: SportsSnapshot) -> some View {
+        let scores = snapshot.score.components(separatedBy: ":").map { $0.trimmingCharacters(in: .whitespaces) }
+        return VStack(spacing: 18) {
+            Text(snapshot.period).font(.subheadline.weight(.semibold)).foregroundStyle(SportsDataStyle.left)
+            HStack(alignment: .center, spacing: 14) {
+                scoreTeam(snapshot.left, badge: snapshot.leftBadge, tint: SportsDataStyle.left)
+                HStack(spacing: 10) {
+                    Text(scores[safe: 0] ?? "—").fixedSize(horizontal: true, vertical: false)
+                    Text(":").foregroundStyle(Palette.tertiaryText).fixedSize(horizontal: true, vertical: false)
+                    Text(scores[safe: 1] ?? "—").fixedSize(horizontal: true, vertical: false)
+                }
+                .font(.system(size: scoreSize, weight: .bold, design: .rounded).monospacedDigit())
+                .minimumScaleFactor(0.6).lineLimit(1).fixedSize(horizontal: true, vertical: false).layoutPriority(1)
+                .accessibilityLabel("比分 \(snapshot.score)")
+                scoreTeam(snapshot.right, badge: snapshot.rightBadge, tint: SportsDataStyle.right)
+            }
+        }
+        .padding(.vertical, 22).padding(.horizontal, 14)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var scoreSize: CGFloat {
+        #if os(tvOS)
+        return 64
+        #else
+        return 36
+        #endif
+    }
+
+    private func scoreTeam(_ name: String, badge: URL?, tint: Color) -> some View {
+        VStack(spacing: 8) {
+            TeamCrest(url: badge, teamName: name, size: crestSize)
+            Text(name).font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.center)
+            Capsule().fill(tint).frame(width: 24, height: 3)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    private var crestSize: CGFloat {
+        #if os(tvOS)
+        return 72
+        #else
+        return 42
+        #endif
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        HStack(spacing: 9) {
+            Rectangle().fill(SportsDataStyle.left).frame(width: 3, height: 16)
+            Text(text).font(.headline)
+        }
+    }
+
+    private func periodScores(_ table: SportsTable) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("分节得分")
+            GeometryReader { geometry in
+                let width = max(34, (geometry.size.width - 80) / CGFloat(max(1, table.headers.count - 1)))
+                ScrollView(.horizontal) {
+                    VStack(spacing: 0) {
+                        periodRow(table.headers, cellWidth: width, header: true)
+                        ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
+                            periodRow(row, cellWidth: width, header: false)
                         }
                     }
+                    .font(.subheadline.monospacedDigit())
                 }
-                Text("腾讯体育 · 更新于 \(snapshot.updatedAt.formatted(date: .omitted, time: .standard))")
-                    .font(.caption).foregroundStyle(Palette.secondaryText)
+                #if os(tvOS)
+                .focusable()
+                #endif
             }
-            if !model.status.isEmpty {
-                Text(model.status).font(.subheadline).foregroundStyle(Palette.secondaryText)
-            }
-            if model.mid != nil {
-                Toggle("腾讯体育评论弹幕", isOn: $model.danmakuEnabled)
-                    .font(.subheadline)
-                Text("实时评论可能快于视频画面，可在播放器中关闭。")
-                    .font(.caption).foregroundStyle(Palette.secondaryText)
-            }
-        }
-        .foregroundStyle(Palette.primaryText)
-        .padding(20)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 18))
-    }
-
-    private func comparisonRow(_ values: [String], header: Bool) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            ForEach(Array(values.enumerated()), id: \.offset) { _, value in
-                Text(value.replacingOccurrences(of: " (", with: "\n("))
-                    .fontWeight(header ? .semibold : .regular)
-                    .foregroundStyle(header ? Palette.secondaryText : Palette.primaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .frame(height: SportsDataStyle.rowHeight * CGFloat(table.rows.count + 1))
         }
     }
 
-    private func tableRow(_ values: [String], header: Bool) -> some View {
-        GridRow {
-            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                Text(value.isEmpty ? "—" : value)
-                    .fontWeight(header ? .semibold : .regular)
+    private func periodRow(_ row: [String], cellWidth: CGFloat, header: Bool) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(row.enumerated()), id: \.offset) { index, value in
+                Text(value).fontWeight(header || index == row.count - 1 ? .semibold : .regular)
                     .foregroundStyle(header ? Palette.secondaryText : Palette.primaryText)
-                    .frame(minWidth: index == 0 ? 110 : 52, alignment: .leading)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(width: index == 0 ? 80 : cellWidth, height: SportsDataStyle.rowHeight,
+                           alignment: index == 0 ? .leading : .center)
+                    .background(index == row.count - 1 ? SportsDataStyle.left.opacity(0.08) : .clear)
             }
         }
+        .background(header ? Color.white.opacity(0.04) : .clear)
+        .overlay(alignment: .bottom) { Rectangle().fill(SportsDataStyle.line).frame(height: 0.5) }
+    }
+
+    private func teamComparison(_ table: SportsTable, snapshot: SportsSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            sectionTitle("球队对比")
+            HStack {
+                Label(snapshot.left, systemImage: "circle.fill").foregroundStyle(SportsDataStyle.left)
+                Spacer()
+                Label(snapshot.right, systemImage: "circle.fill").foregroundStyle(SportsDataStyle.right)
+            }.font(.caption.weight(.semibold))
+            ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
+                VStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(row[safe: 1] ?? "—").fontWeight(.semibold).foregroundStyle(SportsDataStyle.left)
+                        Spacer(minLength: 4)
+                        Text(row[safe: 0] ?? "").font(.caption).foregroundStyle(Palette.secondaryText)
+                        Spacer(minLength: 4)
+                        Text(row[safe: 2] ?? "—").fontWeight(.semibold).foregroundStyle(SportsDataStyle.right)
+                    }
+                    .font(.subheadline.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+                    if let metric = SportsStatComparison(row: row) {
+                        GeometryReader { geometry in
+                            HStack(spacing: 3) {
+                                Capsule().fill(SportsDataStyle.left).frame(width: max(0, geometry.size.width - 3) * CGFloat(metric.leftShare))
+                                Capsule().fill(SportsDataStyle.right)
+                            }
+                        }.frame(height: 5)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func playerStatistics(_ snapshot: SportsSnapshot) -> some View {
+        let tables = snapshot.playerTables
+        if !tables.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    ForEach(Array(tables.enumerated()), id: \.offset) { index, table in
+                        Button { selectedTeam = index } label: {
+                            Text(table.title.components(separatedBy: " · ").first ?? table.title)
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.vertical, 10).padding(.horizontal, 18)
+                                .background(selectedTeam == index ? SportsDataStyle.left.opacity(0.2) : Palette.surface,
+                                            in: RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(selectedTeam == index ? SportsDataStyle.left : .clear))
+                        }
+                        #if os(tvOS)
+                        .buttonStyle(.bordered)
+                        #else
+                        .buttonStyle(.plain)
+                        #endif
+                        .accessibilityAddTraits(selectedTeam == index ? [.isSelected] : [])
+                    }
+                    Spacer(minLength: 0)
+                }
+                let table = tables[min(selectedTeam, tables.count - 1)]
+                frozenPlayerTable(table)
+                Text("球员姓名固定，左右滚动查看其余统计").font(.caption).foregroundStyle(Palette.secondaryText)
+            }
+        } else { noStatistics }
+    }
+
+    private func frozenPlayerTable(_ table: SportsTable) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                playerCell(table.headers.first ?? "球员", column: 0, header: true, total: false)
+                ForEach(Array(table.rows.enumerated()), id: \.offset) { index, row in
+                    playerCell(row.first ?? "—", column: 0, header: false, total: row.first == "统计")
+                        .background(index.isMultiple(of: 2) ? Color.clear : Color.white.opacity(0.025))
+                }
+            }
+            .background(Palette.backgroundBottom)
+            .overlay(alignment: .trailing) { Rectangle().fill(SportsDataStyle.line).frame(width: 1) }
+            ScrollView(.horizontal) {
+                VStack(spacing: 0) {
+                    playerDataRow(Array(table.headers.dropFirst()), header: true, total: false)
+                    ForEach(Array(table.rows.enumerated()), id: \.offset) { index, row in
+                        playerDataRow(Array(row.dropFirst()), header: false, total: row.first == "统计")
+                            .background(index.isMultiple(of: 2) ? Color.clear : Color.white.opacity(0.025))
+                    }
+                }
+            }
+            #if os(tvOS)
+            .focusable()
+            #endif
+        }
+        .font(.subheadline.monospacedDigit())
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func playerDataRow(_ row: [String], header: Bool, total: Bool) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(row.enumerated()), id: \.offset) { index, value in
+                playerCell(value, column: index + 1, header: header, total: total)
+            }
+        }
+    }
+
+    private func playerCell(_ value: String, column: Int, header: Bool, total: Bool) -> some View {
+        Text(value).fontWeight(header || total || column == 2 ? .semibold : .regular)
+            .foregroundStyle(header ? Palette.secondaryText : (column == 2 ? SportsDataStyle.left : Palette.primaryText))
+            .lineLimit(column == 0 ? 2 : 1).minimumScaleFactor(0.75)
+            .frame(width: column == 0 ? SportsDataStyle.playerWidth : SportsDataStyle.cellWidth,
+                   height: SportsDataStyle.rowHeight, alignment: column == 0 ? .leading : .center)
+            .padding(.leading, column == 0 ? 8 : 0)
+            .background(header || total ? Color.white.opacity(0.05) : Color.clear)
+            .overlay(alignment: .bottom) { Rectangle().fill(SportsDataStyle.line).frame(height: 0.5) }
+    }
+
+    private var noStatistics: some View {
+        Text("腾讯体育暂无本场技术统计").font(.subheadline).foregroundStyle(Palette.secondaryText)
+            .frame(maxWidth: .infinity, minHeight: 100)
     }
 }
 
@@ -106,13 +327,23 @@ struct SportsStatsSheet: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            ScrollView { SportsStatsContent(model: model).padding(24) }
+            ScrollView { SportsStatsContent(model: model).padding(panelPadding) }
                 .background(Palette.backgroundBottom)
                 .navigationTitle("比赛数据")
+                #if !os(tvOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
         }
         #if os(tvOS)
         .onExitCommand { dismiss() }
+        #endif
+    }
+    private var panelPadding: CGFloat {
+        #if os(tvOS)
+        return 48
+        #else
+        return 16
         #endif
     }
 }

@@ -44,6 +44,10 @@ enum DebugRoute {
                 }
                 .min { $0.1 < $1.1 }?.0
         }
+        if argument.hasPrefix("team=") {
+            let team = String(argument.dropFirst(5))
+            return matches.first { $0.homeTeam == team || $0.awayTeam == team }
+        }
         if let index = Int(argument), matches.indices.contains(index) {
             return matches[index]
         }

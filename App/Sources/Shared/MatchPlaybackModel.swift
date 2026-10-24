@@ -63,8 +63,8 @@ final class MatchPlaybackModel: ObservableObject {
     /// Parsed channels when the source page gave us any, otherwise the homepage
     /// entries as a fallback so the screen is never a dead end.
     var resolvedChannels: [MatchSource] {
-        if let channels, !channels.isEmpty { return channels }
-        return match.sources
+        if let channels, !channels.isEmpty { return MatchSource.playbackOrdered(channels) }
+        return MatchSource.playbackOrdered(match.sources)
     }
 
     var isLoadingChannels: Bool { channels == nil }
@@ -107,13 +107,7 @@ final class MatchPlaybackModel: ObservableObject {
     func nextUntriedIndex(after index: Int) -> Int? {
         let count = resolvedChannels.count
         guard count > 0 else { return nil }
-        let ranked = preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
-        let prefersBroadcast = resolvedChannels.indices.contains(index)
-            && !resolvedChannels[index].name.contains("主播")
-        let ordered = prefersBroadcast
-            ? ranked.filter { !resolvedChannels[$0].name.contains("主播") }
-                + ranked.filter { resolvedChannels[$0].name.contains("主播") }
-            : ranked
+        let ordered = preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
         for candidate in ordered {
             if candidate != index, !stalledIndices.contains(candidate),
                !failedResolutionIndices.contains(candidate) { return candidate }
@@ -138,6 +132,7 @@ final class MatchPlaybackModel: ObservableObject {
         channelNotice = nil
 
         for source in match.sources {
+            guard !Task.isCancelled else { return }
             do {
                 let loaded = try await sourcePages.fetchChannels(from: source.pageURL)
                 if !loaded.isEmpty {
@@ -145,6 +140,7 @@ final class MatchPlaybackModel: ObservableObject {
                     return
                 }
             } catch {
+                guard !Task.isCancelled else { return }
                 continue
             }
         }
@@ -166,7 +162,7 @@ final class MatchPlaybackModel: ObservableObject {
     /// being tried and where playback finally landed.
     func startPlayback(at startIndex: Int, resetStalls: Bool = true) async {
         let channels = resolvedChannels
-        guard channels.indices.contains(startIndex) else { return }
+        guard !Task.isCancelled, channels.indices.contains(startIndex) else { return }
         requestGeneration += 1
         let generation = requestGeneration
         if resetStalls {

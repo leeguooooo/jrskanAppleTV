@@ -12,6 +12,14 @@ final class TencentSportsTests: XCTestCase {
                   homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: sources)
     }
 
+    func testComparisonBarsPreserveZerosAndRejectMissingAndInvalidValues() {
+        XCTAssertEqual(SportsStatComparison(row: ["得分", "60", "40"])?.leftShare, 0.6)
+        XCTAssertEqual(SportsStatComparison(row: ["命中率", "40% (4/10)", "60% (6/10)"])?.leftShare, 0.4)
+        XCTAssertEqual(SportsStatComparison(row: ["得分", "0", "0"])?.leftShare, 0.5)
+        XCTAssertNil(SportsStatComparison(row: ["得分", "—", "0"]))
+        XCTAssertNil(SportsStatComparison(row: ["得分", "NaN", "4"]))
+    }
+
     func testMappingUsesSourceEventIDAndRejectsConflictingEvents() {
         func source(_ id: String) -> MatchSource {
             MatchSource(id: id, name: "中文高清", pageURL: URL(string: "https://play.example/play/kbs/?id=\(id)&id2=")!)

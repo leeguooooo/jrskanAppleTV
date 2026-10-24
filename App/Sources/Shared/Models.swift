@@ -25,6 +25,26 @@ struct MatchSource: Identifiable, Hashable, Sendable, Codable {
     let id: String
     let name: String
     let pageURL: URL
+
+    /// Content preference is a hard tier. Reliability/history only reorder
+    /// alternatives inside that tier, never promote a host over Chinese HD.
+    var playbackPriority: Int {
+        let label = name.folding(options: [.caseInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX")).uppercased()
+        if label.contains("主播") { return 5 }
+        let chinese = label.contains("中文") || label.contains("腾讯")
+        if chinese && label.range(of: #"(?:^|[^A-Z])Q(?:[^A-Z]|$)"#, options: .regularExpression) != nil { return 0 }
+        if chinese && label.range(of: #"(?:^|[^A-Z])M(?:[^A-Z]|$)"#, options: .regularExpression) != nil { return 1 }
+        if chinese || label.contains("纬来") || label.contains("緯來") { return 2 }
+        if label.contains("高清") || label.contains("超清") { return 3 }
+        return 4
+    }
+
+    static func playbackOrdered(_ sources: [MatchSource]) -> [MatchSource] {
+        sources.enumerated().sorted {
+            $0.element.playbackPriority == $1.element.playbackPriority
+                ? $0.offset < $1.offset : $0.element.playbackPriority < $1.element.playbackPriority
+        }.map(\.element)
+    }
 }
 
 /// Status codes and period clocks used by jrs03.com's page.live script.

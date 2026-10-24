@@ -161,6 +161,8 @@ final class Preferences: ObservableObject {
 
     func rankedIndices(for sources: [MatchSource], matchID: String, now: Date = Date()) -> [Int] {
         sources.indices.sorted { lhs, rhs in
+            let priorityA = sources[lhs].playbackPriority, priorityB = sources[rhs].playbackPriority
+            if priorityA != priorityB { return priorityA < priorityB }
             let a = channelPerformance[sources[lhs].pageURL.absoluteString] ?? ChannelPerformance()
             let b = channelPerformance[sources[rhs].pageURL.absoluteString] ?? ChannelPerformance()
             let aCooling = a.lastFailure.map { now.timeIntervalSince($0) < 300 } ?? false

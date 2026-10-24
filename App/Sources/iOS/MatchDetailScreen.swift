@@ -7,11 +7,14 @@ struct MatchDetailScreen: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var now = Date()
     @State private var showsStatistics = false
+    @State private var showsChannels = false
+    @State private var openingPlayback = true
+    @State private var didOpenMatch = false
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private let autoplay: Bool
 
-    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = false) {
+    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = true) {
         self.autoplay = autoplay
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
@@ -30,8 +33,10 @@ struct MatchDetailScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     hero
-                    channelSection
-                    SportsInsightsSection(model: model.insights, match: match, channels: model.resolvedChannels)
+                    playbackEntry
+                    DisclosureGroup("手动切换线路", isExpanded: $showsChannels) { channelSection }
+                        .font(.subheadline)
+                        .disabled(openingPlayback)
                 }
                 .padding(horizontalSizeClass == .compact ? 16 : 28)
                 .padding(.bottom, 32)
@@ -48,6 +53,7 @@ struct MatchDetailScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showsStatistics = true } label: { Label("数据", systemImage: "chart.bar.xaxis") }
+                    .disabled(openingPlayback)
             }
         }
         .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
@@ -55,19 +61,51 @@ struct MatchDetailScreen: View {
         .onAppear { if CommandLine.arguments.contains("-show-stats") { showsStatistics = true } }
         #endif
         .onReceive(minuteTick) { now = $0 }
+        .modifier(SportsInsightsLifecycle(model: model.insights, match: match, channels: model.resolvedChannels))
         .task(id: match.id) {
+            guard !didOpenMatch else { openingPlayback = false; return }
+            openingPlayback = true
             await model.loadChannels()
             var shouldPlay = autoplay
             #if DEBUG
-            shouldPlay = shouldPlay || DebugRoute.autoplay
+            shouldPlay = DebugRoute.raw?.hasPrefix("detail:") == true ? false : shouldPlay || DebugRoute.autoplay
             #endif
+            guard !Task.isCancelled else { return }
+            didOpenMatch = true
             if shouldPlay { await model.startSuggestedPlayback() }
+            openingPlayback = false
         }
         // Resolve first, present second: the player appears once a channel
         // has a stream. Later channel switches go through the same session.
         .onChange(of: model.playback?.id) { _, _ in
             if model.playback != nil { PlayerSession.shared.show(model) }
         }
+    }
+
+    @ViewBuilder
+    private var playbackEntry: some View {
+        if openingPlayback || model.resolvingIndex != nil {
+            HStack(spacing: 12) {
+                ProgressView()
+                Text(model.isLoadingChannels ? "正在寻找中文高清…" : "正在打开\(openingChannelName)…")
+                    .font(.subheadline)
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 18)
+        } else if match.sources.isEmpty {
+            Text("这场比赛还没有直播线路，开赛前后再试。")
+                .font(.subheadline).foregroundStyle(Palette.secondaryText)
+        } else {
+            if let error = model.errorMessage { TouchNotice(message: error, tone: .error) }
+            Button { Task { await model.startSuggestedPlayback() } } label: {
+                Label(model.errorMessage == nil ? "播放比赛" : "重新播放", systemImage: "play.fill").frame(maxWidth: .infinity).padding(.vertical, 8)
+            }.buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var openingChannelName: String {
+        if let index = model.resolvingIndex, model.resolvedChannels.indices.contains(index) {
+            return model.resolvedChannels[index].name
+        }
+        return model.suggestedChannel?.name ?? "直播"
     }
 
     // MARK: - Hero

@@ -56,6 +56,38 @@ class ExperienceTest {
     }
 
     @Test
+    fun chineseQThenMRemainAheadOfHostHistoryAndFullWidthLabels() {
+        val labels = listOf("主播解说①", "高清直播⑨", "中文高清 M⑧", "中文高清 Q⑦", "纬来体育⑤", "中文高清Ｑ⑥", "中文高清", "English", "主播中文高清Q")
+        val sources = labels.mapIndexed { index, name -> MatchSource("$index", name, "https://fixture.example/$index") }
+        assertEquals(listOf("中文高清 Q⑦", "中文高清Ｑ⑥", "中文高清 M⑧", "纬来体育⑤", "中文高清", "高清直播⑨", "English", "主播解说①", "主播中文高清Q"),
+            sources.sortedBy { it.playbackPriority }.map { it.name })
+        val prefs = Preferences(MemoryPreferences())
+        prefs.recordPlaybackSuccess(match(), sources[0], 0, 0.1)
+        assertEquals(0, sources[prefs.rankedIndices(sources, match().id).first()].playbackPriority)
+    }
+
+    @Test
+    fun automaticPlaybackExhaustsQThenMBeforeHostRegardlessOfHistory() {
+        val namesAndPaths = listOf("主播①" to "host.m3u8", "中文高清 M①" to "first-m.html",
+            "中文高清 Q①" to "q-one.html", "中文高清 M②" to "second-m.m3u8",
+            "中文高清 Q②" to "q-two.html", "中文高清" to "other.m3u8")
+        val sources = namesAndPaths.mapIndexed { index, pair -> MatchSource("$index", pair.first, "https://fixture.example/${pair.second}") }
+        val game = match().copy(sources = sources)
+        val prefs = Preferences(MemoryPreferences())
+        prefs.recordPlaybackSuccess(game, sources[0], 0, 0.1)
+        val client = fixtureClient { request ->
+            FixtureReply(if (request.url.encodedPath.endsWith(".m3u8")) "#EXTM3U\n#EXTINF:5,\nsegment.ts\n" else "<html>No stream</html>")
+        }
+        val model = MatchPlaybackModel(game, prefs, scope, StreamResolver(client), SourcePageClient(client))
+        model.startSuggestedPlayback()
+        waitUntil { model.state.value.playback != null }
+        assertEquals("中文高清 M②", model.state.value.playback?.sourceName)
+        assertEquals(setOf(0, 1, 2), model.state.value.failedResolutionIndices)
+        assertEquals(4, model.nextUntriedIndex(model.state.value.playback!!.index))
+        model.stopPlayback()
+    }
+
+    @Test
     fun rankingUsesSuccessLatencyAndTemporaryFailureCooldown() {
         val prefs = Preferences(MemoryPreferences())
         val sources = listOf(source(0), source(1), source(2))

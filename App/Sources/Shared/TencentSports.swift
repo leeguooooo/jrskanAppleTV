@@ -21,6 +21,12 @@ struct SportsSnapshot {
     let period: String
     let tables: [SportsTable]
     let updatedAt: Date
+    var leftBadge: URL? = nil
+    var rightBadge: URL? = nil
+
+    var periodTable: SportsTable? { tables.first { $0.title == "分节得分" } }
+    var comparisonTable: SportsTable? { tables.first { $0.title == "球队技术统计" } }
+    var playerTables: [SportsTable] { tables.filter { $0.title.hasSuffix("球员技术统计") } }
 }
 
 /// Public read-only endpoints. An ephemeral session keeps this separate from
@@ -118,7 +124,8 @@ struct TencentSportsClient {
         }
         return SportsSnapshot(mid: mid, left: left, right: right,
             score: "\(text(info["leftGoal"], missing: "—")) : \(text(info["rightGoal"], missing: "—"))",
-            period: text(info["quarterDesc"]), tables: tables, updatedAt: now)
+            period: text(info["quarterDesc"]), tables: tables, updatedAt: now,
+            leftBadge: URL(string: text(info["leftBadge"])), rightBadge: URL(string: text(info["rightBadge"])))
     }
 
     func comments(mid: String) async throws -> [SportsComment] {

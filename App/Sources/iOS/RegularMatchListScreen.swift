@@ -270,7 +270,7 @@ struct RegularMatchListScreen: View {
         }
     }
 
-    private func select(_ match: LiveMatch, autoplay: Bool = false) {
+    private func select(_ match: LiveMatch, autoplay: Bool = true) {
         selectionAutoplay = autoplay
         selectionToken = UUID()
         selection = match

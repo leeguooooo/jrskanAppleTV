@@ -10,6 +10,9 @@ struct MatchDetailView: View {
 
     @State private var now = Date()
     @State private var showsStatistics = false
+    @State private var showsChannels = false
+    @State private var openingPlayback = true
+    @State private var didOpenMatch = false
     @FocusState private var focusedChannelID: String?
 
     @Environment(\.dismiss) private var dismiss
@@ -18,7 +21,7 @@ struct MatchDetailView: View {
 
     private let autoplay: Bool
 
-    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = false) {
+    init(match: LiveMatch, preferences: Preferences, autoplay: Bool = true) {
         self.autoplay = autoplay
         _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
     }
@@ -39,9 +42,20 @@ struct MatchDetailView: View {
                     hero
                     Button { showsStatistics = true } label: {
                         Label("比赛数据与技术统计", systemImage: "chart.bar.xaxis")
+                    }.disabled(openingPlayback)
+                    if openingPlayback {
+                        HStack(spacing: 16) {
+                            ProgressView()
+                            Text(model.isLoadingChannels ? "正在寻找中文高清…" : "正在打开\(model.suggestedChannel?.name ?? "直播")…")
+                        }
+                    } else {
+                        if let error = model.errorMessage { Text(error).foregroundStyle(Palette.live) }
+                        Button { Task { await model.startSuggestedPlayback() } } label: {
+                            Label(model.resolvedChannels.isEmpty ? "本场暂无直播线路" : "播放比赛", systemImage: "play.fill")
+                        }.disabled(model.resolvingIndex != nil || model.resolvedChannels.isEmpty)
+                        Button { showsChannels.toggle() } label: { Label("手动切换线路", systemImage: "list.bullet") }
+                        if showsChannels { channelSection }
                     }
-                    channelSection
-                    SportsInsightsSection(model: model.insights, match: match, channels: model.resolvedChannels)
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.vertical, 46)
@@ -54,10 +68,15 @@ struct MatchDetailView: View {
         // of going back one level. Pop explicitly.
         .onExitCommand { dismiss() }
         .onReceive(minuteTick) { now = $0 }
+        .modifier(SportsInsightsLifecycle(model: model.insights, match: match, channels: model.resolvedChannels))
         .task(id: match.id) {
+            guard !didOpenMatch else { openingPlayback = false; return }
+            openingPlayback = true
             await model.loadChannels()
-            focusSuggestedChannel()
+            guard !Task.isCancelled else { return }
+            didOpenMatch = true
             if autoplay { await model.startSuggestedPlayback() }
+            openingPlayback = false
         }
         .background(
             PlayerPresenter(

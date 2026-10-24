@@ -106,9 +106,9 @@ class MainActivity : ComponentActivity() {
             composable("home") {
                 HomeScreen(
                     app.listModel,
-                    onOpenMatch = { match, autoplay ->
+                    onOpenMatch = { match, _ ->
                         app.rememberMatch(match)
-                        nav.navigate("match/${URLEncoder.encode(match.id, "UTF-8")}?autoplay=$autoplay")
+                        nav.navigate("match/${URLEncoder.encode(match.id, "UTF-8")}?autoplay=true")
                     },
                     onOpenSettings = { nav.navigate("settings") },
                 )

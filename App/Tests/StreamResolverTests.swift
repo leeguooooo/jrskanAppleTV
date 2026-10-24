@@ -8,6 +8,41 @@ import XCTest
 final class StreamResolverTests: XCTestCase {
     private let resolver = StreamResolver()
 
+    func testChannelPriorityHandlesSpacingFullWidthLettersAndStablePeers() {
+        let names = ["主播解说①", "高清直播⑨", "中文高清 M⑧", "中文高清 Q⑦", "纬来体育⑤", "中文高清Ｑ⑥", "中文高清", "English", "主播中文高清Q"]
+        let sources = names.enumerated().map { i, name in
+            MatchSource(id: String(i), name: name, pageURL: URL(string: "https://fixture.example/\(i)")!)
+        }
+        XCTAssertEqual(MatchSource.playbackOrdered(sources).map(\.name),
+            ["中文高清 Q⑦", "中文高清Ｑ⑥", "中文高清 M⑧", "纬来体育⑤", "中文高清", "高清直播⑨", "English", "主播解说①", "主播中文高清Q"])
+    }
+
+    @MainActor
+    func testAutomaticPlaybackExhaustsQThenMBeforeHostRegardlessOfHistory() async {
+        let prefs = Preferences(store: UserDefaults(suiteName: UUID().uuidString)!)
+        let namesAndPaths = [("主播①", "host.m3u8"), ("中文高清 M①", "first-m.html"),
+                             ("中文高清 Q①", "q-one.html"), ("中文高清 M②", "second-m.m3u8"),
+                             ("中文高清 Q②", "q-two.html"), ("中文高清", "other.m3u8")]
+        let sources = namesAndPaths.enumerated().map { i, pair in
+            MatchSource(id: String(i), name: pair.0, pageURL: URL(string: "https://fixture.example/\(pair.1)")!)
+        }
+        let match = LiveMatch(id: "auto", league: "NBA", time: "10-24 10:00", homeTeam: "湖人", awayTeam: "快船",
+            homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: sources)
+        prefs.recordPlaybackSuccess(match: match, source: sources[0], index: 0, startup: 0.1)
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [UnavailableStreamPage.self]
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        let model = MatchPlaybackModel(match: match, preferences: prefs, resolver: StreamResolver(session: session))
+        XCTAssertEqual(model.suggestedChannel?.playbackPriority, 0)
+        await model.startSuggestedPlayback()
+        XCTAssertEqual(model.playback?.sourceName, "中文高清 M②")
+        XCTAssertEqual(model.failedResolutionIndices, [0, 1, 2])
+        XCTAssertEqual(model.resolvedChannels[model.playback!.index].name, "中文高清 M②")
+        XCTAssertEqual(model.nextUntriedIndex(after: model.playback!.index), 4)
+        model.stopPlayback()
+    }
+
     func testExtractsDirectHLSURL() {
         let pageURL = URL(string: "http://play.example/350.html")!
         let html = #"""
@@ -279,8 +314,9 @@ final class StreamResolverTests: XCTestCase {
             homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: sources)
         preferences.recordPlaybackSuccess(match: match, source: sources[0], index: 0, startup: 1)
         let model = MatchPlaybackModel(match: match, preferences: preferences)
-        XCTAssertEqual(model.nextUntriedIndex(after: 1), 2)
+        XCTAssertEqual(model.resolvedChannels.map(\.name), ["中文高清 Q②", "中文高清 M③", "主播解说①"])
         XCTAssertEqual(model.nextUntriedIndex(after: 0), 1)
+        XCTAssertEqual(model.nextUntriedIndex(after: 2), 0)
     }
 
     func testEvaluatesEncryptedPlayerPageToHLSURL() {

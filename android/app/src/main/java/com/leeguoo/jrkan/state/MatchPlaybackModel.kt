@@ -62,7 +62,7 @@ class MatchPlaybackModel(
 
     /** Parsed channels when the source page gave any, else the homepage entries. */
     val resolvedChannels: List<MatchSource>
-        get() = _state.value.channels?.takeIf { it.isNotEmpty() } ?: match.sources
+        get() = (_state.value.channels?.takeIf { it.isNotEmpty() } ?: match.sources).sortedBy { it.playbackPriority }
 
     val isLoadingChannels: Boolean get() = _state.value.channels == null
 
@@ -95,11 +95,7 @@ class MatchPlaybackModel(
     /** The highest-ranked channel not yet failed this visit. */
     fun nextUntriedIndex(after: Int): Int? {
         val state = _state.value
-        val ranked = preferences.rankedIndices(resolvedChannels, match.id)
-        val ordered = if (resolvedChannels.getOrNull(after)?.name?.contains("主播") == false)
-            ranked.filter { !resolvedChannels[it].name.contains("主播") } +
-                ranked.filter { resolvedChannels[it].name.contains("主播") }
-            else ranked
+        val ordered = preferences.rankedIndices(resolvedChannels, match.id)
         return ordered.firstOrNull {
             it != after && it !in state.stalledIndices && it !in state.failedResolutionIndices
         }
