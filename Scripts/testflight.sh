@@ -74,7 +74,9 @@ print("归档权限检查通过")
 PY_VERIFY
   fi
   echo "==> [$label] 签名并上传 TestFlight"
-  if ! xcodebuild -exportArchive -archivePath "$archive" \
+  # Apple's openrsync launches its peer through PATH; mixing in Homebrew
+  # rsync breaks Xcode's --extended-attributes packaging step.
+  if ! PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH" xcodebuild -exportArchive -archivePath "$archive" \
       -exportOptionsPlist Scripts/ExportOptions-TestFlight.plist \
       -exportPath "$OUT/$label-export" "${AUTH[@]}" > "$log.export" 2>&1; then
     grep -E '^error:|error: exportArchive' "$log.export" | cut -c1-300 >&2
