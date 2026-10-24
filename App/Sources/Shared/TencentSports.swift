@@ -11,6 +11,7 @@ struct SportsTable: Equatable {
     let title: String
     let headers: [String]
     let rows: [[String]]
+    var sourceName: String = ""
 }
 
 struct SportsSnapshot {
@@ -23,6 +24,8 @@ struct SportsSnapshot {
     let updatedAt: Date
     var leftBadge: URL? = nil
     var rightBadge: URL? = nil
+    var sourceName: String = "腾讯体育"
+    var scoreSourceName: String? = nil
 
     var periodTable: SportsTable? { tables.first { $0.title == "分节得分" } }
     var comparisonTable: SportsTable? { tables.first { $0.title == "球队技术统计" } }
@@ -184,42 +187,57 @@ struct TencentSportsClient {
 final class MatchInsightsModel: ObservableObject {
     @Published private(set) var mid: String?
     @Published private(set) var snapshot: SportsSnapshot?
-    @Published private(set) var status = "正在匹配腾讯体育赛事…"
+    @Published private(set) var status = "正在匹配本场比赛…"
     @Published private(set) var comments: [SportsComment] = []
     @Published var danmakuEnabled = true
-    private let client: TencentSportsClient
+    private let client: MultiSportsClient
     private var seen: [String] = []
+    private var context: (LiveMatch, [MatchSource])?
+    private var generation = 0
 
-    init(client: TencentSportsClient = TencentSportsClient()) { self.client = client }
+    init(client: TencentSportsClient = TencentSportsClient()) { self.client = MultiSportsClient(tencent: client) }
 
     func watch(match: LiveMatch, channels: [MatchSource]) async {
-        let candidate = TencentSportsClient.candidateMID(match: match, channels: channels)
-        guard let candidate else {
-            mid = nil; snapshot = nil; status = "腾讯体育暂无可匹配的本场数据"; return
+        generation += 1
+        let current = generation
+        guard ["NBA", "CBA"].contains(match.league.uppercased()) else {
+            mid = nil; snapshot = nil; comments = []; status = "暂无可匹配的本场数据"; return
         }
-        mid = nil; snapshot = nil; comments = []; seen = []
-        do {
-            try await client.verify(match: match, mid: candidate)
-            try Task.checkCancellation()
-            mid = candidate
-        } catch { if !Task.isCancelled { status = "腾讯体育赛事暂未匹配，请稍后重试" }; return }
-        while !Task.isCancelled {
+        let channelKey = channels.map { $0.pageURL.absoluteString }.sorted().joined(separator: ",")
+        let key = "\(match.id)|\(match.homeTeam)|\(match.awayTeam)|\(match.time)|\(channelKey)"
+        if mid != key { snapshot = nil; comments = []; seen = [] }
+        context = (match, channels)
+        mid = key
+        status = snapshot == nil ? "正在加载比赛数据…" : ""
+        while !Task.isCancelled, current == generation {
             do {
-                let value = try await client.statistics(mid: candidate, match: match)
+                let value = try await client.statistics(match: match, channels: channels) { [weak self] partial in
+                    await self?.accept(partial, generation: current)
+                }
                 try Task.checkCancellation()
-                snapshot = value; status = value.tables.isEmpty ? "腾讯体育暂无本场技术统计" : ""
-            } catch { if Task.isCancelled { return }; status = "数据更新暂时中断，显示上次结果" }
+                guard current == generation else { return }
+                snapshot = value; status = ""
+            } catch {
+                if Task.isCancelled || current != generation { return }
+                status = snapshot == nil ? "各数据源暂未提供本场统计，稍后自动重试" : "数据更新暂时中断，显示上次结果"
+            }
             do { try await Task.sleep(nanoseconds: 30_000_000_000) } catch { return }
         }
     }
 
+    private func accept(_ value: SportsSnapshot, generation: Int) {
+        guard !Task.isCancelled, generation == self.generation else { return }
+        snapshot = value; status = ""
+    }
+
     func watchComments() async {
         comments = []
-        guard danmakuEnabled, let mid else { return }
-        while !Task.isCancelled {
+        guard danmakuEnabled, let key = mid, let context else { return }
+        while !Task.isCancelled, danmakuEnabled, mid == key {
             do {
-                let batch = try await client.comments(mid: mid)
+                let batch = try await client.comments(match: context.0, channels: context.1)
                 try Task.checkCancellation()
+                guard danmakuEnabled, mid == key else { return }
                 for comment in batch where !seen.contains(comment.id) {
                     comments.append(comment); seen.append(comment.id)
                 }

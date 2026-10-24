@@ -23,11 +23,12 @@ import kotlin.math.abs
 
 /** Same contracts and bounds as App/Sources/Shared/TencentSports.swift. */
 data class SportsComment(val id: String, val text: String, val postedAt: Long)
-data class SportsTable(val title: String, val headers: List<String>, val rows: List<List<String>>)
+data class SportsTable(val title: String, val headers: List<String>, val rows: List<List<String>>, val sourceName: String = "")
 data class SportsSnapshot(
     val mid: String, val left: String, val right: String, val score: String,
     val period: String, val tables: List<SportsTable>, val updatedAt: Long,
     val leftBadge: String? = null, val rightBadge: String? = null,
+    val sourceName: String = "腾讯体育", val scoreSourceName: String? = null,
 ) {
     val periodTable: SportsTable? get() = tables.firstOrNull { it.title == "分节得分" }
     val comparisonTable: SportsTable? get() = tables.firstOrNull { it.title == "球队技术统计" }
@@ -35,7 +36,15 @@ data class SportsSnapshot(
 }
 
 interface SportsDataProvider {
+    suspend fun prepare(match: LiveMatch, channels: List<MatchSource>): String? {
+        val mid = TencentSportsClient.candidateMid(match, channels) ?: return null
+        verify(match, mid)
+        return mid
+    }
     suspend fun verify(match: LiveMatch, mid: String)
+    suspend fun statistics(mid: String, match: LiveMatch, onPartial: suspend (SportsSnapshot) -> Unit): SportsSnapshot {
+        val value = statistics(mid, match); onPartial(value); return value
+    }
     suspend fun statistics(mid: String, match: LiveMatch): SportsSnapshot
     suspend fun comments(mid: String): List<SportsComment>
 }

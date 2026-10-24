@@ -122,6 +122,9 @@ fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier,
                 }
             } else {
                 Scoreboard(snapshot, compact)
+                snapshot.scoreSourceName?.takeIf { it != snapshot.sourceName }?.let {
+                    Text("比分来源：$it", color = Palette.secondaryText, fontSize = 12.sp)
+                }
                 Row(Modifier.fillMaxWidth().borderBottom()) {
                     listOf("本场概况", "技术统计").forEachIndexed { index, label ->
                         val active = players == (index == 1)
@@ -137,8 +140,8 @@ fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier,
                     }
                 }
                 if (!players) {
-                    snapshot.periodTable?.let { PeriodScores(it) }
-                    snapshot.comparisonTable?.let { TeamComparison(it, snapshot) }
+                    snapshot.periodTable?.let { PeriodScores(it); TableSource(it) }
+                    snapshot.comparisonTable?.let { TeamComparison(it, snapshot); TableSource(it) }
                     if (snapshot.periodTable == null && snapshot.comparisonTable == null) NoStatistics()
                 } else {
                     val tables = snapshot.playerTables
@@ -154,12 +157,13 @@ fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier,
                                 }
                             }
                         }
+                        TableSource(tables[team.coerceAtMost(tables.lastIndex)])
                         FrozenPlayerTable(tables[team.coerceAtMost(tables.lastIndex)])
                         Text("球员姓名固定，左右滚动查看其余统计", color = Palette.secondaryText, fontSize = 12.sp)
                     }
                 }
                 val time = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(snapshot.updatedAt))
-                Text("腾讯体育  $time 更新", color = Palette.secondaryText, fontSize = 12.sp)
+                Text("${snapshot.sourceName}  $time 更新", color = Palette.secondaryText, fontSize = 12.sp)
                 if (state.status.isNotEmpty()) Text(state.status, color = Palette.secondaryText, fontSize = 12.sp)
             }
         }
@@ -307,9 +311,14 @@ private fun PlayerCell(text: String, column: Int, header: Boolean, total: Boolea
 }
 
 @Composable
-private fun NoStatistics() { Text("腾讯体育暂无本场技术统计", color = Palette.secondaryText, fontSize = 15.sp, modifier = Modifier.padding(vertical = 32.dp)) }
+private fun NoStatistics() { Text("暂无本场技术统计", color = Palette.secondaryText, fontSize = 15.sp, modifier = Modifier.padding(vertical = 32.dp)) }
 
 private fun Modifier.borderBottom(): Modifier = drawBehind {
     drawLine(SportsColors.line, start = androidx.compose.ui.geometry.Offset(0f, size.height),
         end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = 1f)
+}
+
+@Composable
+private fun TableSource(table: SportsTable) {
+    if (table.sourceName.isNotEmpty()) Text("来源：${table.sourceName}", color = Palette.secondaryText, fontSize = 12.sp)
 }

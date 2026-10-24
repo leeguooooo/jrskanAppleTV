@@ -104,7 +104,7 @@ class ExperienceTest {
         waitUntil { model.state.value.playback != null }
         val playing = model.state.value.playback
         val watch = scope.launch { insights.watch(game, listOf(source)) }
-        waitUntil { insights.state.value.mid != null && insights.state.value.status.contains("中断") }
+        waitUntil { insights.state.value.mid != null && insights.state.value.status.contains("暂未提供") }
         val comments = scope.launch { insights.watchComments() }
         Thread.sleep(30)
         assertEquals(playing, model.state.value.playback)

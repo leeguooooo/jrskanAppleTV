@@ -63,17 +63,20 @@ struct SportsStatsContent: View {
         VStack(alignment: .leading, spacing: verticalSizeClass == .compact ? 16 : 24) {
             if let snapshot = model.snapshot {
                 scoreboard(snapshot)
+                if let source = snapshot.scoreSourceName, source != snapshot.sourceName {
+                    Text("比分来源：\(source)").font(.caption).foregroundStyle(Palette.secondaryText)
+                }
                 tabBar
                 if tab == .overview {
-                    if let periods = snapshot.periodTable { periodScores(periods) }
-                    if let comparison = snapshot.comparisonTable { teamComparison(comparison, snapshot: snapshot) }
+                    if let periods = snapshot.periodTable { periodScores(periods); tableSource(periods) }
+                    if let comparison = snapshot.comparisonTable { teamComparison(comparison, snapshot: snapshot); tableSource(comparison) }
                     if snapshot.periodTable == nil && snapshot.comparisonTable == nil { noStatistics }
                 } else {
                     playerStatistics(snapshot)
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle")
-                    Text("腾讯体育  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 更新")
+                    Text("\(snapshot.sourceName)  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 更新")
                 }
                 .font(.caption).foregroundStyle(Palette.secondaryText)
             } else {
@@ -94,6 +97,11 @@ struct SportsStatsContent: View {
         .foregroundStyle(Palette.primaryText)
         .frame(maxWidth: 1200)
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func tableSource(_ table: SportsTable) -> some View {
+        if !table.sourceName.isEmpty { Text("来源：\(table.sourceName)").font(.caption).foregroundStyle(Palette.secondaryText) }
     }
 
     private var tabBar: some View {
@@ -281,6 +289,7 @@ struct SportsStatsContent: View {
                     Spacer(minLength: 0)
                 }
                 let table = tables[min(selectedTeam, tables.count - 1)]
+                tableSource(table)
                 frozenPlayerTable(table)
                 Text("球员姓名固定，左右滚动查看其余统计").font(.caption).foregroundStyle(Palette.secondaryText)
             }
@@ -335,7 +344,7 @@ struct SportsStatsContent: View {
     }
 
     private var noStatistics: some View {
-        Text("腾讯体育暂无本场技术统计").font(.subheadline).foregroundStyle(Palette.secondaryText)
+        Text("暂无本场技术统计").font(.subheadline).foregroundStyle(Palette.secondaryText)
             .frame(maxWidth: .infinity, minHeight: 100)
     }
 }

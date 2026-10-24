@@ -8,7 +8,9 @@
 | 线路策略 | 中文 Q、中文 M、其他中文、其他高清、其他入口、主播；历史仅对同类排序 |
 | 播放恢复 | 校验 HLS、首帧/进度监测、有限重连、轮换未失败线路，不循环重试已失败线路 |
 | 腾讯匹配 | 支持 kbs、vxt、txf；比赛 ID、两队名称和开赛时间核对一致后才加载 NBA/CBA 数据 |
-| 评论弹幕 | 只读，独立开关；10 秒轮询，ID 去重，120 秒过期，三轨、每 2.5 秒一条，队列最多 20 条 |
+| 多源补位 | 腾讯优先；缺少的整张统计表依次由咪咕、ESPN 补齐，标明每张表的来源；不混合单元格、不覆盖腾讯比分；每轮重新检查优先源 |
+| 第三方匹配 | 咪咕按 NBA/CBA 公开赛程的比赛 ID、联赛、双方球队、开赛时间唯一匹配；ESPN 按 NBA 球队别名和时区换算后的赛程匹配，摘要再次核对 ID/球队/时间 |
+| 评论弹幕 | 腾讯有新评论时优先腾讯，否则尝试咪咕最新评论；ESPN 仅提供统计。只读，独立开关；10 秒轮询，ID 去重，120 秒过期，三轨、每 2.5 秒一条，队列最多 20 条 |
 | 比赛数据 | 概况/技术统计两页，分节得分、双边球队比较、两队球员表，姓名列固定；缺值显示 —，零仍为零 |
 | 生命周期 | 后台、画中画不轮询评论；评论/统计超时不改播放状态、线路评分或录像任务 |
 | 其他能力 | 保留赛程、比分、搜索、收藏/历史、账号、远程配置、水印、后台录像及导出 |
@@ -17,10 +19,12 @@
 
 ## 回归入口
 
-- 共用样例：`contracts/tencent-sports.json`。
-- Apple：`TencentSportsTests.testSharedAndroidAppleContract`，另有线路回退、过期评论和比赛匹配测试。
-- Android：`TencentSportsTest`、`ExperienceTest`；真实站点检查用 `-PjrkanLive=1`，与确定性测试分开。
+- 共用样例：`contracts/tencent-sports.json` 和 `contracts/multi-sports.json`。
+- Apple：`TencentSportsTests.testSharedAndroidAppleContract`、`MultiSportsTests`，另有线路回退、过期评论和比赛匹配测试。
+- Android：`TencentSportsTest`、`MultiSportsTest`、`ExperienceTest`；真实站点检查用 `-PjrkanLive=1`，与确定性测试分开。
 - 调试包可通过 `jrkan_qa=overview|players|play` 和 `qa_mid` 打开公开腾讯数据。只有 debug 构建接受这些入口；测试视频/测试弹幕有明确标记，不计为真实赛事或真机验收。
 - 正式包必须核对包名、versionCode、签名证书、SHA-256，并用旧版正式 APK 执行覆盖安装验证。
 
 签名 APK、CI 通过、模拟器验证与真机验证分别记录。无已授权安卓真机时明确保留该验收缺口；不得把模拟器结果写成真机通过。内部 APK 继续挂草稿 Release，未经明确要求不公开发布。
+
+多源统计不会合成综合评分。咪咕当前显示真实命中率等原始指标；ESPN 球员姓名保留来源文字。评论只使用 120 秒内的消息，过滤置顶、推广、空内容及错场 ID；读不到新评论时不回放旧评论充数。
