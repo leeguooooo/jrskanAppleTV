@@ -81,10 +81,11 @@ struct CompactMatchListScreen: View {
         if model.isLoading && model.matches.isEmpty {
             List {
                 Section {
-                    ForEach(0..<8, id: \.self) { _ in ScoreboardPlaceholderRow() }
+                    ForEach(0..<8, id: \.self) { _ in ScoreboardPlaceholderRow().scoreboardRow() }
                 }
             }
             .listStyle(.insetGrouped)
+            .scoreboardList()
         } else if let errorMessage = model.errorMessage, model.matches.isEmpty {
             ContentUnavailableView {
                 Label("暂时无法载入比赛", systemImage: "wifi.exclamationmark")
@@ -92,8 +93,9 @@ struct CompactMatchListScreen: View {
                 Text(errorMessage)
             } actions: {
                 Button("重试") { Task { await model.refresh() } }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(AmberButtonStyle())
             }
+            .background(TouchBackground())
         } else {
             list
         }
@@ -102,7 +104,19 @@ struct CompactMatchListScreen: View {
     private var list: some View {
         List {
             if sport == .all, let banner = appConfig.slot("home_banner") {
-                Section { ConfigBanner(slot: banner) }
+                Section { ConfigBanner(slot: banner).scoreboardRow() }
+            }
+
+            if let hero {
+                Section {
+                    Button { path.append(MatchRoute(match: hero)) } label: {
+                        LiveHeroCard(match: hero, now: now)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu { FollowMenu(match: hero) }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
             }
 
             if sport == .all, model.filter == .all, let match = model.continueMatch {
@@ -111,6 +125,7 @@ struct CompactMatchListScreen: View {
                         ContinueWatchingRow(match: match)
                     }
                     .tint(.primary)
+                    .scoreboardRow()
                 }
             }
 
@@ -120,35 +135,51 @@ struct CompactMatchListScreen: View {
                         Text("赛程刷新失败，下面是上次读取的赛程。\(errorMessage)")
                             .font(.footnote)
                     } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Palette.accent)
                     }
+                    .scoreboardRow()
                     Button("重试") { Task { await model.refresh() } }
+                        .scoreboardRow()
                 }
             }
 
             ForEach(model.sections) { section in
-                Section {
-                    ForEach(section.matches) { match in
-                        Button { path.append(MatchRoute(match: match)) } label: {
-                            ScoreboardRow(match: match, now: now)
+                let rows = section.matches.filter { $0.id != hero?.id }
+                if !rows.isEmpty {
+                    Section {
+                        ForEach(rows) { match in
+                            Button { path.append(MatchRoute(match: match)) } label: {
+                                ScoreboardRow(match: match, now: now)
+                            }
+                            .tint(.primary)
+                            .contextMenu { FollowMenu(match: match) }
+                            .scoreboardRow()
                         }
-                        .tint(.primary)
-                        .contextMenu { FollowMenu(match: match) }
-                    }
-                } header: {
-                    HStack(spacing: 6) {
-                        Text(section.title)
-                        Text("\(section.matches.count)").foregroundStyle(.tertiary)
+                    } header: {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(section.title)
+                                .font(BrandFont.heading(21, relativeTo: .title3))
+                                .foregroundStyle(Palette.primaryText)
+                            Text("\(section.matches.count)")
+                                .font(BrandFont.numeric(15, relativeTo: .subheadline))
+                                .foregroundStyle(Palette.tertiaryText)
+                        }
+                        .textCase(nil)
                     }
                 }
-                .headerProminence(.increased)
             }
         }
         .listStyle(.insetGrouped)
+        .scoreboardList()
         .refreshable { await model.refresh() }
         .overlay {
             if model.filteredMatches.isEmpty { emptyState }
         }
+    }
+
+    /// Leads the 全部 list and each sport tab; refinements (关注, 热门 …) stay a plain list.
+    private var hero: LiveMatch? {
+        SportFilter.tabs.contains(model.filter) ? model.sections.heroMatch(now: now) : nil
     }
 
     /// Every sport has a tab of its own; 热门 / 关注 / 最近观看 live under 全部.
@@ -246,7 +277,7 @@ struct ContinueWatchingRow: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Palette.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("继续观看").font(.headline)
+                Text("继续观看").font(.headline).foregroundStyle(Palette.primaryText)
                 Text("\(match.homeTeam) vs \(match.awayTeam)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

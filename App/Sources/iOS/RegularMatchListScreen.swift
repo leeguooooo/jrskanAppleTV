@@ -208,11 +208,21 @@ struct RegularMatchListScreen: View {
                 } else if model.filteredMatches.isEmpty {
                     emptyFilterState
                 } else {
+                    let hero = SportFilter.tabs.contains(model.filter) ? model.sections.heroMatch(now: now) : nil
+                    if let hero {
+                        Button { select(hero) } label: { LiveHeroCard(match: hero, now: now) }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: 560)
+                            .padding(.horizontal, 16)
+                    }
                     ForEach(model.sections) { section in
-                        Section {
-                            grid(of: section.matches, emptyTitle: "", emptyMessage: nil, illustration: nil)
-                        } header: {
-                            sectionHeader(section)
+                        let rows = section.matches.filter { $0.id != hero?.id }
+                        if !rows.isEmpty {
+                            Section {
+                                grid(of: rows, emptyTitle: "", emptyMessage: nil, illustration: nil)
+                            } header: {
+                                sectionHeader(section)
+                            }
                         }
                     }
                 }

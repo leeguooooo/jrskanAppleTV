@@ -33,7 +33,7 @@ struct MatchStatisticsView: View {
     private func statistic(_ label: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(label).font(.caption).foregroundStyle(Palette.secondaryText)
-            Text(value).font(.callout.monospacedDigit().weight(.semibold)).foregroundStyle(Palette.primaryText)
+            Text(value).font(BrandFont.numeric(17, bold: true, relativeTo: .callout)).foregroundStyle(Palette.primaryText)
         }
         .accessibilityElement(children: .combine)
     }

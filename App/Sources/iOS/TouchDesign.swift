@@ -2,17 +2,58 @@ import SwiftUI
 
 /// Touch counterparts of the tvOS design pieces, sized for a finger or a
 /// pointer instead of a remote. Shared by iPhone, iPad and the Mac Catalyst
-/// build. The look follows Apple Sports: a black canvas, borderless cards,
-/// bare team logos and scores that carry the weight, with colour kept for
-/// the things that need it (live, selection).
+/// build. The look is a stadium scoreboard: warm black with a faint amber dot
+/// grid, square-ish cards, bare team logos and amber LED scores, with red
+/// kept for live alone.
 enum TouchMetrics {
-    static let corner: CGFloat = 22
+    static let corner: CGFloat = 10
     static let crest: CGFloat = 30
 }
 
 struct TouchBackground: View {
     var body: some View {
-        Color.black.ignoresSafeArea()
+        Rectangle()
+            .fill(Palette.backgroundBottom)
+            .overlay(Rectangle().fill(ImagePaint(image: Image(uiImage: Self.dot))))
+            .ignoresSafeArea()
+    }
+
+    /// One amber dot per 6 pt tile, like the bulbs of an unlit board.
+    private static let dot: UIImage = {
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: CGSize(width: 6, height: 6), format: format).image { _ in
+            UIColor(red: 1, green: 0.69, blue: 0, alpha: 0.06).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 0.4, y: 0.4, width: 2.2, height: 2.2)).fill()
+        }
+    }()
+}
+
+extension View {
+    /// Lists sit on the scoreboard ground with card-coloured rows instead of
+    /// the system's grouped greys.
+    func scoreboardList() -> some View {
+        scrollContentBackground(.hidden)
+            .background(TouchBackground())
+            .listRowSeparatorTint(Palette.hairline)
+    }
+
+    func scoreboardRow() -> some View {
+        listRowBackground(Palette.card)
+            .listRowSeparatorTint(Palette.hairline)
+    }
+}
+
+/// The one thing to press on a screen: amber, square-cornered, dark label.
+struct AmberButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline.weight(.heavy))
+            .foregroundStyle(Palette.onAccent)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 13)
+            .background(Palette.accent.opacity(configuration.isPressed ? 0.75 : 1),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -23,7 +64,11 @@ struct TouchCard: ViewModifier {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemBackground))
+                    .fill(Palette.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous)
+                    .strokeBorder(Palette.hairline, lineWidth: 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
     }
@@ -111,11 +156,11 @@ struct TouchSectionHeader: View {
         HStack(spacing: 8) {
             if section.status.isLive { TouchLiveDot(size: 8) }
             Text(section.title)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.primary)
+                .font(BrandFont.heading(22, relativeTo: .title3))
+                .foregroundStyle(Palette.primaryText)
             Text("\(section.matches.count)")
-                .font(.title3.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.tertiary)
+                .font(BrandFont.numeric(17, relativeTo: .title3))
+                .foregroundStyle(Palette.tertiaryText)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
@@ -162,10 +207,10 @@ struct TouchMatchRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             if preferences.follows(match) {
-                Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow)
+                Image(systemName: "star.fill").font(.caption2).foregroundStyle(Palette.accent)
             }
             if match.isHot {
-                Image(systemName: "flame.fill").font(.caption2).foregroundStyle(.orange)
+                Image(systemName: "flame.fill").font(.caption2).foregroundStyle(Palette.live)
             }
             Spacer(minLength: 8)
             trailingStatus
@@ -182,9 +227,7 @@ struct TouchMatchRow: View {
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let score {
-                Text("\(score)")
-                    .font(.system(.title2, design: .rounded).weight(.bold).monospacedDigit())
-                    .foregroundStyle(trailing ? .secondary : .primary)
+                LEDScore(text: "\(score)", size: 30, dimmed: trailing)
                     .contentTransition(.numericText(value: Double(score)))
                     .animation(.snappy, value: score)
             }
@@ -406,7 +449,7 @@ struct TouchStatusState: View {
             }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(AmberButtonStyle())
                     .padding(.top, 4)
             }
         }

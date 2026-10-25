@@ -38,12 +38,15 @@ struct MatchDetailScreen: View {
         ZStack {
             TouchBackground()
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 18) {
                     hero
                     playbackEntry
-                    DisclosureGroup("手动切换线路", isExpanded: $showsChannels) { channelSection }
-                        .font(.subheadline)
-                        .disabled(openingPlayback)
+                    DisclosureGroup(isExpanded: $showsChannels) { channelSection } label: {
+                        Text("手动切换线路").font(.subheadline).foregroundStyle(Palette.secondaryText)
+                    }
+                    .tint(Palette.secondaryText)
+                    .disabled(openingPlayback)
+                    statistics
                 }
                 .padding(horizontalSizeClass == .compact ? 16 : 28)
                 .padding(.bottom, 32)
@@ -57,12 +60,6 @@ struct MatchDetailScreen: View {
         .navigationTitle(match.league)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showsStatistics = true } label: { Label("数据", systemImage: "chart.bar.xaxis") }
-                    .disabled(openingPlayback)
-            }
-        }
         .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
         #if DEBUG
         .onAppear { if CommandLine.arguments.contains("-show-stats") { showsStatistics = true } }
@@ -101,11 +98,51 @@ struct MatchDetailScreen: View {
             Text("这场比赛还没有直播线路，开赛前后再试。")
                 .font(.subheadline).foregroundStyle(Palette.secondaryText)
         } else {
-            if let error = model.errorMessage { TouchNotice(message: error, tone: .error) }
-            Button { Task { await model.startSuggestedPlayback() } } label: {
-                Label(model.errorMessage == nil ? "播放比赛" : "重新播放", systemImage: "play.fill").frame(maxWidth: .infinity).padding(.vertical, 8)
-            }.buttonStyle(.borderedProminent)
+            VStack(spacing: 10) {
+                if let error = model.errorMessage { TouchNotice(message: error, tone: .error) }
+                Button { Task { await resume() } } label: {
+                    Label(playTitle, systemImage: "play.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AmberButtonStyle())
+                if let channel = model.playback?.sourceName ?? model.suggestedChannel?.name {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark").font(.caption.weight(.bold)).foregroundStyle(Palette.healthy)
+                        Text("自动选线 · \(channel)").lineLimit(1)
+                        if model.automaticFallbackEnabled {
+                            Text("· 失效自动换").foregroundStyle(Palette.tertiaryText).lineLimit(1)
+                        }
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
+    }
+
+    private var isPlayingHere: Bool { PlayerSession.shared.model === model && model.playback != nil }
+
+    private var playTitle: String {
+        if model.errorMessage != nil { return "重新播放" }
+        return isPlayingHere ? "继续观看" : "播放比赛"
+    }
+
+    /// Back to the stream that is already up, or start the top-ranked channel.
+    private func resume() async {
+        if isPlayingHere, model.errorMessage == nil {
+            PlayerSession.shared.show(model)
+        } else {
+            await model.startSuggestedPlayback()
+        }
+    }
+
+    /// Team and player statistics, inline under the score for the leagues the
+    /// sports providers cover; elsewhere the provider's own status line.
+    private var statistics: some View {
+        SportsStatsContent(model: model.insights, showsScoreboard: false)
+            .padding(16)
+            .background(Palette.card, in: RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous).strokeBorder(Palette.hairline, lineWidth: 1))
     }
 
     private var openingChannelName: String {
@@ -145,9 +182,19 @@ struct MatchDetailScreen: View {
     private var kickoffColumn: some View {
         let shown = MatchSchedule.displayTime(for: match.time, now: now)
         return VStack(spacing: 6) {
-            Text(match.scoreText ?? "VS")
-                .font(.title3.monospacedDigit().weight(.heavy))
-                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+            if let home = match.scoreText == nil ? nil : match.providerState?.homeScore,
+               let away = match.scoreText == nil ? nil : match.providerState?.awayScore {
+                HStack(spacing: 4) {
+                    LEDScore(text: "\(home)", size: 54)
+                    Text(":").font(BrandFont.score(54)).foregroundStyle(Palette.tertiaryText)
+                    LEDScore(text: "\(away)", size: 54)
+                }
+                .fixedSize()
+            } else {
+                Text(match.scoreText ?? "VS")
+                    .font(BrandFont.score(match.scoreText == nil ? 44 : 54))
+                    .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.accent)
+            }
             Text(shown.day.isEmpty ? shown.clock : "\(shown.day) \(shown.clock)")
                 .font(.footnote.monospacedDigit().weight(.medium))
                 .foregroundStyle(Palette.secondaryText)
@@ -157,13 +204,13 @@ struct MatchDetailScreen: View {
                     .foregroundStyle(Palette.tertiaryText)
             }
         }
-        .frame(width: 96)
-        .padding(.top, 18)
+        .frame(minWidth: 112)
+        .padding(.top, 12)
     }
 
     private func teamBlock(name: String, logo: URL?) -> some View {
         VStack(spacing: 10) {
-            TeamCrest(url: logo, teamName: name, size: 72)
+            TeamCrest(url: logo, teamName: name, size: 72, framed: false)
             Text(name)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Palette.primaryText)
@@ -236,7 +283,7 @@ struct MatchDetailScreen: View {
             VStack(spacing: 10) {
                 ForEach(Array(model.resolvedChannels.enumerated()), id: \.element.id) { index, source in
                     Button {
-                        Task { await model.startPlayback(at: index) }
+                        Task { await model.startManualPlayback(at: index) }
                     } label: {
                         TouchChannelRow(
                             number: index + 1,
@@ -269,8 +316,8 @@ private struct FollowButton: View {
                 .foregroundStyle(isFavorite ? Palette.accent : Palette.secondaryText)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Capsule().fill(Palette.surface))
-                .overlay(Capsule().strokeBorder(isFavorite ? Palette.accent.opacity(0.6) : Palette.hairline, lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 6).fill(isFavorite ? Palette.accent.opacity(0.14) : Palette.surface))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(isFavorite ? Palette.accent.opacity(0.6) : Palette.hairline, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isFavorite ? "取消关注 \(team)" : "关注 \(team)")

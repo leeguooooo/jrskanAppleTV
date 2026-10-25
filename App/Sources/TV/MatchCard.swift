@@ -64,8 +64,9 @@ struct MatchCard: View {
                 .frame(width: 270, alignment: .trailing)
 
             Text(match.scoreText ?? "VS")
-                .font(.callout.monospacedDigit().weight(.bold))
-                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+                .font(BrandFont.score(54))
+                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.accent)
+                .shadow(color: Palette.accent.opacity(match.scoreText == nil ? 0 : 0.4), radius: 8)
                 .fixedSize()
                 .frame(width: 120)
 
@@ -259,13 +260,13 @@ private struct CategoryChip: View {
                 .foregroundStyle(countForeground)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
-                .background(countBackground, in: Capsule())
+                .background(countBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .padding(.horizontal, 26)
         .padding(.vertical, 15)
         .foregroundStyle(titleForeground)
-        .background(Capsule().fill(fill))
-        .overlay(Capsule().strokeBorder(border, lineWidth: isSelected ? 2 : 1))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(fill))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(border, lineWidth: isSelected ? 2 : 1))
         .scaleEffect(isFocused ? 1.06 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.easeOut(duration: 0.2), value: isSelected)
@@ -291,7 +292,7 @@ private struct CategoryChip: View {
     }
 
     private var countBackground: Color {
-        isFocused ? Palette.backgroundTop.opacity(0.20) : Color.white.opacity(0.10)
+        isFocused ? Palette.backgroundTop.opacity(0.20) : Palette.surface
     }
 }
 
@@ -315,8 +316,8 @@ struct HeaderIconButton: View {
         }
         .frame(width: 74, height: 62)
         .foregroundStyle(isFocused ? Palette.backgroundTop : Palette.primaryText)
-        .background(Capsule().fill(isFocused ? Palette.accent : Palette.surface))
-        .overlay(Capsule().strokeBorder(isFocused ? .clear : Palette.hairline, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(isFocused ? Palette.accent : Palette.surface))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(isFocused ? .clear : Palette.hairline, lineWidth: 1))
         .scaleEffect(isFocused ? 1.08 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .accessibilityLabel(title)

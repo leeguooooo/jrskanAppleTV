@@ -27,6 +27,7 @@ struct RecordingsScreen: View {
                         }
                     }
                 }
+                .scoreboardRow()
             }
 
             if !finished.isEmpty {
@@ -56,12 +57,14 @@ struct RecordingsScreen: View {
                 } footer: {
                     Text("录完会自动生成带水印的 MP4，存在「文件」App › 我的 iPhone › leeguoo sports › 录像，点右边的分享按钮就能发出去。录像只保存在本机，不会上传。")
                 }
+                .scoreboardRow()
 
                 Section {
                     Button { Self.reveal(center.videosDirectory) } label: {
                         Label("在「文件」中打开录像文件夹", systemImage: "folder")
                     }
                 }
+                .scoreboardRow()
             }
 
             Section {
@@ -71,8 +74,10 @@ struct RecordingsScreen: View {
             } header: {
                 Text("后台录制")
             }
+            .scoreboardRow()
         }
         .listStyle(.insetGrouped)
+        .scoreboardList()
         .overlay {
             if center.recordings.isEmpty {
                 ContentUnavailableView("还没有录像", systemImage: "record.circle",
@@ -136,7 +141,7 @@ private struct ActiveRecordingRow: View {
                 .font(.caption).foregroundStyle(Palette.secondaryText).lineLimit(1)
             Text(statusText)
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(recorder.phase == .reconnecting ? .orange : Palette.secondaryText)
+                .foregroundStyle(recorder.phase == .reconnecting ? Palette.accent : Palette.secondaryText)
         }
         .padding(.vertical, 2)
     }
@@ -162,7 +167,7 @@ private struct RecordingRow: View {
                     .font(.caption).foregroundStyle(Palette.secondaryText).lineLimit(1)
                 Text(detailText)
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(error == nil ? Palette.tertiaryText : Color.orange)
+                    .foregroundStyle(error == nil ? Palette.tertiaryText : Palette.accent)
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
@@ -270,10 +275,12 @@ struct RecordControl: View {
                              index: playback.index, streamURL: playback.url)
             } label: {
                 Label("录像", systemImage: "record.circle")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Palette.live, Palette.primaryText)
                     .font(.footnote.weight(.semibold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(.black.opacity(0.45), in: Capsule())
+                    .playerChip()
             }
             .disabled(model.playback == nil)
         }
@@ -299,12 +306,12 @@ private struct RunningRecordMenu: View {
             HStack(spacing: 6) {
                 Circle().fill(Palette.live).frame(width: 8, height: 8)
                 Text(RecordingsScreen.durationText(recorder.info.duration))
-                    .monospacedDigit()
+                    .font(BrandFont.numeric(13, relativeTo: .footnote))
             }
             .font(.footnote.weight(.semibold))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.black.opacity(0.45), in: Capsule())
+            .playerChip()
         }
         .accessibilityLabel("正在录像，\(RecordingsScreen.durationText(recorder.info.duration))")
     }

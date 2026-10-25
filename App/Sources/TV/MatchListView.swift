@@ -79,7 +79,7 @@ struct MatchListView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("今日比赛")
-                .font(.system(size: 56, weight: .bold))
+                .font(BrandFont.heading(60, relativeTo: .largeTitle))
                 .foregroundStyle(Palette.primaryText)
 
             HStack(spacing: 14) {
@@ -209,7 +209,7 @@ struct MatchListView: View {
     private var loadingState: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("今日比赛")
-                .font(.system(size: 56, weight: .bold))
+                .font(BrandFont.heading(60, relativeTo: .largeTitle))
                 .foregroundStyle(Palette.primaryText)
                 .padding(.bottom, 30)
 

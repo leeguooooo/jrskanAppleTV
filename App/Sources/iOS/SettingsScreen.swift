@@ -17,6 +17,7 @@ struct SettingsScreen: View {
             } header: {
                 Text("账号")
             }
+            .scoreboardRow()
 
             Section {
                 Toggle(isOn: $preferences.autoNextChannel) {
@@ -38,6 +39,7 @@ struct SettingsScreen: View {
             } header: {
                 Text("播放与刷新")
             }
+            .scoreboardRow()
 
             Section {
                 NavigationLink {
@@ -52,6 +54,7 @@ struct SettingsScreen: View {
             } header: {
                 Text("录像")
             }
+            .scoreboardRow()
 
             Section {
                 if preferences.favoriteTeams.isEmpty {
@@ -80,6 +83,7 @@ struct SettingsScreen: View {
             } footer: {
                 Text("左滑可移除单个关注球队。")
             }
+            .scoreboardRow()
 
             Section {
                 infoRow("内容来源", "应用只读取公开网页上的赛程与线路，不托管、不重新分发任何视频，也不绕过登录、DRM、付费墙或地域限制。线路由第三方维护，可能随时失效。")
@@ -90,6 +94,7 @@ struct SettingsScreen: View {
                 Text("leeguoo sports · 版本 \(Self.versionText)")
                     .padding(.top, 8)
             }
+            .scoreboardRow()
         }
         .scrollContentBackground(.hidden)
         .background(TouchBackground())

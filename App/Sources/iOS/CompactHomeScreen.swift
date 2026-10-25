@@ -43,7 +43,9 @@ struct CompactHomeScreen: View {
                             CompactMatchListScreen(sport: sport)
                         }
                     }
-                    Tab(value: Destination.search, role: .search) {
+                    // A titled search tab: the bare role form shows the system's own
+                    // "Search", in English when the app has no localisation for it.
+                    Tab("搜索", systemImage: "magnifyingglass", value: Destination.search, role: .search) {
                         TouchSearchScreen()
                     }
                 }
@@ -95,6 +97,7 @@ struct TouchSearchScreen: View {
                         ForEach(model.leagueNames, id: \.self) { league in
                             Button(league) { model.searchText = league }
                                 .tint(.primary)
+                                .scoreboardRow()
                         }
                     }
                 } else {
@@ -102,10 +105,12 @@ struct TouchSearchScreen: View {
                         Button { path.append(match) } label: { ScoreboardRow(match: match) }
                             .tint(.primary)
                             .contextMenu { FollowMenu(match: match) }
+                            .scoreboardRow()
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .scoreboardList()
             .overlay {
                 if !model.searchText.isEmpty, model.visibleMatches.isEmpty {
                     ContentUnavailableView.search(text: model.searchText)

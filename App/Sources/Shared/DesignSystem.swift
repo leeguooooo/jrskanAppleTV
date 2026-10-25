@@ -148,21 +148,32 @@ final class WatermarkView: UIView {
 
 // MARK: - Palette
 
-/// leeguoo's cobalt/coral identity, lightened for readable controls on dark surfaces.
+/// Scoreboard look: a warm black like an unlit stadium board, cream type,
+/// amber for the one thing to press and for the score digits, and the live
+/// red kept for live alone.
 enum Palette {
-    static let accent = Color(red: 0.50, green: 0.58, blue: 1.00)
-    static let live = Color(red: 1.00, green: 0.33, blue: 0.28)
+    /// Primary actions, selection, focus and LED score digits.
+    static let accent = Color(hex: 0xFFB000)
+    /// Text drawn on top of `accent`.
+    static let onAccent = Color(hex: 0x100E0C)
+    static let live = Color(hex: 0xFF4D2E)
+    /// Automatic channel choice is working.
+    static let healthy = Color(hex: 0x30D158)
+    /// Home / away sides in comparison bars.
+    static let home = Color(hex: 0x5B8DEF)
+    static let away = Color(hex: 0xFFB000)
 
-    static let backgroundTop = Color(red: 0.055, green: 0.075, blue: 0.11)
-    static let backgroundBottom = Color(red: 0.015, green: 0.02, blue: 0.035)
+    static let backgroundTop = Color(hex: 0x14110E)
+    static let backgroundBottom = Color(hex: 0x100E0C)
 
-    static let surface = Color.white.opacity(0.055)
-    static let surfaceFocused = Color.white.opacity(0.14)
-    static let hairline = Color.white.opacity(0.10)
+    static let card = Color(hex: 0x1A1714)
+    static let surface = Color(hex: 0xFFECD2).opacity(0.06)
+    static let surfaceFocused = Color(hex: 0xFFECD2).opacity(0.15)
+    static let hairline = Color(hex: 0x2E2924)
 
-    static let primaryText = Color.white
-    static let secondaryText = Color.white.opacity(0.62)
-    static let tertiaryText = Color.white.opacity(0.40)
+    static let primaryText = Color(hex: 0xF3EBDD)
+    static let secondaryText = Color(hex: 0x8C8274)
+    static let tertiaryText = Color(hex: 0x5C544A)
 
     static var background: LinearGradient {
         LinearGradient(
@@ -173,25 +184,68 @@ enum Palette {
     }
 }
 
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+/// Bundled faces (App/Resources/Fonts). Every one falls back to the system
+/// font for characters it lacks, so dynamic text never shows tofu — but the
+/// heading face only carries the characters of fixed section titles, so it
+/// must never be given a team or league name.
+enum BrandFont {
+    /// LED digits for scores. VT323 runs small, so sizes are ~1.3x the
+    /// system size they replace.
+    static func score(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
+        .custom("VT323-Regular", size: size, relativeTo: style)
+    }
+
+    /// Numbers and Latin labels: clocks, stat values, counts.
+    static func numeric(_ size: CGFloat, bold: Bool = false, relativeTo style: Font.TextStyle = .body) -> Font {
+        .custom(bold ? "ChakraPetch-Bold" : "ChakraPetch-SemiBold", size: size, relativeTo: style)
+    }
+
+    /// Fixed section titles only (今日比赛, 正在进行 …).
+    static func heading(_ size: CGFloat, relativeTo style: Font.TextStyle = .title2) -> Font {
+        .custom("LeeguooHeading-Black", size: size, relativeTo: style)
+    }
+}
+
+/// Amber digits with a faint glow, like a lit scoreboard.
+struct LEDScore: View {
+    let text: String
+    var size: CGFloat = 34
+    var dimmed = false
+
+    var body: some View {
+        Text(text)
+            .font(BrandFont.score(size))
+            .monospacedDigit()
+            .foregroundStyle(Palette.accent.opacity(dimmed ? 0.45 : 1))
+            .shadow(color: Palette.accent.opacity(dimmed ? 0 : 0.45), radius: size * 0.18)
+    }
+}
+
 // MARK: - Metrics
 
 enum Metrics {
     /// tvOS overscan-safe side margin. Everything aligns to this.
     static let gutter: CGFloat = 80
-    static let cardCorner: CGFloat = 20
+    static let cardCorner: CGFloat = 10
     static let cardSpacing: CGFloat = 28
     static let rowHeight: CGFloat = 118
 }
 
 // MARK: - Background
 
-/// A quiet dark canvas with the blue brand accent, keeping artwork and labels separate.
+/// Warm black with a faint amber glow from the top corner.
 struct AppBackground: View {
     var body: some View {
         ZStack {
             Palette.background
             RadialGradient(
-                colors: [Palette.accent.opacity(0.16), .clear],
+                colors: [Palette.accent.opacity(0.08), .clear],
                 center: .init(x: 0.12, y: -0.05),
                 startRadius: 0,
                 endRadius: 1100
@@ -279,7 +333,7 @@ struct LiveBadge: View {
         .foregroundStyle(Palette.live)
         .padding(.horizontal, compact ? 8 : 12)
         .padding(.vertical, 6)
-        .background(Palette.live.opacity(0.14), in: Capsule())
+        .background(Palette.live.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .onAppear { pulsing = true }
     }
 }
@@ -301,7 +355,7 @@ struct MetaPill: View {
         .foregroundStyle(tint)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(tint.opacity(0.14), in: Capsule())
+        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 

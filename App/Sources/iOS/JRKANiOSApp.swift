@@ -12,6 +12,20 @@ struct JRKANiOSApp: App {
         // Without the playback category the ring/silent switch mutes the
         // stream and audio stops when the phone locks.
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+        Self.applyScoreboardChrome()
+    }
+
+    /// Large titles in the heading face and cream text on every bar; the
+    /// titles are fixed strings, which is all the subset heading face covers.
+    private static func applyScoreboardChrome() {
+        let cream = UIColor(Palette.primaryText)
+        let navigation = UINavigationBar.appearance()
+        var large: [NSAttributedString.Key: Any] = [.foregroundColor: cream]
+        if let heading = UIFont(name: "LeeguooHeading-Black", size: 32) {
+            large[.font] = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: heading)
+        }
+        navigation.largeTitleTextAttributes = large
+        navigation.titleTextAttributes = [.foregroundColor: cream]
     }
 
     var body: some Scene {

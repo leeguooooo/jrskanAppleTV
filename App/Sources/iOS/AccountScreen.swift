@@ -45,6 +45,7 @@ struct AccountScreen: View {
             }
             .padding(.vertical, 4)
         }
+        .scoreboardRow()
 
         Section {
             SignInWithAppleButton(.signIn) { request in
@@ -60,6 +61,7 @@ struct AccountScreen: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
         }
+        .scoreboardRow()
 
         Section {
             Button {
@@ -76,6 +78,7 @@ struct AccountScreen: View {
                 Text(error).foregroundStyle(Palette.live)
             }
         }
+        .scoreboardRow()
     }
 
     private func signInOnWeb() async {
@@ -121,6 +124,7 @@ struct AccountScreen: View {
             }
             .padding(.vertical, 4)
         }
+        .scoreboardRow()
 
         Section {
             Label(account.membership.summary(), systemImage: account.isMember ? "crown.fill" : "crown")
@@ -143,6 +147,7 @@ struct AccountScreen: View {
                  ? "新账号赠送三个月会员。到期后 \(AccountConfig.priceLabel)，在网页上用微信或支付宝付款（爱发电），回到这里自动刷新。"
                  : "在网页上用微信或支付宝付款（爱发电），每付一次开通 3 个月，回到这里自动刷新。")
         }
+        .scoreboardRow()
 
         Section {
             Button {
@@ -158,6 +163,7 @@ struct AccountScreen: View {
         } footer: {
             Text("在账号中心可以绑定其他登录方式、查看设备或删除账号。退出只影响这台设备。")
         }
+        .scoreboardRow()
     }
 }
 

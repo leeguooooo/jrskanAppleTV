@@ -2,6 +2,8 @@ name: JRKANApple
 
 options:
   bundleIdPrefix: com.leeguoo
+  # 界面全是中文；开发语言设成简体中文，系统控件（搜索、返回、取消）才不会显示英文。
+  developmentLanguage: zh-Hans
   deploymentTarget:
     tvOS: "17.0"
     iOS: "17.0"
@@ -32,6 +34,8 @@ targets:
       - path: App/Resources/LaunchScreen.storyboard
       - path: App/Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: App/Resources/Fonts
+        buildPhase: resources
     info:
       path: App/Info-TV.plist
       properties:
@@ -40,6 +44,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchStoryboardName: LaunchScreen
+        # 记分牌风格的字体，见 App/Resources/Fonts/LICENSES.md。
+        UIAppFonts:
+          - VT323-Regular.ttf
+          - ChakraPetch-SemiBold.ttf
+          - ChakraPetch-Bold.ttf
+          - LeeguooHeading-Black.ttf
         # 只用 HTTPS/HTTP 标准传输，属出口合规豁免；省掉每次上传的问卷。
         ITSAppUsesNonExemptEncryption: false
         # 第三方线路页面与 HLS 地址仍有 HTTP。
@@ -63,6 +73,8 @@ targets:
       - path: App/Resources/iOSAssets.xcassets
       - path: App/Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: App/Resources/Fonts
+        buildPhase: resources
     info:
       path: App/Info-iOS.plist
       properties:
@@ -71,6 +83,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        # 记分牌风格的字体，见 App/Resources/Fonts/LICENSES.md。
+        UIAppFonts:
+          - VT323-Regular.ttf
+          - ChakraPetch-SemiBold.ttf
+          - ChakraPetch-Bold.ttf
+          - LeeguooHeading-Black.ttf
         # Mac App Store 强制要求类目，缺这一项导出时直接被服务端拒收。
         LSApplicationCategoryType: public.app-category.sports
         UILaunchScreen:

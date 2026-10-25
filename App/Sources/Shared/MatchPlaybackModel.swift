@@ -36,6 +36,8 @@ final class MatchPlaybackModel: ObservableObject {
     /// automatic fallback never loops back onto one of them.
     @Published private(set) var stalledIndices: Set<Int> = []
     @Published private(set) var failedResolutionIndices: Set<Int> = []
+    /// The playing channel was picked by hand rather than by priority.
+    @Published private(set) var choseManually = false
 
     private let resolver: StreamResolver
     private let sourcePages: SourcePageClient
@@ -82,7 +84,20 @@ final class MatchPlaybackModel: ObservableObject {
 
     func startSuggestedPlayback() async {
         guard let source = suggestedChannel, let index = resolvedChannels.firstIndex(of: source) else { return }
+        choseManually = false
         await startPlayback(at: index)
+    }
+
+    /// The viewer overrode the automatic choice. Automatic fallback still
+    /// runs if that channel dies; the label just stops saying 自动.
+    func startManualPlayback(at index: Int) async {
+        choseManually = true
+        await startPlayback(at: index)
+    }
+
+    /// Channels best-first, the order automatic selection tries them in.
+    var rankedChannelIndices: [Int] {
+        preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
     }
 
     var automaticFallbackEnabled: Bool {

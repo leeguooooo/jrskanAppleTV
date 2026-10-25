@@ -18,13 +18,13 @@ struct SportsInsightsLifecycle: ViewModifier {
 
 private enum SportsDataTab: String, CaseIterable {
     case overview = "本场概况"
-    case players = "技术统计"
+    case players = "球员数据"
 }
 
 private enum SportsDataStyle {
-    static let left = Color(red: 0.24, green: 0.53, blue: 1)
-    static let right = Color(red: 1, green: 0.65, blue: 0.29)
-    static let line = Color.white.opacity(0.09)
+    static let left = Palette.home
+    static let right = Palette.away
+    static let line = Palette.hairline
     #if os(tvOS)
     static let rowHeight: CGFloat = 58
     static let playerWidth: CGFloat = 210
@@ -55,6 +55,8 @@ struct SportsStatComparison {
 
 struct SportsStatsContent: View {
     @ObservedObject var model: MatchInsightsModel
+    /// Off where the screen already shows the score above the statistics.
+    var showsScoreboard = true
     @State private var tab: SportsDataTab = .overview
     @State private var selectedTeam = 0
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -62,7 +64,7 @@ struct SportsStatsContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: verticalSizeClass == .compact ? 16 : 24) {
             if let snapshot = model.snapshot {
-                scoreboard(snapshot)
+                if showsScoreboard { scoreboard(snapshot) }
                 if let source = snapshot.scoreSourceName, source != snapshot.sourceName {
                     Text("比分来源：\(source)").font(.caption).foregroundStyle(Palette.secondaryText)
                 }
@@ -81,7 +83,7 @@ struct SportsStatsContent: View {
                 .font(.caption).foregroundStyle(Palette.secondaryText)
             } else {
                 VStack(spacing: 14) {
-                    Image(systemName: "chart.bar.xaxis").font(.largeTitle).foregroundStyle(SportsDataStyle.left)
+                    Image(systemName: "chart.bar.xaxis").font(.largeTitle).foregroundStyle(Palette.accent)
                     Text(model.status).font(.subheadline).foregroundStyle(Palette.secondaryText)
                 }
                 .frame(maxWidth: .infinity, minHeight: 180)
@@ -110,9 +112,9 @@ struct SportsStatsContent: View {
                 Button { tab = item } label: {
                     VStack(spacing: 12) {
                         Text(item.rawValue).font(.headline)
-                        Capsule().fill(tab == item ? SportsDataStyle.left : .clear).frame(width: 56, height: 3)
+                        Rectangle().fill(tab == item ? Palette.accent : .clear).frame(width: 56, height: 3)
                     }
-                    .foregroundStyle(tab == item ? SportsDataStyle.left : Palette.secondaryText)
+                    .foregroundStyle(tab == item ? Palette.primaryText : Palette.secondaryText)
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                 }
@@ -134,42 +136,41 @@ struct SportsStatsContent: View {
             HStack(spacing: 10) {
                 TeamCrest(url: snapshot.leftBadge, teamName: snapshot.left, size: 26)
                 Text(snapshot.left).font(.subheadline)
-                Text(scores[safe: 0] ?? "—").font(.title2.monospacedDigit().bold()).foregroundStyle(SportsDataStyle.left)
+                LEDScore(text: scores[safe: 0] ?? "—", size: 30)
                 Spacer(minLength: 8)
                 Text(snapshot.period).font(.caption).foregroundStyle(Palette.secondaryText)
                 Spacer(minLength: 8)
-                Text(scores[safe: 1] ?? "—").font(.title2.monospacedDigit().bold()).foregroundStyle(SportsDataStyle.right)
+                LEDScore(text: scores[safe: 1] ?? "—", size: 30)
                 Text(snapshot.right).font(.subheadline)
                 TeamCrest(url: snapshot.rightBadge, teamName: snapshot.right, size: 26)
             }
-            .padding(10).background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
+            .padding(10).background(Palette.card, in: RoundedRectangle(cornerRadius: 8))
         } else {
         VStack(spacing: 18) {
-            Text(snapshot.period).font(.subheadline.weight(.semibold)).foregroundStyle(SportsDataStyle.left)
+            Text(snapshot.period).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.live)
             HStack(alignment: .center, spacing: 14) {
                 scoreTeam(snapshot.left, badge: snapshot.leftBadge, tint: SportsDataStyle.left)
                 HStack(spacing: 10) {
-                    Text(scores[safe: 0] ?? "—").fixedSize(horizontal: true, vertical: false)
-                    Text(":").foregroundStyle(Palette.tertiaryText).fixedSize(horizontal: true, vertical: false)
-                    Text(scores[safe: 1] ?? "—").fixedSize(horizontal: true, vertical: false)
+                    LEDScore(text: scores[safe: 0] ?? "—", size: scoreSize)
+                    Text(":").font(BrandFont.score(scoreSize)).foregroundStyle(Palette.tertiaryText)
+                    LEDScore(text: scores[safe: 1] ?? "—", size: scoreSize)
                 }
-                .font(.system(size: scoreSize, weight: .bold, design: .rounded).monospacedDigit())
-                .minimumScaleFactor(0.6).lineLimit(1).fixedSize(horizontal: true, vertical: false).layoutPriority(1)
+                .lineLimit(1).fixedSize(horizontal: true, vertical: false).layoutPriority(1)
                 .accessibilityLabel("比分 \(snapshot.score)")
                 scoreTeam(snapshot.right, badge: snapshot.rightBadge, tint: SportsDataStyle.right)
             }
         }
         .padding(.vertical, 22).padding(.horizontal, 14)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 16))
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 8))
         }
         }
     }
 
     private var scoreSize: CGFloat {
         #if os(tvOS)
-        return 64
+        return 84
         #else
-        return 36
+        return 48
         #endif
     }
 
@@ -177,7 +178,7 @@ struct SportsStatsContent: View {
         VStack(spacing: 8) {
             TeamCrest(url: badge, teamName: name, size: crestSize)
             Text(name).font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.center)
-            Capsule().fill(tint).frame(width: 24, height: 3)
+            Rectangle().fill(tint).frame(width: 24, height: 3)
         }
         .frame(maxWidth: .infinity)
     }
@@ -191,7 +192,7 @@ struct SportsStatsContent: View {
 
     private func sectionTitle(_ text: String) -> some View {
         HStack(spacing: 9) {
-            Rectangle().fill(SportsDataStyle.left).frame(width: 3, height: 16)
+            Rectangle().fill(Palette.accent).frame(width: 3, height: 16)
             Text(text).font(.headline)
         }
     }
@@ -225,10 +226,10 @@ struct SportsStatsContent: View {
                     .foregroundStyle(header ? Palette.secondaryText : Palette.primaryText)
                     .frame(width: index == 0 ? 80 : cellWidth, height: SportsDataStyle.rowHeight,
                            alignment: index == 0 ? .leading : .center)
-                    .background(index == row.count - 1 ? SportsDataStyle.left.opacity(0.08) : .clear)
+                    .background(index == row.count - 1 ? Palette.accent.opacity(0.08) : .clear)
             }
         }
-        .background(header ? Color.white.opacity(0.04) : .clear)
+        .background(header ? Palette.surface : .clear)
         .overlay(alignment: .bottom) { Rectangle().fill(SportsDataStyle.line).frame(height: 0.5) }
     }
 
@@ -243,18 +244,18 @@ struct SportsStatsContent: View {
             ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
                 VStack(spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(row[safe: 1] ?? "—").fontWeight(.semibold).foregroundStyle(SportsDataStyle.left)
+                        Text(row[safe: 1] ?? "—").font(BrandFont.numeric(15, relativeTo: .subheadline)).foregroundStyle(Palette.primaryText)
                         Spacer(minLength: 4)
                         Text(row[safe: 0] ?? "").font(.caption).foregroundStyle(Palette.secondaryText)
                         Spacer(minLength: 4)
-                        Text(row[safe: 2] ?? "—").fontWeight(.semibold).foregroundStyle(SportsDataStyle.right)
+                        Text(row[safe: 2] ?? "—").font(BrandFont.numeric(15, relativeTo: .subheadline)).foregroundStyle(Palette.primaryText)
                     }
                     .font(.subheadline.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
                     if let metric = SportsStatComparison(row: row) {
                         GeometryReader { geometry in
                             HStack(spacing: 3) {
-                                Capsule().fill(SportsDataStyle.left).frame(width: max(0, geometry.size.width - 3) * CGFloat(metric.leftShare))
-                                Capsule().fill(SportsDataStyle.right)
+                                RoundedRectangle(cornerRadius: 2).fill(SportsDataStyle.left).frame(width: max(0, geometry.size.width - 3) * CGFloat(metric.leftShare))
+                                RoundedRectangle(cornerRadius: 2).fill(SportsDataStyle.right)
                             }
                         }.frame(height: 5)
                     }
@@ -275,9 +276,9 @@ struct SportsStatsContent: View {
                             Text(table.title.components(separatedBy: " · ").first ?? table.title)
                                 .font(.subheadline.weight(.semibold))
                                 .padding(.vertical, 10).padding(.horizontal, 18)
-                                .background(selectedTeam == index ? SportsDataStyle.left.opacity(0.2) : Palette.surface,
+                                .background(selectedTeam == index ? Palette.accent.opacity(0.16) : Palette.surface,
                                             in: RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(selectedTeam == index ? SportsDataStyle.left : .clear))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(selectedTeam == index ? Palette.accent : .clear))
                         }
                         #if os(tvOS)
                         .buttonStyle(.bordered)
@@ -302,17 +303,17 @@ struct SportsStatsContent: View {
                 playerCell(table.headers.first ?? "球员", column: 0, header: true, total: false)
                 ForEach(Array(table.rows.enumerated()), id: \.offset) { index, row in
                     playerCell(row.first ?? "—", column: 0, header: false, total: row.first == "统计")
-                        .background(index.isMultiple(of: 2) ? Color.clear : Color.white.opacity(0.025))
+                        .background(index.isMultiple(of: 2) ? Color.clear : Palette.surface.opacity(0.5))
                 }
             }
-            .background(Palette.backgroundBottom)
+            .background(Palette.card)
             .overlay(alignment: .trailing) { Rectangle().fill(SportsDataStyle.line).frame(width: 1) }
             ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     playerDataRow(Array(table.headers.dropFirst()), header: true, total: false)
                     ForEach(Array(table.rows.enumerated()), id: \.offset) { index, row in
                         playerDataRow(Array(row.dropFirst()), header: false, total: row.first == "统计")
-                            .background(index.isMultiple(of: 2) ? Color.clear : Color.white.opacity(0.025))
+                            .background(index.isMultiple(of: 2) ? Color.clear : Palette.surface.opacity(0.5))
                     }
                 }
             }
@@ -320,7 +321,7 @@ struct SportsStatsContent: View {
             .focusable()
             #endif
         }
-        .font(.subheadline.monospacedDigit())
+        .font(BrandFont.numeric(14, relativeTo: .subheadline))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -334,12 +335,12 @@ struct SportsStatsContent: View {
 
     private func playerCell(_ value: String, column: Int, header: Bool, total: Bool) -> some View {
         Text(value).fontWeight(header || total || column == 2 ? .semibold : .regular)
-            .foregroundStyle(header ? Palette.secondaryText : (column == 2 ? SportsDataStyle.left : Palette.primaryText))
+            .foregroundStyle(header ? Palette.secondaryText : (column == 2 ? Palette.accent : Palette.primaryText))
             .lineLimit(column == 0 ? 2 : 1).minimumScaleFactor(0.75)
             .frame(width: column == 0 ? SportsDataStyle.playerWidth : SportsDataStyle.cellWidth,
                    height: SportsDataStyle.rowHeight, alignment: column == 0 ? .leading : .center)
             .padding(.leading, column == 0 ? 8 : 0)
-            .background(header || total ? Color.white.opacity(0.05) : Color.clear)
+            .background(header || total ? Palette.surface : Color.clear)
             .overlay(alignment: .bottom) { Rectangle().fill(SportsDataStyle.line).frame(height: 0.5) }
     }
 

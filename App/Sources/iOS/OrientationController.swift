@@ -1,13 +1,17 @@
 import SwiftUI
 import UIKit
 
-/// On a phone-shaped screen the list is a portrait screen and the player a
-/// landscape one. iOS only lets a view controller *permit* orientations, so
+/// On a phone-shaped screen the list is a portrait screen. The player follows
+/// the phone: upright it shows the picture on top and the statistics below,
+/// turned sideways it fills the screen. Its full-screen button locks
+/// landscape until the viewer asks for the upright layout again. iOS only lets a view controller *permit* orientations, so
 /// the app delegate answers from whether the player is up and the shape of
 /// the screen the window is on now: folding iPhone Duo moves a playing match
 /// from the inner display to the phone-shaped outer one.
 final class AppDelegate: NSObject, UIApplicationDelegate {
     static var playerIsUp = false
+    /// The viewer pressed full screen: hold landscape even if the phone is upright.
+    static var playerFullScreen = false
 
     func application(
         _ application: UIApplication,
@@ -40,14 +44,37 @@ enum Orientation {
     }
 
     static func playerMask(for traits: UITraitCollection?) -> UIInterfaceOrientationMask {
-        isPhoneShaped(traits) ? .landscape : .all
+        guard isPhoneShaped(traits) else { return .all }
+        return AppDelegate.playerFullScreen ? .landscape : .allButUpsideDown
     }
 
-    /// The player is up: lock a phone-shaped screen to landscape and turn it.
-    static func enterLandscape() {
+    /// The player is up: let a phone-shaped screen follow the phone.
+    static func enterPlayer() {
         AppDelegate.playerIsUp = true
-        guard let scene = activeScene, isPhoneShaped(scene.traitCollection) else { return }
+        AppDelegate.playerFullScreen = false
+        guard let scene = activeScene else { return }
+        request(playerMask(for: scene.traitCollection), in: scene)
+    }
+
+    /// Full screen on a phone: turn to landscape and hold it there.
+    static func enterFullScreen() {
+        guard AppDelegate.playerIsUp, let scene = activeScene, isPhoneShaped(scene.traitCollection) else { return }
+        AppDelegate.playerFullScreen = true
         request(.landscapeRight, in: scene)
+    }
+
+    /// A player with nothing to show beside the picture (recordings):
+    /// landscape, held.
+    static func enterLandscape() {
+        enterPlayer()
+        enterFullScreen()
+    }
+
+    /// Back to the upright picture-and-statistics layout.
+    static func leaveFullScreen() {
+        guard AppDelegate.playerIsUp, let scene = activeScene, isPhoneShaped(scene.traitCollection) else { return }
+        AppDelegate.playerFullScreen = false
+        request(.portrait, in: scene)
     }
 
     /// The player's screen changed shape, as when iPhone Duo is folded or
@@ -67,6 +94,7 @@ enum Orientation {
     static func restoreDefault() {
         guard AppDelegate.playerIsUp else { return }
         AppDelegate.playerIsUp = false
+        AppDelegate.playerFullScreen = false
         guard let scene = activeScene else { return }
         // Closed on the open inner display: it rotates freely, so lift the
         // lock without turning it back to portrait.

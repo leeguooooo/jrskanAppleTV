@@ -85,7 +85,7 @@ struct MatchDetailView: View {
                 insights: model.insights,
                 channels: model.resolvedChannels,
                 onSelectChannel: { index in
-                    Task { await model.startPlayback(at: index) }
+                    Task { await model.startManualPlayback(at: index) }
                 },
                 onStall: { id, message in model.handleStall(message, requestID: id) },
                 onConfirmed: { id, startup in model.confirmPlayback(requestID: id, startupSeconds: startup) },
@@ -136,8 +136,9 @@ struct MatchDetailView: View {
         let shown = MatchSchedule.displayTime(for: match.time, now: now)
         return VStack(spacing: 10) {
             Text(match.scoreText ?? "VS")
-                .font(.title.monospacedDigit().weight(.heavy))
-                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.primaryText)
+                .font(BrandFont.score(96))
+                .foregroundStyle(match.scoreText == nil ? Palette.tertiaryText : Palette.accent)
+                .shadow(color: Palette.accent.opacity(match.scoreText == nil ? 0 : 0.45), radius: 14)
 
             Text(shown.day.isEmpty ? shown.clock : "\(shown.day) \(shown.clock)")
                 .font(.title3.monospacedDigit().weight(.medium))
@@ -232,7 +233,7 @@ struct MatchDetailView: View {
             LazyVStack(spacing: 16) {
                 ForEach(Array(model.resolvedChannels.enumerated()), id: \.element.id) { index, source in
                     Button {
-                        Task { await model.startPlayback(at: index) }
+                        Task { await model.startManualPlayback(at: index) }
                     } label: {
                         ChannelCard(
                             number: index + 1,
