@@ -51,7 +51,7 @@ struct SettingsView: View {
                 .font(.system(size: 56, weight: .bold))
                 .foregroundStyle(Palette.primaryText)
 
-            Text("JRKAN · 版本 \(Self.versionText)")
+            Text("leeguoo sports · 版本 \(Self.versionText)")
                 .font(.callout)
                 .foregroundStyle(Palette.tertiaryText)
 

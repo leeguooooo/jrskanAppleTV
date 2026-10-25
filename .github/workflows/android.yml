@@ -101,6 +101,6 @@ jobs:
             gh release upload "$tag" "$apk" "$apk.sha256" --clobber
           else
             gh release create "$tag" "$apk" "$apk.sha256" --draft --target "$GITHUB_SHA" \
-              --title "JRKAN Android ${{ steps.version.outputs.name }}" \
+              --title "leeguoo sports Android ${{ steps.version.outputs.name }}" \
               --notes "内部测试版。下载 APK 安装（需允许安装未知来源应用），用同一个签名，后续版本可以直接覆盖安装。"
           fi

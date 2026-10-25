@@ -54,7 +54,7 @@ struct RecordingsScreen: View {
                 } header: {
                     Text("已录制")
                 } footer: {
-                    Text("录完会自动生成带水印的 MP4，存在「文件」App › 我的 iPhone › JRKAN › 录像，点右边的分享按钮就能发出去。录像只保存在本机，不会上传。")
+                    Text("录完会自动生成带水印的 MP4，存在「文件」App › 我的 iPhone › leeguoo sports › 录像，点右边的分享按钮就能发出去。录像只保存在本机，不会上传。")
                 }
 
                 Section {

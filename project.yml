@@ -35,8 +35,8 @@ targets:
     info:
       path: App/Info-TV.plist
       properties:
-        CFBundleDisplayName: JRKAN
-        CFBundleName: JRKAN
+        CFBundleDisplayName: leeguoo sports
+        CFBundleName: leeguoo sports
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchStoryboardName: LaunchScreen
@@ -66,8 +66,8 @@ targets:
     info:
       path: App/Info-iOS.plist
       properties:
-        CFBundleDisplayName: JRKAN
-        CFBundleName: JRKAN
+        CFBundleDisplayName: leeguoo sports
+        CFBundleName: leeguoo sports
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
@@ -86,7 +86,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIUserInterfaceStyle: Dark
-        # 录像生成的 MP4 放在 Documents/录像：「文件」App › 我的 iPhone › JRKAN 里能直接看到、分享。
+        # 录像生成的 MP4 放在 Documents/录像：「文件」App › 我的 iPhone › leeguoo sports 里能直接看到、分享。
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         # 画中画 / 锁屏继续出声都需要

@@ -94,7 +94,7 @@ struct RegularMatchListScreen: View {
                 }
             }
         }
-        .navigationTitle("JRKAN")
+        .navigationTitle("leeguoo sports")
         .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
         .toolbar {
             ToolbarItem {

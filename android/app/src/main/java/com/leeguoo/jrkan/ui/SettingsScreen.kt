@@ -165,7 +165,7 @@ fun SettingsScreen(
             }
             item {
                 Text(
-                    "JRKAN · 版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    "leeguoo sports · 版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     fontSize = 12.sp, color = Palette.tertiaryText,
                     modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp),
                 )

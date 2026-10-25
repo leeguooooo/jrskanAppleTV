@@ -87,7 +87,7 @@ struct SettingsScreen: View {
             } header: {
                 Text("关于")
             } footer: {
-                Text("JRKAN · 版本 \(Self.versionText)")
+                Text("leeguoo sports · 版本 \(Self.versionText)")
                     .padding(.top, 8)
             }
         }

@@ -1,4 +1,6 @@
-# JRKAN cross-platform work
+# leeguoo sports (formerly JRKAN) cross-platform work
+
+The product is called **leeguoo sports**. JRKAN survives only in identifiers (bundle id `com.leeguoo.jrskan.tv`, Android package `com.leeguoo.jrkan`, Xcode targets/schemes, `JRKAN_*` CI variables, KV key `jrkan`, account tenant/client ids, recording folders); never rename those as part of branding.
 
 - The supported family is iPhone/iPad, Apple TV, Mac Catalyst and Android. A business or provider-contract fix must check both `App/Sources/Shared` and `android/app/src/main/java/com/leeguoo/jrkan/{data,state}`. State explicitly when a platform-specific feature differs.
 - Use `contracts/tencent-sports.json` and `contracts/multi-sports.json` for shared channel-priority, provider-entry, statistics and comment samples. Both `App/Tests/TencentSportsTests.swift` and Android `TencentSportsTest` must consume it. Add a provider's new entry to both implementations and this fixture.
