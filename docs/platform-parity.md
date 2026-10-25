@@ -24,7 +24,7 @@
 - 不向第三方暴露网站：所有上游抓取经 `web/relay` 出口中转（腾讯云 VM）发出，没有 `Cf-Worker` 头和我们的 Origin/Referer；视频在 sandbox iframe 里用原生 HLS 播放，线路 CDN 的请求不带 Origin、Referer、Cookie。
 - 关注、观看记录、线路表现记在浏览器 localStorage。
 
-网页版差异：没有录像与导出；只支持有原生 HLS 的浏览器（Chrome、Edge、Safari、安卓 Chrome；Firefox 会提示换浏览器），因为 hls.js 的请求必然带 Origin；不支持 AirPlay；画中画用浏览器标准接口（浏览器不支持时不显示按钮）；浏览器拒绝带声音自动播放时显示「点击播放」，此时算暂停，不触发换线；线路 CDN 没有 CORS 时网页版无法播放该线路，会按无画面自动换线。全屏走播放器自己的全屏按钮（整块画面，水印与弹幕都在）；iPhone Safari 只能让 video 元素本身全屏、浏览器画中画窗口也只有视频，这两种情况下看不到水印和弹幕。
+网页版差异：没有录像与导出；只支持有原生 HLS 的浏览器（Chrome、Edge、Safari、安卓 Chrome；Firefox 会提示换浏览器），因为 hls.js 的请求必然带 Origin；不支持 AirPlay；画中画用视频自带控件里的按钮；浏览器拒绝带声音自动播放时显示「点击播放」，此时算暂停，不触发换线；全屏走播放器自己的全屏按钮（整块画面，水印与弹幕都在）；iPhone Safari 只能让 video 元素本身全屏、浏览器画中画窗口也只有视频，这两种情况下看不到水印和弹幕。
 
 平台差异：AirPlay 为 Apple 原生能力，Android 未宣称支持 AirPlay；Android 使用原生画中画和 MediaStore，Apple 使用 AVKit 与照片/文件接口。Android 手机包不等同于 Android TV 遥控器版本。
 
