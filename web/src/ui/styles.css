@@ -249,3 +249,9 @@ details.channels[open] > summary svg { transform: rotate(90deg); }
 @media (min-width: 960px) {
   .wide-only-placeholder { padding-top: 12vh; }
 }
+
+/* Phones: the mark alone, so the search field keeps a usable width. */
+@media (max-width: 520px) {
+  .brand span { display: none; }
+  .topbar { gap: 8px; }
+}
