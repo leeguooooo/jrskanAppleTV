@@ -48,6 +48,8 @@ class MatchPlaybackModel(
         val notice: String? = null,
         val stalledIndices: Set<Int> = emptySet(),
         val failedResolutionIndices: Set<Int> = emptySet(),
+        /** false after the automatic pick (incl. autoplay), true once the viewer picks a channel. */
+        val choseManually: Boolean = false,
     )
 
     private var didOpenMatch = false
@@ -151,8 +153,19 @@ class MatchPlaybackModel(
 
     fun startSuggestedPlayback() {
         val source = suggestedChannel ?: return
+        _state.update { it.copy(choseManually = false) }
         startPlayback(resolvedChannels.indexOf(source))
     }
+
+    /** A channel the viewer picked from the line menu or the manual list. */
+    fun startManualPlayback(index: Int) {
+        _state.update { it.copy(choseManually = true) }
+        startPlayback(index)
+    }
+
+    /** Channel indices in automatic-selection order (read-only view of Preferences.rankedIndices). */
+    val rankedIndices: List<Int>
+        get() = preferences.rankedIndices(resolvedChannels, match.id)
 
     // Playback
 

@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -80,7 +81,9 @@ class MainActivity : ComponentActivity() {
                 if (BuildConfig.DEBUG && intent.hasExtra("jrkan_qa")) {
                     com.leeguoo.jrkan.ui.ParityQaScreen(intent, app)
                     val qaPlaying by PlayerSession.isPresented.collectAsState()
-                    LaunchedEffect(qaPlaying) { applyPlayerChrome(qaPlaying) }
+                    val qaFull by PlayerSession.fullScreen.collectAsState()
+                    val qaLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                    LaunchedEffect(qaPlaying, qaFull, qaLandscape) { applyPlayerChrome(qaPlaying, qaFull, qaLandscape) }
                 } else {
                 val presented by PlayerSession.isPresented.collectAsState()
                 val playerModel by PlayerSession.model.collectAsState()
@@ -91,7 +94,9 @@ class MainActivity : ComponentActivity() {
                         PlayerScreen(model, inPip, onPictureInPicture = ::enterPip)
                     }
                 }
-                LaunchedEffect(presented) { applyPlayerChrome(presented) }
+                val fullScreen by PlayerSession.fullScreen.collectAsState()
+                val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                LaunchedEffect(presented, fullScreen, landscape) { applyPlayerChrome(presented, fullScreen, landscape) }
                 }
             }
         }
@@ -159,13 +164,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Landscape and no system bars while the player is up; back to normal after. */
-    private fun applyPlayerChrome(playing: Boolean) {
+    /**
+     * While the player is up it follows the device (upright = portrait watch
+     * page, respecting the rotation lock); 全屏 forces landscape. System bars
+     * hide only in landscape. Back to normal after.
+     */
+    private fun applyPlayerChrome(playing: Boolean, fullScreen: Boolean, landscape: Boolean) {
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         if (playing) {
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.systemBars())
+            requestedOrientation = if (fullScreen) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+            if (fullScreen || landscape) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
         } else {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             controller.show(WindowInsetsCompat.Type.systemBars())

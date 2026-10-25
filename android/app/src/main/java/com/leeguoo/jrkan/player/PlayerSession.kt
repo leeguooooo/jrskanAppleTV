@@ -44,6 +44,17 @@ object PlayerSession {
     private val _fillsScreen = MutableStateFlow(false)
     val fillsScreen: StateFlow<Boolean> = _fillsScreen
 
+    /**
+     * The viewer asked for landscape full screen (全屏). Otherwise the player
+     * follows the device: upright shows the portrait watch page.
+     */
+    private val _fullScreen = MutableStateFlow(false)
+    val fullScreen: StateFlow<Boolean> = _fullScreen
+
+    fun setFullScreen(on: Boolean) {
+        _fullScreen.value = on
+    }
+
     var isInPictureInPicture = false
 
     private var player: ExoPlayer? = null
@@ -96,6 +107,7 @@ object PlayerSession {
     /** The player screen was closed. Without PiP that ends playback. */
     fun dismiss() {
         _isPresented.value = false
+        _fullScreen.value = false
         if (!isInPictureInPicture) end()
     }
 
@@ -109,6 +121,7 @@ object PlayerSession {
         _model.value?.stopPlayback()
         _model.value = null
         _isPresented.value = false
+        _fullScreen.value = false
     }
 
     val isPlaying: Boolean get() = player?.isPlaying == true

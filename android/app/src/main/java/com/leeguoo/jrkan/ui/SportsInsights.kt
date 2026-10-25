@@ -2,11 +2,18 @@ package com.leeguoo.jrkan.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,17 +24,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,13 +40,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
@@ -50,7 +56,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -67,13 +73,13 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** Same content hierarchy and source semantics as SportsInsightsViews.swift. */
+/** Same content hierarchy and source semantics as SportsInsightsViews.swift, in the scoreboard palette. */
 object SportsColors {
-    val left = Color(0xFF3D87FF)
-    val right = Color(0xFFFFA64A)
-    val canvas = Color(0xFF050509)
-    val line = Color.White.copy(alpha = 0.09f)
-    val surface = Color.White.copy(alpha = 0.055f)
+    val left = Palette.home
+    val right = Palette.away
+    val canvas = Palette.background
+    val line = Color(0x0FFFECD2)
+    val surface = Palette.cell
 }
 
 /** Exactly one consumer: the route until playback opens, then PlayerScreen. */
@@ -105,169 +111,190 @@ fun SportsStatsDialog(model: MatchInsightsModel, onClose: () -> Unit) {
     }
 }
 
+/** The full-page statistics (detail dialog and the parity harness). */
 @Composable
 fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier, initialPlayers: Boolean = false) {
     val state by model.state.collectAsState()
-    var players by rememberSaveable { androidx.compose.runtime.mutableStateOf(initialPlayers) }
-    var team by rememberSaveable { mutableIntStateOf(0) }
+    var players by rememberSaveable { mutableStateOf(initialPlayers) }
     val snapshot = state.snapshot
     val configuration = LocalConfiguration.current
     val compact = configuration.screenHeightDp < 480 && configuration.screenWidthDp > configuration.screenHeightDp
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(Modifier.widthIn(max = 1200.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 24.dp)) {
+        verticalArrangement = Arrangement.spacedBy(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.widthIn(max = 1200.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 20.dp)) {
             if (snapshot == null) {
                 Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                     Text(state.status, color = Palette.secondaryText, fontSize = 15.sp, textAlign = TextAlign.Center)
                 }
             } else {
-                Scoreboard(snapshot, compact)
+                Scoreboard(snapshot)
                 snapshot.scoreSourceName?.takeIf { it != snapshot.sourceName }?.let {
                     Text("比分来源：$it", color = Palette.secondaryText, fontSize = 12.sp)
                 }
-                Row(Modifier.fillMaxWidth().borderBottom()) {
-                    listOf("本场概况", "技术统计").forEachIndexed { index, label ->
-                        val active = players == (index == 1)
-                        TextButton(onClick = { players = index == 1 }, modifier = Modifier.weight(1f)
-                            .semantics { selected = active }.testTag(if (index == 0) "sports_overview" else "sports_players")) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(label, color = if (active) SportsColors.left else Palette.secondaryText,
-                                    fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                                Spacer(Modifier.height(12.dp))
-                                Box(Modifier.width(56.dp).height(3.dp).clip(CircleShape).background(if (active) SportsColors.left else Color.Transparent))
-                            }
-                        }
-                    }
-                }
+                UnderlineTabs(listOf("本场概况", "技术统计"), if (players) 1 else 0, tags = listOf("sports_overview", "sports_players")) { players = it == 1 }
                 if (!players) {
-                    snapshot.periodTable?.let { PeriodScores(it); TableSource(it) }
-                    snapshot.comparisonTable?.let { TeamComparison(it, snapshot); TableSource(it) }
+                    snapshot.periodTable?.let { PeriodScoresCompact(it, snapshot); TableSource(it) }
+                    snapshot.comparisonTable?.let { TeamBars(it, snapshot); TableSource(it) }
                     if (snapshot.periodTable == null && snapshot.comparisonTable == null) NoStatistics()
                 } else {
-                    val tables = snapshot.playerTables
-                    if (tables.isEmpty()) NoStatistics() else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            tables.forEachIndexed { index, table ->
-                                TextButton(onClick = { team = index }, modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (team == index) SportsColors.left.copy(alpha = 0.2f) else SportsColors.surface)
-                                    .border(1.dp, if (team == index) SportsColors.left else Color.Transparent, RoundedCornerShape(8.dp))
-                                    .semantics { selected = team == index }) {
-                                    Text(table.title.substringBefore(" · "), color = Color.White, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                        TableSource(tables[team.coerceAtMost(tables.lastIndex)])
-                        FrozenPlayerTable(tables[team.coerceAtMost(tables.lastIndex)])
-                        Text("球员姓名固定，左右滚动查看其余统计", color = Palette.secondaryText, fontSize = 12.sp)
-                    }
+                    PlayersSection(snapshot)
                 }
-                val time = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(snapshot.updatedAt))
-                Text("${snapshot.sourceName}  $time 更新", color = Palette.secondaryText, fontSize = 12.sp)
-                if (state.status.isNotEmpty()) Text(state.status, color = Palette.secondaryText, fontSize = 12.sp)
+                Footer(snapshot, state.status)
+            }
+        }
+    }
+}
+
+/** Which page a stats tab shows. */
+enum class StatsTab(val title: String) {
+    Overview("赛况"), Players("球员数据"), PlayersShort("球员"), Team("球队对比"), TeamShort("球队"), Periods("分节"),
+}
+
+/**
+ * Tabbed statistics for the player: the landscape side panel (球员 / 球队 / 分节)
+ * and the upright watch page (赛况 / 球员数据 / 球队对比). No scoreboard of its
+ * own — the player already shows the score next to it.
+ */
+@Composable
+fun SportsStatsTabs(model: MatchInsightsModel, tabs: List<StatsTab>, modifier: Modifier = Modifier, initial: Int = 0) {
+    val state by model.state.collectAsState()
+    var selected by rememberSaveable { mutableIntStateOf(initial) }
+    val snapshot = state.snapshot
+    Column(modifier) {
+        UnderlineTabs(tabs.map { it.title }, selected, Modifier.padding(horizontal = 14.dp)) { selected = it }
+        Column(Modifier.weight(1f, fill = true).verticalScroll(rememberScrollState()).padding(top = 10.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
+            if (snapshot == null) {
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    Text(state.status.ifEmpty { "正在载入本场数据…" }, color = Palette.secondaryText, fontSize = 14.sp, textAlign = TextAlign.Center)
+                }
+            } else {
+                Column(Modifier.padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    when (tabs.getOrElse(selected) { tabs.first() }) {
+                        StatsTab.Players, StatsTab.PlayersShort -> PlayersSection(snapshot)
+                        StatsTab.Team, StatsTab.TeamShort -> snapshot.comparisonTable?.let { TeamBars(it, snapshot); TableSource(it) } ?: NoStatistics()
+                        StatsTab.Periods -> snapshot.periodTable?.let { PeriodScoresCompact(it, snapshot); TableSource(it) } ?: NoStatistics()
+                        StatsTab.Overview -> {
+                            snapshot.periodTable?.let { PeriodScoresCompact(it, snapshot) }
+                            snapshot.comparisonTable?.let { TeamBars(it, snapshot, limit = 5) }
+                            if (snapshot.periodTable == null && snapshot.comparisonTable == null) NoStatistics()
+                        }
+                    }
+                    Footer(snapshot, state.status)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Scoreboard(snapshot: SportsSnapshot, compact: Boolean) {
+private fun UnderlineTabs(labels: List<String>, selected: Int, modifier: Modifier = Modifier, tags: List<String>? = null, onSelect: (Int) -> Unit) {
+    Row(modifier.fillMaxWidth().borderBottom(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        labels.forEachIndexed { index, label ->
+            val active = index == selected
+            Column(
+                Modifier.width(IntrinsicSize.Max).clickable { onSelect(index) }.semantics { this.selected = active }
+                    .let { m -> tags?.getOrNull(index)?.let { m.testTag(it) } ?: m }
+                    .padding(top = 12.dp),
+            ) {
+                Text(label, color = if (active) Palette.primaryText else Palette.secondaryText, fontSize = 15.sp,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
+                Spacer(Modifier.height(9.dp))
+                Box(Modifier.height(2.dp).fillMaxWidth().background(if (active) Palette.primaryText else Color.Transparent))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayersSection(snapshot: SportsSnapshot) {
+    var team by rememberSaveable { mutableIntStateOf(0) }
+    val tables = snapshot.playerTables
+    if (tables.isEmpty()) { NoStatistics(); return }
+    val badges = listOf(snapshot.leftBadge, snapshot.rightBadge)
+    // Team switch: a two-up segmented control, 8dp corners.
+    Row(Modifier.fillMaxWidth().clip(ScoreShape).background(Color(0x12FFECD2)).padding(3.dp)) {
+        tables.forEachIndexed { index, table ->
+            val name = table.title.substringBefore(" · ")
+            val active = team == index
+            Row(
+                Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(6.dp))
+                    .background(if (active) Color(0x24FFECD2) else Color.Transparent)
+                    .clickable { team = index }.semantics { selected = active },
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+            ) {
+                val badge = badges.getOrNull(index).takeIf { tables.size == 2 }
+                if (badge != null) { TeamCrest(badge, name, 16.dp); Spacer(Modifier.width(6.dp)) }
+                Text(name, color = if (active) Palette.primaryText else Palette.secondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+    val table = tables[team.coerceAtMost(tables.lastIndex)]
+    FrozenPlayerTable(table)
+    Text("表格可左右滑动 · 球员名固定在左侧", color = Palette.tertiaryText, fontSize = 11.sp)
+    TableSource(table)
+}
+
+@Composable
+private fun Footer(snapshot: SportsSnapshot, status: String) {
+    val time = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(snapshot.updatedAt))
+    Text("${snapshot.sourceName} · $time 更新", color = Palette.tertiaryText, style = chakraStyle(11.sp, FontWeight.SemiBold, Palette.tertiaryText))
+    if (status.isNotEmpty()) Text(status, color = Palette.secondaryText, fontSize = 12.sp)
+}
+
+@Composable
+private fun Scoreboard(snapshot: SportsSnapshot) {
     val scores = snapshot.score.split(":").map(String::trim)
-    if (compact) {
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SportsColors.surface).padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TeamCrest(snapshot.leftBadge, snapshot.left, 26.dp)
-            Text(snapshot.left, color = Color.White, fontSize = 14.sp)
-            Text(scores.getOrElse(0) { "—" }, color = SportsColors.left, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Text(snapshot.period, Modifier.weight(1f), color = Palette.secondaryText, fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text(scores.getOrElse(1) { "—" }, color = SportsColors.right, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Text(snapshot.right, color = Color.White, fontSize = 14.sp)
-            TeamCrest(snapshot.rightBadge, snapshot.right, 26.dp)
+    Row(Modifier.fillMaxWidth().clip(ScoreShape).background(Palette.cell).border(1.dp, Palette.separator, ScoreShape).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TeamCrest(snapshot.leftBadge, snapshot.left, 30.dp)
+            Text(snapshot.left, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        return
-    }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SportsColors.surface).padding(horizontal = 14.dp, vertical = 22.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Text(snapshot.period, color = SportsColors.left, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ScoreTeam(snapshot.left, snapshot.leftBadge, SportsColors.left, Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(scores.getOrElse(0) { "—" }, color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(":", color = Palette.tertiaryText, fontSize = 36.sp)
-                Text(scores.getOrElse(1) { "—" }, color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            }
-            ScoreTeam(snapshot.right, snapshot.rightBadge, SportsColors.right, Modifier.weight(1f))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            LedScore(scores.getOrElse(0) { "—" }, scores.getOrElse(1) { "—" }, 34.sp, colonPadding = 4.dp)
+            Text(snapshot.period, style = chakraStyle(11.sp, FontWeight.Bold, Palette.live), maxLines = 1)
+        }
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            Text(snapshot.right, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            TeamCrest(snapshot.rightBadge, snapshot.right, 30.dp)
         }
     }
 }
 
+/** Period scores as a compact grid: team, one column per period, bold total. */
 @Composable
-private fun ScoreTeam(name: String, badge: String?, tint: Color, modifier: Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TeamCrest(badge, name, 42.dp)
-        Text(name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 2)
-        Box(Modifier.size(24.dp, 3.dp).clip(CircleShape).background(tint))
-    }
-}
-
-@Composable
-private fun Heading(title: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Box(Modifier.size(3.dp, 16.dp).background(SportsColors.left))
-        Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun PeriodScores(table: SportsTable) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Heading("分节得分")
+fun PeriodScoresCompact(table: SportsTable, snapshot: SportsSnapshot) {
+    val totals = table.rows.map { it.lastOrNull()?.trim()?.toIntOrNull() }
+    val best = totals.filterNotNull().maxOrNull()
+    val badges = listOf(snapshot.leftBadge, snapshot.rightBadge)
+    Column(Modifier.fillMaxWidth()) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val cell = maxOf(34.dp, (maxWidth - 80.dp) / (table.headers.size - 1).coerceAtLeast(1))
+            val periods = (table.headers.size - 1).coerceAtLeast(1)
+            val cell = ((maxWidth - 100.dp) / periods).coerceIn(30.dp, 48.dp)
             Column(Modifier.horizontalScroll(rememberScrollState())) {
-                PeriodRow(table.headers, cell, true)
-                table.rows.forEach { PeriodRow(it, cell, false) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PeriodRow(values: List<String>, width: Dp, header: Boolean) {
-    Row(Modifier.background(if (header) Color.White.copy(alpha = 0.04f) else Color.Transparent).borderBottom()) {
-        values.forEachIndexed { index, value ->
-            Box(Modifier.width(if (index == 0) 80.dp else width).height(44.dp)
-                .background(if (index == values.lastIndex) SportsColors.left.copy(alpha = 0.08f) else Color.Transparent),
-                contentAlignment = if (index == 0) Alignment.CenterStart else Alignment.Center) {
-                Text(value, color = if (header) Palette.secondaryText else Color.White, fontSize = 14.sp,
-                    fontWeight = if (header || index == values.lastIndex) FontWeight.SemiBold else FontWeight.Normal)
-            }
-        }
-    }
-}
-
-@Composable
-private fun TeamComparison(table: SportsTable, snapshot: SportsSnapshot) {
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Heading("球队对比")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("●  ${snapshot.left}", color = SportsColors.left, fontSize = 12.sp)
-            Text("●  ${snapshot.right}", color = SportsColors.right, fontSize = 12.sp)
-        }
-        table.rows.forEach { row ->
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(row.getOrElse(1) { "—" }, Modifier.weight(1f), color = SportsColors.left, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text(row.firstOrNull().orEmpty(), color = Palette.secondaryText, fontSize = 12.sp, textAlign = TextAlign.Center)
-                    Text(row.getOrElse(2) { "—" }, Modifier.weight(1f), color = SportsColors.right, fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
+                Row(Modifier.height(32.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("", Modifier.width(100.dp))
+                    table.headers.drop(1).forEachIndexed { index, header ->
+                        val total = index == table.headers.size - 2 && header.contains("总")
+                        Text(header.removePrefix("第").removeSuffix("节"), Modifier.width(cell), textAlign = if (total) TextAlign.End else TextAlign.Center,
+                            style = chakraStyle(12.sp, FontWeight.SemiBold, Palette.secondaryText), maxLines = 1)
+                    }
                 }
-                SportsStatComparison.from(row)?.let { metric ->
-                    BoxWithConstraints(Modifier.fillMaxWidth().height(5.dp)) {
-                        val barWidth = (maxWidth - 3.dp).coerceAtLeast(0.dp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Box(Modifier.width(barWidth * metric.leftShare).height(5.dp).clip(CircleShape).background(SportsColors.left))
-                            Box(Modifier.weight(1f).height(5.dp).clip(CircleShape).background(SportsColors.right))
+                table.rows.forEachIndexed { rowIndex, row ->
+                    Row(Modifier.height(38.dp).borderTop(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.width(100.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (table.rows.size == 2) TeamCrest(badges.getOrNull(rowIndex), row.firstOrNull().orEmpty(), 20.dp)
+                            Text(row.firstOrNull().orEmpty(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        row.drop(1).forEachIndexed { index, value ->
+                            val last = index == row.size - 2
+                            val leading = last && totals.getOrNull(rowIndex) != null && totals[rowIndex] == best
+                            Text(value, Modifier.width(cell), textAlign = if (last) TextAlign.End else TextAlign.Center, maxLines = 1,
+                                style = chakraStyle(15.sp, if (last) FontWeight.Bold else FontWeight.SemiBold,
+                                    when { value.trim() == "—" || value.isBlank() -> Color(0xFF4A443C); last && leading -> Palette.primaryText
+                                        last -> Palette.secondaryText; else -> Color(0xFFCFC5B5) }))
                         }
                     }
                 }
@@ -276,49 +303,129 @@ private fun TeamComparison(table: SportsTable, snapshot: SportsSnapshot) {
     }
 }
 
+/** Team comparison: values either side, label centred, home blue / away amber bars from the centre. */
+@Composable
+fun TeamBars(table: SportsTable, snapshot: SportsSnapshot, limit: Int = Int.MAX_VALUE) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("球队数据", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text("● ${snapshot.left}", color = Palette.home, fontSize = 11.sp)
+            Spacer(Modifier.width(10.dp))
+            Text("● ${snapshot.right}", color = Palette.away, fontSize = 11.sp)
+        }
+        table.rows.take(limit).forEach { row ->
+            val metric = SportsStatComparison.from(row)
+            val leftLeads = metric != null && metric.left >= metric.right
+            val rightLeads = metric != null && metric.right >= metric.left
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(row.getOrElse(1) { "—" }, Modifier.width(72.dp), maxLines = 1,
+                        style = chakraStyle(14.sp, if (leftLeads) FontWeight.Bold else FontWeight.SemiBold, if (leftLeads) Palette.primaryText else Palette.secondaryText))
+                    Text(row.firstOrNull().orEmpty(), Modifier.weight(1f), color = Palette.secondaryText, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 1)
+                    Text(row.getOrElse(2) { "—" }, Modifier.width(72.dp), textAlign = TextAlign.End, maxLines = 1,
+                        style = chakraStyle(14.sp, if (rightLeads) FontWeight.Bold else FontWeight.SemiBold, if (rightLeads) Palette.primaryText else Palette.secondaryText))
+                }
+                if (metric != null) {
+                    val max = maxOf(metric.left, metric.right).takeIf { it > 0 } ?: 1.0
+                    Row(Modifier.fillMaxWidth().height(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(Color(0x0FFFECD2)), contentAlignment = Alignment.CenterEnd) {
+                            Box(Modifier.fillMaxWidth((metric.left / max).toFloat()).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(Palette.home))
+                        }
+                        Box(Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(Color(0x0FFFECD2)), contentAlignment = Alignment.CenterStart) {
+                            Box(Modifier.fillMaxWidth((metric.right / max).toFloat()).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(Palette.away))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Player table: the name column stays put, the stat columns scroll sideways; top scorer in amber. */
 @Composable
 private fun FrozenPlayerTable(table: SportsTable) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).testTag("sports_player_table")) {
-        Column(Modifier.width(124.dp).background(SportsColors.canvas)) {
-            PlayerCell(table.headers.firstOrNull().orEmpty(), 0, true, false)
-            table.rows.forEachIndexed { index, row ->
-                Box(Modifier.background(if (index % 2 == 0) Color.Transparent else Color.White.copy(alpha = 0.025f))) {
-                    PlayerCell(row.firstOrNull().orEmpty(), 0, false, row.firstOrNull() == "统计")
-                }
-            }
+    val pointsColumn = table.headers.indexOf("得分").takeIf { it > 0 } ?: 2
+    val bodyRows = table.rows.filter { it.firstOrNull() != "统计" }
+    val topPoints = bodyRows.mapNotNull { it.getOrNull(pointsColumn)?.trim()?.toIntOrNull() }.maxOrNull()
+    // One width per column, from its longest cell, so headers and values line up.
+    val widths = (1 until table.headers.size).map { column ->
+        val longest = (listOf(table.headers[column]) + table.rows.map { it.getOrElse(column) { "" } }).maxOf { it.length }
+        if (longest > 4) 58.dp else 44.dp
+    }
+    Row(Modifier.fillMaxWidth().testTag("sports_player_table")) {
+        Column(Modifier.width(104.dp).drawBehind {
+            drawRect(Brush.horizontalGradient(listOf(Color(0x66000000), Color.Transparent), startX = size.width, endX = size.width + 10.dp.toPx()),
+                topLeft = Offset(size.width, 0f), size = androidx.compose.ui.geometry.Size(10.dp.toPx(), size.height))
+            drawLine(Color(0x1AFFECD2), Offset(size.width, 0f), Offset(size.width, size.height), 1f)
+        }) {
+            NameCell(table.headers.firstOrNull().orEmpty(), header = true, total = false)
+            table.rows.forEach { row -> NameCell(row.firstOrNull().orEmpty(), header = false, total = row.firstOrNull() == "统计") }
         }
         Column(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
-            Row { table.headers.drop(1).forEachIndexed { index, text -> PlayerCell(text, index + 1, true, false) } }
-            table.rows.forEachIndexed { index, row ->
-                Row(Modifier.background(if (index % 2 == 0) Color.Transparent else Color.White.copy(alpha = 0.025f))) {
-                    row.drop(1).forEachIndexed { column, text -> PlayerCell(text, column + 1, false, row.firstOrNull() == "统计") }
+            Row { table.headers.drop(1).forEachIndexed { index, text -> StatCell(text, widths.getOrElse(index) { 44.dp }, index + 1 == pointsColumn, header = true, highlight = false, total = false) } }
+            table.rows.forEach { row ->
+                val total = row.firstOrNull() == "统计"
+                Row {
+                    row.drop(1).forEachIndexed { index, text ->
+                        val column = index + 1
+                        val top = !total && column == pointsColumn && topPoints != null && text.trim().toIntOrNull() == topPoints
+                        StatCell(text, widths.getOrElse(index) { 44.dp }, column == pointsColumn, header = false, highlight = top, total = total,
+                            tone = if (table.headers.getOrNull(column) == "+/-") plusMinusTone(text) else null)
+                    }
                 }
             }
         }
     }
 }
 
+private fun plusMinusTone(text: String): Color? = when {
+    text.trim().startsWith("-") -> Color(0xFFFF6961)
+    text.trim().startsWith("+") -> Palette.ok
+    else -> null
+}
+
 @Composable
-private fun PlayerCell(text: String, column: Int, header: Boolean, total: Boolean) {
-    Box(Modifier.width(if (column == 0) 124.dp else 60.dp).height(44.dp)
-        .background(if (header || total) Color.White.copy(alpha = 0.05f) else Color.Transparent)
-        .borderBottom().padding(start = if (column == 0) 8.dp else 0.dp),
-        contentAlignment = if (column == 0) Alignment.CenterStart else Alignment.Center) {
-        Text(text, color = if (header) Palette.secondaryText else if (column == 2) SportsColors.left else Color.White,
-            fontSize = 14.sp, fontWeight = if (header || total || column == 2) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = if (column == 0) 2 else 1)
+private fun NameCell(text: String, header: Boolean, total: Boolean) {
+    // Names like "7 方硕" keep the number small and dim.
+    val number = Regex("^(\\d{1,2})\\s+(.+)$").find(text)
+    Row(Modifier.width(104.dp).height(if (header) 30.dp else 38.dp).let { if (header) it else it.borderTop() }.padding(start = 4.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        if (number != null) Text(number.groupValues[1], style = chakraStyle(10.sp, FontWeight.SemiBold, Palette.tertiaryText), modifier = Modifier.width(14.dp))
+        Text(number?.groupValues?.get(2) ?: text, color = if (header) Palette.secondaryText else Palette.primaryText,
+            fontSize = if (header) 11.sp else 13.sp, fontWeight = if (header) FontWeight.Normal else FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
-private fun NoStatistics() { Text("暂无本场技术统计", color = Palette.secondaryText, fontSize = 15.sp, modifier = Modifier.padding(vertical = 32.dp)) }
+private fun StatCell(text: String, width: androidx.compose.ui.unit.Dp, points: Boolean, header: Boolean, highlight: Boolean, total: Boolean, tone: Color? = null) {
+    Box(Modifier.width(width).height(if (header) 30.dp else 38.dp).let { if (header) it else it.borderTop() }
+        .background(if (total) Color(0x0AFFECD2) else Color.Transparent), contentAlignment = Alignment.CenterEnd) {
+        Text(text, maxLines = 1, modifier = Modifier.padding(end = 4.dp), style = chakraStyle(
+            if (header) 11.sp else 13.sp,
+            if (points && !header) FontWeight.Bold else FontWeight.SemiBold,
+            when {
+                header -> if (points) Palette.primaryText else Palette.secondaryText
+                highlight -> Palette.accent
+                tone != null -> tone
+                else -> Palette.primaryText
+            },
+        ))
+    }
+}
+
+@Composable
+private fun NoStatistics() { Text("暂无本场技术统计", color = Palette.secondaryText, fontSize = 14.sp, modifier = Modifier.padding(vertical = 28.dp)) }
 
 private fun Modifier.borderBottom(): Modifier = drawBehind {
-    drawLine(SportsColors.line, start = androidx.compose.ui.geometry.Offset(0f, size.height),
-        end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = 1f)
+    drawLine(SportsColors.line, start = Offset(0f, size.height), end = Offset(size.width, size.height), strokeWidth = 1f)
+}
+
+private fun Modifier.borderTop(): Modifier = drawBehind {
+    drawLine(SportsColors.line, start = Offset(0f, 0f), end = Offset(size.width, 0f), strokeWidth = 1f)
 }
 
 @Composable
 private fun TableSource(table: SportsTable) {
-    if (table.sourceName.isNotEmpty()) Text("来源：${table.sourceName}", color = Palette.secondaryText, fontSize = 12.sp)
+    if (table.sourceName.isNotEmpty()) Text("来源：${table.sourceName}", color = Palette.tertiaryText, fontSize = 11.sp)
 }

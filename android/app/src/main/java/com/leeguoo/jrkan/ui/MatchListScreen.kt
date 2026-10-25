@@ -48,7 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,7 +91,6 @@ fun MatchListScreen(
     val appConfig by AppConfigStore.config.collectAsState()
     val member by AppConfigStore.isMember.collectAsState()
     val uriHandler = LocalUriHandler.current
-    val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val title = when {
         filter == SportFilter.All -> "今日比赛"
@@ -98,22 +100,21 @@ fun MatchListScreen(
     val shown = remember(state.matches, filter, favorites, recent) { model.filteredMatches(state.matches, filter, favorites) }
     val sections = remember(state.matches, filter, favorites, recent, now) { model.sections(state.matches, filter, favorites) }
 
+    val liveCount = remember(shown, now) { shown.count { MatchSchedule.status(it, now).isLive } }
+    // The first live match leads as a hero card and is left out of the rows below.
+    val hero = remember(sections, filter) {
+        if (filter == SportFilter.Recent) null
+        else sections.firstOrNull { it.status is com.leeguoo.jrkan.data.MatchStatus.Live }?.matches?.firstOrNull()
+    }
+
     Scaffold(
-        modifier = modifier.nestedScroll(scroll.nestedScrollConnection),
-        containerColor = Palette.background,
+        modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
-            LargeTopAppBar(
-                title = { Text(title, fontWeight = FontWeight.Bold) },
-                actions = {
-                    if (sport == SportFilter.All) RefinementMenu(model, filter)
-                    IconButton(onClick = onOpenSettings) { Icon(Icons.Outlined.Settings, "设置") }
-                },
-                scrollBehavior = scroll,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Palette.background,
-                    scrolledContainerColor = Palette.cell,
-                ),
-            )
+            ListHeader(title, liveCount) {
+                if (sport == SportFilter.All) RefinementMenu(model, filter)
+                IconButton(onClick = onOpenSettings) { Icon(Icons.Outlined.Settings, "设置", tint = Palette.secondaryText) }
+            }
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
@@ -124,7 +125,7 @@ fun MatchListScreen(
                 }
                 state.errorMessage != null && state.matches.isEmpty() -> EmptyState(
                     Icons.Filled.WifiOff, "暂时无法载入比赛", state.errorMessage,
-                    action = { Button(onClick = { model.refresh() }) { Text("重试") } },
+                    action = { AmberButton("重试", onClick = { model.refresh() }, icon = null) },
                 )
                 else -> PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = { model.refresh() }) {
                     LazyColumn(Modifier.fillMaxSize(), contentPadding = listContentPadding) {
@@ -170,9 +171,18 @@ fun MatchListScreen(
                                 }
                             }
                         }
+                        if (hero != null) {
+                            item(key = "hero-${hero.id}") {
+                                Column(Modifier.padding(top = 14.dp)) { LiveHeroCard(hero, now) { onOpenMatch(it, false) } }
+                            }
+                        }
                         for (section in sections) {
+                            val rows = if (hero == null) section.matches else section.matches.filter { it.id != hero.id }
+                            if (rows.isEmpty()) continue
+                            val live = section.status is com.leeguoo.jrkan.data.MatchStatus.Live
                             matchSection(
-                                "s${section.id}", section.title, section.matches, now, favorites, model.preferences,
+                                "s${section.id}", headingTitle(section.title), rows, now, favorites, model.preferences,
+                                hint = if (live) "点比赛直接开播" else null,
                             ) { onOpenMatch(it, false) }
                         }
                     }
@@ -192,6 +202,26 @@ fun MatchListScreen(
         }
     }
     LaunchedEffect(Unit) { model.loadIfNeeded() }
+}
+
+/** The mockup's wording for the upcoming group; the model keeps its own title. */
+private fun headingTitle(title: String): String = title
+
+/** Small caps date line, serif title, live count badge; refinement and settings at the right. */
+@Composable
+private fun ListHeader(title: String, liveCount: Int, actions: @Composable () -> Unit) {
+    val date = remember { SimpleDateFormat("MM.dd EEE", Locale.US).format(Date()).uppercase(Locale.US) }
+    Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("LEEGUOO SPORTS · $date", style = chakraStyle(12.sp, FontWeight.Bold, Palette.secondaryText), letterSpacing = 1.6.sp,
+                modifier = Modifier.weight(1f), maxLines = 1)
+            actions()
+        }
+        Row(Modifier.padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            HeadingText(title, 34.sp, Modifier.weight(1f))
+            if (liveCount > 0) LiveBadge("● $liveCount 场直播", size = 13.sp)
+        }
+    }
 }
 
 /** Counts follow the tab, and a score-feed problem replaces the timestamp. */
@@ -221,7 +251,7 @@ private fun RefinementMenu(model: MatchListModel, filter: SportFilter) {
             Icon(
                 if (filter == SportFilter.All) Icons.Filled.FilterList else Icons.Filled.FilterListOff,
                 "筛选",
-                tint = if (filter == SportFilter.All) Palette.primaryText else Palette.accent,
+                tint = if (filter == SportFilter.All) Palette.secondaryText else Palette.accent,
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

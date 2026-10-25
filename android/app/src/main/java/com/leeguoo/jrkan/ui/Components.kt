@@ -7,6 +7,12 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,9 +66,9 @@ import com.leeguoo.jrkan.data.MatchSchedule
 import com.leeguoo.jrkan.data.MatchStatus
 import com.leeguoo.jrkan.state.Preferences
 
-/** Grouped-list geometry: the iOS inset-grouped look, built from plain Compose. */
+/** Grouped-list geometry: one 8dp card per section, rows separated by hairlines. */
 object Grouped {
-    val corner = 20.dp
+    val corner = 8.dp
     val gutter = 16.dp
 
     fun shape(index: Int, count: Int): Shape = when {
@@ -101,42 +107,127 @@ fun GroupedCell(
     ) {
         content()
         if (index < count - 1) {
-            HorizontalDivider(Modifier.padding(start = dividerInset), thickness = 0.5.dp, color = Palette.separator)
+            HorizontalDivider(Modifier.padding(start = dividerInset), thickness = 1.dp, color = Palette.separator)
         }
     }
 }
 
+/**
+ * Fixed section heading (今日比赛 / 正在进行 …) in Noto Serif SC Black when
+ * every glyph is in the subset font; anything else falls back to system sans.
+ */
 @Composable
-fun SectionHeader(title: String, count: Int? = null, modifier: Modifier = Modifier) {
+fun SectionHeader(title: String, count: Int? = null, modifier: Modifier = Modifier, hint: String? = null) {
     Row(
-        modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        HeadingText(title, 22.sp)
         if (count != null) {
-            Text("$count", style = MaterialTheme.typography.titleLarge, color = Palette.tertiaryText)
+            Text("$count", style = chakraStyle(16.sp, FontWeight.Bold, Palette.tertiaryText), modifier = Modifier.padding(bottom = 2.dp))
         }
+        Spacer(Modifier.weight(1f))
+        if (hint != null) Text(hint, fontSize = 12.sp, color = Palette.secondaryText, modifier = Modifier.padding(bottom = 3.dp))
     }
+}
+
+/** Serif heading text; only fixed strings get the subset serif (see [Fonts.headingFamily]). */
+@Composable
+fun HeadingText(text: String, size: androidx.compose.ui.unit.TextUnit, modifier: Modifier = Modifier, color: Color = Palette.primaryText) {
+    val serif = Fonts.headingFamily(text)
+    Text(
+        text,
+        modifier = modifier,
+        color = color,
+        fontSize = size,
+        fontFamily = serif,
+        fontWeight = if (serif != null) FontWeight.Black else FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /** Plain pulsing dot; the live label next to it carries the meaning. */
 @Composable
-fun LiveDot(size: androidx.compose.ui.unit.Dp = 6.dp) {
+fun LiveDot(size: androidx.compose.ui.unit.Dp = 6.dp, color: Color = Palette.live) {
     val transition = rememberInfiniteTransition(label = "live")
     val alpha by transition.animateFloat(
         initialValue = 1f, targetValue = 0.35f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha",
     )
-    Box(Modifier.size(size).alpha(alpha).clip(CircleShape).background(Palette.live))
+    Box(Modifier.size(size).alpha(alpha).clip(CircleShape).background(color))
 }
 
-/** Team logo drawn bare; a monogram disc only when there is no logo. */
+/** Solid red live tag (直播 / ● 5 场直播). Red is reserved for live. */
+@Composable
+fun LiveBadge(text: String, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.TextUnit = 12.sp) {
+    Text(
+        text,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(Palette.live)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        color = Palette.onAccent,
+        fontSize = size,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+    )
+}
+
+/** LED scoreboard digits: "58 : 61" with a dim colon. */
+@Composable
+fun LedScore(home: String, away: String, size: androidx.compose.ui.unit.TextUnit, modifier: Modifier = Modifier, colonPadding: androidx.compose.ui.unit.Dp = 8.dp) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(home, style = ledStyle(size), maxLines = 1)
+        Text(":", style = ledStyle(size, Color(0xFF4A443C), glow = false), modifier = Modifier.padding(horizontal = colonPadding), maxLines = 1)
+        Text(away, style = ledStyle(size), maxLines = 1)
+    }
+}
+
+/** Score text "58 - 61" / "58:61" split into the two sides, or null. */
+fun splitScore(text: String?): Pair<String, String>? {
+    val parts = text?.split("-", ":")?.map(String::trim)?.filter(String::isNotEmpty) ?: return null
+    return if (parts.size == 2) parts[0] to parts[1] else null
+}
+
+/** The amber primary action: dark label on #FFB000, 8dp corners. */
+@Composable
+fun AmberButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    height: androidx.compose.ui.unit.Dp = 50.dp,
+    icon: ImageVector? = Icons.Filled.PlayArrow,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ScoreShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Palette.accent,
+            contentColor = Palette.onAccent,
+            disabledContainerColor = Palette.accent.copy(alpha = 0.3f),
+            disabledContentColor = Palette.onAccent.copy(alpha = 0.6f),
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        modifier = modifier.height(height),
+    ) {
+        if (icon != null) {
+            Icon(icon, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text, fontSize = 16.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp)
+    }
+}
+
+/** Team logo drawn bare; a monogram tile only when there is no logo. */
 @Composable
 fun TeamCrest(url: String?, teamName: String, size: androidx.compose.ui.unit.Dp) {
     val monogram = @Composable {
         Box(
-            Modifier.size(size).clip(CircleShape).background(Color.White.copy(alpha = 0.08f)),
+            Modifier.size(size).clip(RoundedCornerShape(8.dp)).background(Palette.fill),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -155,15 +246,60 @@ fun TeamCrest(url: String?, teamName: String, size: androidx.compose.ui.unit.Dp)
             contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier.size(size),
-            loading = { Box(Modifier.size(size).clip(CircleShape).background(Palette.fill)) },
+            loading = { Box(Modifier.size(size).clip(RoundedCornerShape(8.dp)).background(Palette.fill)) },
             error = { monogram() },
         )
     }
 }
 
 /**
- * One fixture laid out like a scoreboard — the same row as ScoreboardRow.swift:
- * teams and scores on the left, a hairline, then clock/status and league.
+ * The first live match as a big scoreboard card: crests, LED score, live
+ * clock and an amber 观看直播 button. The whole card plays, like a row.
+ */
+@Composable
+fun LiveHeroCard(match: LiveMatch, now: Long, onOpen: (LiveMatch) -> Unit) {
+    val status = MatchSchedule.status(match, now)
+    val score = splitScore(match.scoreText)
+    Column(
+        Modifier
+            .padding(horizontal = Grouped.gutter)
+            .fillMaxWidth()
+            .clip(ScoreShape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF1E1A15), Color(0xFF151210))))
+            .border(1.dp, Color(0xFF3A3229), ScoreShape)
+            .clickable { onOpen(match) },
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(match.league, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Palette.secondaryText, letterSpacing = 0.8.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (status is MatchStatus.Live) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    LiveDot()
+                    Text(status.label, style = chakraStyle(13.sp, FontWeight.Bold, Palette.live), maxLines = 1)
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            HeroTeam(match.homeTeam, match.homeLogoUrl, Modifier.weight(1f))
+            if (score != null) LedScore(score.first, score.second, 64.sp)
+            else Text("VS", style = chakraStyle(26.sp, FontWeight.Bold, Palette.tertiaryText))
+            HeroTeam(match.awayTeam, match.awayLogoUrl, Modifier.weight(1f))
+        }
+        AmberButton("观看直播", onClick = { onOpen(match) }, modifier = Modifier.fillMaxWidth().padding(16.dp), height = 48.dp)
+    }
+}
+
+@Composable
+private fun HeroTeam(name: String, logo: String?, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TeamCrest(logo, name, 60.dp)
+        Text(name, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+    }
+}
+
+/**
+ * One fixture as a two-line scoreboard row (ScoreboardRow.swift): crest,
+ * team and LED score per line; live clock or kickoff and league at the right.
  */
 @Composable
 fun ScoreboardRow(match: LiveMatch, now: Long, favorites: Set<String>) {
@@ -173,20 +309,15 @@ fun ScoreboardRow(match: LiveMatch, now: Long, favorites: Set<String>) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             TeamLine(match.homeTeam, match.homeLogoUrl, homeScore, awayScore)
             TeamLine(match.awayTeam, match.awayLogoUrl, awayScore, homeScore)
         }
-        VerticalDivider(
-            Modifier.padding(horizontal = 14.dp).fillMaxHeight().padding(vertical = 2.dp),
-            thickness = 0.5.dp,
-            color = Palette.separator,
-        )
-        Column(Modifier.width(80.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.width(78.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             StatusText(match, status, now)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (match.homeTeam in favorites || match.awayTeam in favorites) {
@@ -194,7 +325,7 @@ fun ScoreboardRow(match: LiveMatch, now: Long, favorites: Set<String>) {
                 }
                 Text(
                     if (match.sources.isEmpty()) "暂无线路" else match.league,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = if (match.sources.isEmpty()) Palette.tertiaryText else Palette.secondaryText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -208,19 +339,24 @@ fun ScoreboardRow(match: LiveMatch, now: Long, favorites: Set<String>) {
 private fun TeamLine(name: String, logo: String?, score: Int?, other: Int?) {
     // A side that is behind steps back, the way a scoreboard dims it.
     val behind = score != null && other != null && score < other
-    val color = if (behind) Palette.secondaryText else Palette.primaryText
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        TeamCrest(logo, name, 22.dp)
+    Row(
+        Modifier.alpha(if (behind) 0.5f else 1f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        TeamCrest(logo, name, 24.dp)
         Text(
             name,
-            fontSize = 16.sp,
-            color = color,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = Palette.primaryText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
         if (score != null) {
-            Text("$score", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = color)
+            Text("$score", style = ledStyle(26.sp), textAlign = TextAlign.End, maxLines = 1,
+                modifier = Modifier.width(44.dp).height(24.dp))
         }
     }
 }
@@ -243,7 +379,7 @@ private fun StatusText(match: LiveMatch, status: MatchStatus, now: Long) {
 
 @Composable
 private fun StatusLabel(text: String, color: Color) {
-    Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(text, style = chakraStyle(13.sp, FontWeight.Bold, color), maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 /** Long-press menu on a fixture: follow or unfollow either side. */
@@ -274,7 +410,7 @@ fun MatchCell(
 ) {
     var menu by remember { mutableStateOf(false) }
     Box {
-        GroupedCell(index, count, onClick = { onOpen(match) }, onLongClick = { menu = true }, dividerInset = 48.dp) {
+        GroupedCell(index, count, onClick = { onOpen(match) }, onLongClick = { menu = true }, dividerInset = 0.dp) {
             ScoreboardRow(match, now, favorites)
         }
         FollowMenu(menu, match, preferences, favorites) { menu = false }
@@ -288,9 +424,10 @@ fun LazyListScope.matchSection(
     now: Long,
     favorites: Set<String>,
     preferences: Preferences,
+    hint: String? = null,
     onOpen: (LiveMatch) -> Unit,
 ) {
-    item(key = "header-$key") { SectionHeader(title, matches.size) }
+    item(key = "header-$key") { SectionHeader(title, matches.size, hint = hint) }
     matches.forEachIndexed { index, match ->
         item(key = "$key-${match.id}") {
             MatchCell(match, index, matches.size, now, favorites, preferences, onOpen)
@@ -333,7 +470,7 @@ fun PlaceholderRow() {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             repeat(2) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(22.dp).clip(CircleShape).background(Palette.fill))
+                    Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(Palette.fill))
                     Box(Modifier.width(110.dp).height(14.dp).clip(RoundedCornerShape(7.dp)).background(Palette.fill))
                 }
             }
