@@ -1,7 +1,6 @@
 // The web counterpart of iOS PlayerSession + TouchPlayerScreen: plays the
 // resolved m3u8 (hls.js, or native HLS where MSE is missing), samples health
 // like PlaybackHealthMonitor, and reports confirmations/stalls to the model.
-import type Hls from "hls.js";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { appConfig, type Watermark } from "../core/config";
@@ -67,6 +66,8 @@ function Watermark({ settings }: { settings: Watermark }) {
   return <div ref={ref} class="watermark" aria-hidden="true">{text}</div>;
 }
 
+interface FrameStatus { t: number; paused: boolean; rs: number; w: number; fatal: boolean; blocked: boolean }
+
 export function Player({ model, onClose, overlay, danmaku }: {
   model: MatchPlaybackModel;
   onClose: () => void;
@@ -77,73 +78,43 @@ export function Player({ model, onClose, overlay, danmaku }: {
   useStore(model);
   const config = useStore(appConfig);
   const frame = useRef<HTMLDivElement>(null);
-  const video = useRef<HTMLVideoElement>(null);
-  const [needsTap, setNeedsTap] = useState(false);
+  const iframe = useRef<HTMLIFrameElement>(null);
+  const [frameReady, setFrameReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [idle, setIdle] = useState(false);
   const request = model.playback;
   const watermark = config.watermark;
 
+  // The <video> lives in a sandboxed, opaque-origin iframe (public/player.html):
+  // stream CDNs then see `Origin: null` and no Referer, never this site.
   useEffect(() => {
-    const element = video.current;
-    if (!element || !request) return;
-    let fatal = false;
-    let blocked = false;
-    let hls: Hls | undefined;
-    setNeedsTap(false);
-    const start = () => element.play().then(() => {
-      blocked = false;
-      setNeedsTap(false);
-    }).catch((error: DOMException) => {
-      // Autoplay with sound refused: wait for a tap, which is a pause, not a stall.
-      if (error.name === "NotAllowedError") {
-        blocked = true;
-        setNeedsTap(true);
-      }
-    });
-    let disposed = false;
-    // hls.js wherever MSE exists (desktop, Android, iPadOS, iOS 17.1+ ManagedMediaSource);
-    // native HLS otherwise. hls.js loads only when a stream is about to play.
-    if ("MediaSource" in window || "ManagedMediaSource" in window) {
-      void import("hls.js").then(({ default: HlsClass }) => {
-        if (disposed) return;
-        if (!HlsClass.isSupported()) {
-          element.src = request.url;
-          void start();
-          return;
-        }
-        const instance = new HlsClass({ lowLatencyMode: false, backBufferLength: 30, manifestLoadingMaxRetry: 2, levelLoadingMaxRetry: 2, fragLoadingMaxRetry: 3 });
-        hls = instance;
-        instance.on(HlsClass.Events.ERROR, (_, data) => {
-          if (!data.fatal) return;
-          if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) instance.recoverMediaError();
-          else fatal = true;
-        });
-        instance.on(HlsClass.Events.MANIFEST_PARSED, () => void start());
-        instance.loadSource(request.url);
-        instance.attachMedia(element);
-      }, () => { fatal = true; });
-    } else {
-      element.src = request.url;
-      void start();
-    }
-    const onError = () => { if (!hls) fatal = true; };
-    element.addEventListener("error", onError);
-    const onEnded = () => model.handleStall("播放已停止，请重试或切换线路。", request.id);
-    const onPlaying = () => {
-      blocked = false;
-      setNeedsTap(false);
+    const onMessage = (event: MessageEvent) => {
+      if (event.source === iframe.current?.contentWindow && event.data?.type === "ready") setFrameReady(true);
     };
-    element.addEventListener("ended", onEnded);
-    element.addEventListener("playing", onPlaying);
+    addEventListener("message", onMessage);
+    return () => removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    const target = iframe.current?.contentWindow;
+    if (!target || !frameReady || !request) return;
+    let latest: FrameStatus | undefined;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== target || event.data?.id !== request.id) return;
+      if (event.data.type === "status") latest = event.data as FrameStatus;
+      if (event.data.type === "ended") model.handleStall("播放已停止，请重试或切换线路。", request.id);
+    };
+    addEventListener("message", onMessage);
+    target.postMessage({ type: "load", id: request.id, url: request.url }, "*");
 
     const health = new PlaybackHealthMonitor(performance.now() / 1000);
     const watchdog = setInterval(() => {
       if (model.playback?.id !== request.id) return;
-      const event = health.sample(performance.now() / 1000, element.currentTime,
-        !element.paused && element.readyState >= 3,
-        blocked || (element.paused && element.readyState > 0),
-        element.readyState >= 2 && element.videoWidth > 0, fatal);
+      const s = latest;
+      const event = health.sample(performance.now() / 1000, s?.t ?? Number.NaN,
+        !!s && !s.paused && s.rs >= 3,
+        !!s && (s.blocked || (s.paused && s.rs > 0)),
+        !!s && s.rs >= 2 && s.w > 0, s?.fatal ?? false);
       if (event?.kind === "confirmed") model.confirmPlayback(request.id, event.startupSeconds);
       if (event?.kind === "stalled") {
         clearInterval(watchdog);
@@ -153,15 +124,10 @@ export function Player({ model, onClose, overlay, danmaku }: {
 
     return () => {
       clearInterval(watchdog);
-      disposed = true;
-      element.removeEventListener("ended", onEnded);
-      element.removeEventListener("playing", onPlaying);
-      element.removeEventListener("error", onError);
-      hls?.destroy();
-      element.removeAttribute("src");
-      element.load();
+      removeEventListener("message", onMessage);
+      target.postMessage({ type: "stop" }, "*");
     };
-  }, [request?.id]);
+  }, [request?.id, frameReady]);
 
   // Hide the tool buttons after a few seconds without pointer movement.
   useEffect(() => {
@@ -172,13 +138,18 @@ export function Player({ model, onClose, overlay, danmaku }: {
       clearTimeout(timer);
       timer = setTimeout(() => setIdle(true), 3000);
     };
+    const fromFrame = (event: MessageEvent) => {
+      if (event.source === iframe.current?.contentWindow && event.data?.type === "activity") wake();
+    };
     wake();
     node?.addEventListener("pointermove", wake);
     node?.addEventListener("pointerdown", wake);
+    addEventListener("message", fromFrame);
     return () => {
       clearTimeout(timer);
       node?.removeEventListener("pointermove", wake);
       node?.removeEventListener("pointerdown", wake);
+      removeEventListener("message", fromFrame);
     };
   }, []);
 
@@ -189,21 +160,9 @@ export function Player({ model, onClose, overlay, danmaku }: {
       await document.exitFullscreen().catch(() => undefined);
       return;
     }
-    if (node.requestFullscreen) {
-      await node.requestFullscreen().catch(() => undefined);
-      // Phones: turn to landscape like the apps do; unsupported elsewhere.
-      await (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => undefined);
-    } else {
-      // iPhone Safari: only the video element itself can go fullscreen.
-      (video.current as HTMLVideoElement & { webkitEnterFullscreen?: () => void })?.webkitEnterFullscreen?.();
-    }
-  };
-
-  const togglePiP = async () => {
-    const element = video.current;
-    if (!element) return;
-    if (document.pictureInPictureElement) await document.exitPictureInPicture().catch(() => undefined);
-    else await element.requestPictureInPicture?.().catch(() => undefined);
+    await node.requestFullscreen().catch(() => undefined);
+    // Phones: turn to landscape like the apps do; unsupported elsewhere.
+    await (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => undefined);
   };
 
   const channels = model.resolvedChannels;
@@ -211,7 +170,9 @@ export function Player({ model, onClose, overlay, danmaku }: {
 
   return (
     <div ref={frame} class={`player${idle && !menuOpen ? " idle" : ""}`}>
-      <video ref={video} playsInline controls autoplay />
+      {/* Picture-in-picture comes from the video's own controls inside the frame. */}
+      <iframe ref={iframe} class="player-frame" src="/player.html" title="视频" sandbox="allow-scripts"
+        allow="autoplay; picture-in-picture" referrerpolicy="no-referrer" onLoad={() => setFrameReady(true)} />
       {overlay}
       {watermark && <Watermark settings={watermark} />}
       <div class="overlay-top">
@@ -228,10 +189,9 @@ export function Player({ model, onClose, overlay, danmaku }: {
             <button type="button" aria-label={danmaku.enabled ? "关闭弹幕" : "开启弹幕"} aria-pressed={danmaku.enabled}
               onClick={danmaku.toggle} style={{ opacity: danmaku.enabled ? 1 : 0.6 }}><Icon name="chat" /></button>
           )}
-          {"pictureInPictureEnabled" in document && document.pictureInPictureEnabled && (
-            <button type="button" aria-label="画中画" onClick={() => void togglePiP()}><Icon name="pip" /></button>
+          {document.fullscreenEnabled && (
+            <button type="button" aria-label="全屏" onClick={() => void toggleFullscreen()}><Icon name="fullscreen" /></button>
           )}
-          <button type="button" aria-label="全屏" onClick={() => void toggleFullscreen()}><Icon name="fullscreen" /></button>
           <button type="button" aria-label="关闭播放" onClick={onClose}><Icon name="close" /></button>
         </div>
       </div>
@@ -247,13 +207,6 @@ export function Player({ model, onClose, overlay, danmaku }: {
               {model.failedResolutionIndices.has(index) && <small class="faint">未能播放</small>}
             </button>
           ))}
-        </div>
-      )}
-      {needsTap && (
-        <div class="center-msg" style={{ pointerEvents: "auto" }}>
-          <button class="button primary" type="button" onClick={() => void video.current?.play().then(() => setNeedsTap(false)).catch(() => undefined)}>
-            <Icon name="play" filled />点击播放
-          </button>
         </div>
       )}
     </div>

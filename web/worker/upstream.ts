@@ -1,6 +1,6 @@
 // Upstream access for the Worker: the jrs03 schedule, channel pages and the
-// stream resolver. Every fetch sets the Safari UA (and Referer where the apps
-// send one) the Apple and Android clients use.
+// stream resolver. Every fetch sets the Safari UA (and the upstream's own page
+// as Referer where the apps send one), and leaves through the egress relay.
 import { createDecipheriv } from "node:crypto";
 import { newQuickJSWASMModuleFromVariant, newVariant, type QuickJSWASMModule } from "quickjs-emscripten-core";
 import RELEASE_SYNC from "@jitl/quickjs-wasmfile-release-sync";
@@ -8,6 +8,7 @@ import { applyEvents, eventConfigURL, eventFeedURL, parseEvents, type EventSnaps
 import { listingScriptURL, parseListing, parseSourcePage, playHosts } from "../src/core/listing";
 import type { LiveMatch, MatchSource } from "../src/core/models";
 import { DEFAULT_HOMEPAGE, StreamResolver, type ResolverIO } from "../src/core/resolver";
+import { egressFetch } from "./egress";
 
 export const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
   + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15";
@@ -15,21 +16,20 @@ export const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
 export class UpstreamError extends Error {}
 
 async function fetchText(url: string, init: { referer?: string; timeout?: number; okStatus?: (s: number) => boolean } = {}) {
-  const response = await fetch(url, {
+  // Through the egress relay: upstreams must never see this Worker (see egress.ts).
+  const response = await egressFetch(url, {
     headers: { "user-agent": USER_AGENT, ...(init.referer ? { referer: init.referer } : {}) },
     redirect: "follow",
-    signal: AbortSignal.timeout(init.timeout ?? 20_000),
-    cf: { cacheTtl: 0 },
-  } as RequestInit);
+    timeoutMs: init.timeout ?? 20_000,
+    maxBytes: 4 * 1024 * 1024,
+  });
   const ok = init.okStatus ?? ((s: number) => s >= 200 && s < 300);
   if (!ok(response.status)) throw new UpstreamError(`upstream ${response.status}`);
-  const buffer = await response.arrayBuffer();
-  if (buffer.byteLength > 4 * 1024 * 1024) throw new UpstreamError("upstream body too large");
   let text: string;
   try {
-    text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    text = new TextDecoder("utf-8", { fatal: true }).decode(response.body);
   } catch {
-    text = new TextDecoder("latin1").decode(buffer);
+    text = new TextDecoder("latin1").decode(response.body);
   }
   return { text, url: response.url || url };
 }

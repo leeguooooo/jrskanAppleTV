@@ -21,9 +21,10 @@
 
 - 赛程、事件源、线路页、播放器脚本都由 Cloudflare Worker 在服务端抓取；站点播放器脚本跑在 Worker 内的 QuickJS 沙箱里（对应 Apple 的 JSContext、Android 的 Rhino），浏览器只拿到校验过的 m3u8，视频直接从线路 CDN 播放（hls.js，无 MSE 时用原生 HLS）。
 - 必须登录 leeguoo 账号；Worker 只接受自己签过名的线路地址和 `web/worker/sports.ts` 里固定的数据接口白名单，不是通用代理。
+- 不向第三方暴露网站：所有上游抓取经 `web/relay` 出口中转（腾讯云 VM）发出，没有 `Cf-Worker` 头和我们的 Origin/Referer；视频在不透明来源的 sandbox iframe 里播放，线路 CDN 只看到 `Origin: null`。
 - 关注、观看记录、线路表现记在浏览器 localStorage。
 
-网页版差异：没有录像与导出；不支持 AirPlay；画中画用浏览器标准接口（浏览器不支持时不显示按钮）；浏览器拒绝带声音自动播放时显示「点击播放」，此时算暂停，不触发换线；线路 CDN 没有 CORS 时网页版无法播放该线路，会按无画面自动换线。
+网页版差异：没有录像与导出；不支持 AirPlay；画中画用浏览器标准接口（浏览器不支持时不显示按钮）；浏览器拒绝带声音自动播放时显示「点击播放」，此时算暂停，不触发换线；线路 CDN 没有 CORS 时网页版无法播放该线路，会按无画面自动换线。全屏走播放器自己的全屏按钮（整块画面，水印与弹幕都在）；iPhone Safari 只能让 video 元素本身全屏、浏览器画中画窗口也只有视频，这两种情况下看不到水印和弹幕。
 
 平台差异：AirPlay 为 Apple 原生能力，Android 未宣称支持 AirPlay；Android 使用原生画中画和 MediaStore，Apple 使用 AVKit 与照片/文件接口。Android 手机包不等同于 Android TV 遥控器版本。
 

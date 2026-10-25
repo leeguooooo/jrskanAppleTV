@@ -1,0 +1,16 @@
+[Unit]
+Description=cloudflared tunnel for the leeguoo sports egress relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate --config /etc/cloudflared/leeguoo-sports-egress.yml tunnel run
+Restart=always
+RestartSec=5
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

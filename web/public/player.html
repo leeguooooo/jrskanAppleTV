@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  The video runs here, inside <iframe sandbox="allow-scripts"> (an opaque origin),
+  so stream CDNs see `Origin: null` and no Referer — never sports.leeguoo.com.
+  The parent page (src/ui/Player.tsx) sends {type:"load"|"stop"} and receives
+  {type:"status"|"ended"} via postMessage; it owns health checks and fallback.
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+      video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+      #tap { position: absolute; inset: 0; display: none; place-items: center; }
+      #tap button { font: 600 15px -apple-system, "PingFang SC", system-ui, sans-serif; color: #0b0e14; background: #8094ff;
+        border: 0; border-radius: 12px; padding: 12px 20px; cursor: pointer; }
+    </style>
+    <script src="/vendor/hls.min.js"></script>
+  </head>
+  <body>
+    <video id="v" playsinline controls autoplay controlslist="nofullscreen nodownload"></video>
+    <div id="tap"><button type="button">▶ 点击播放</button></div>
+    <script>
+      (function () {
+        var video = document.getElementById("v");
+        var tap = document.getElementById("tap");
+        var hls = null, current = null, fatal = false, blocked = false, timer = null;
+        function post(message) { parent.postMessage(message, "*"); }
+        function report() {
+          if (current === null) return;
+          post({ type: "status", id: current, t: video.currentTime, paused: video.paused, rs: video.readyState,
+            w: video.videoWidth, fatal: fatal, blocked: blocked });
+        }
+        function play() {
+          var started = video.play();
+          if (started && started.catch) started.then(function () { blocked = false; tap.style.display = "none"; }, function (error) {
+            // Autoplay with sound refused: wait for a tap, which counts as a pause, not a stall.
+            if (error && error.name === "NotAllowedError") { blocked = true; tap.style.display = "grid"; }
+          });
+        }
+        function stop() {
+          if (hls) { hls.destroy(); hls = null; }
+          video.removeAttribute("src");
+          video.load();
+          clearInterval(timer);
+          current = null;
+        }
+        function load(id, url) {
+          stop();
+          current = id; fatal = false; blocked = false; tap.style.display = "none";
+          if (window.Hls && window.Hls.isSupported()) {
+            hls = new window.Hls({ lowLatencyMode: false, backBufferLength: 30, manifestLoadingMaxRetry: 2, levelLoadingMaxRetry: 2, fragLoadingMaxRetry: 3 });
+            hls.on(window.Hls.Events.ERROR, function (_, data) {
+              if (!data.fatal) return;
+              if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError(); else fatal = true;
+            });
+            hls.on(window.Hls.Events.MANIFEST_PARSED, play);
+            hls.loadSource(url);
+            hls.attachMedia(video);
+          } else {
+            video.src = url;
+            play();
+          }
+          timer = setInterval(report, 500);
+        }
+        video.addEventListener("error", function () { if (!hls) fatal = true; });
+        video.addEventListener("playing", function () { blocked = false; tap.style.display = "none"; });
+        video.addEventListener("ended", function () { if (current !== null) post({ type: "ended", id: current }); });
+        tap.querySelector("button").addEventListener("click", play);
+        // Pointer events stay inside this frame; tell the parent so its controls wake up.
+        var lastActivity = 0;
+        function activity() {
+          var now = Date.now();
+          if (now - lastActivity > 500) { lastActivity = now; post({ type: "activity" }); }
+        }
+        addEventListener("pointermove", activity);
+        addEventListener("pointerdown", activity);
+        addEventListener("message", function (event) {
+          if (event.source !== parent || !event.data) return;
+          var data = event.data;
+          if (data.type === "load" && typeof data.url === "string" && /^https?:\/\//.test(data.url)) load(data.id, data.url);
+          if (data.type === "stop") stop();
+        });
+        post({ type: "ready" });
+      })();
+    </script>
+  </body>
+</html>

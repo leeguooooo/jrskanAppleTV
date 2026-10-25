@@ -19,9 +19,14 @@ run_worker_first = ["/api/*", "/auth/*"]
 ISSUER = "https://account.leeguoo.com"
 CLIENT_ID = "leeguoo-sports-web"
 PUBLIC_ORIGIN = "https://sports.leeguoo.com"
+# Every upstream fetch goes through the egress relay (relay/, Tencent Cloud VM
+# behind the leeguoo-sports-egress tunnel) so third parties never see this Worker.
+RELAY_URL = "https://sports-egress.misonote.com/f"
 
-# Secrets: SESSION_SECRET (HMAC key for session cookies and signed links).
+# Secrets: SESSION_SECRET (session cookies and signed links), RELAY_SECRET
+# (shared with /etc/leeguoo-sports-relay.env on the relay VM).
 #   wrangler secret put SESSION_SECRET
+#   wrangler secret put RELAY_SECRET
 
 [observability]
 enabled = true

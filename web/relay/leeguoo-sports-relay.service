@@ -1,0 +1,27 @@
+# Egress relay for leeguoo sports (see relay.mjs). Install:
+#   /opt/leeguoo-sports-relay/{relay.mjs,protocol.mjs}, Node at /opt/node,
+#   /etc/leeguoo-sports-relay.env with RELAY_SECRET=… and PORT=18080 (mode 600)
+[Unit]
+Description=leeguoo sports egress relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/leeguoo-sports-relay.env
+ExecStart=/opt/node/bin/node /opt/leeguoo-sports-relay/relay.mjs
+Restart=always
+RestartSec=2
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=300M
+
+[Install]
+WantedBy=multi-user.target

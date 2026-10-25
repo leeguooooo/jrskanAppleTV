@@ -1,0 +1,10 @@
+# Outbound-only Cloudflare Tunnel in front of the relay: no inbound port on the VM.
+# Tunnel leeguoo-sports-egress (f4046da6-…), hostname sports-egress.misonote.com.
+tunnel: f4046da6-c5b6-44a9-869f-5c568f618184
+credentials-file: /etc/cloudflared/leeguoo-sports-egress.json
+# QUIC (UDP 7844) does not get out of mainland China reliably; HTTP/2 over 443 does.
+protocol: http2
+ingress:
+  - hostname: sports-egress.misonote.com
+    service: http://127.0.0.1:18080
+  - service: http_status:404

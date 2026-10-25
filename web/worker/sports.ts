@@ -3,6 +3,7 @@
 // clients call are allowed, with the same UA/Referer they send. No cookies or
 // credentials are forwarded either way. Mounted behind the session check.
 import { catalogRows, compactCatalog } from "../src/sports/multi";
+import { EgressError, egressFetch, type EgressResponse } from "./egress";
 
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
   + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15";
@@ -96,34 +97,6 @@ function reply(body: BodyInit | null, status: number, contentType = "text/plain;
   });
 }
 
-class TooLarge extends Error {}
-
-async function readCapped(response: Response, limit: number): Promise<Uint8Array<ArrayBuffer>> {
-  const declared = Number(response.headers.get("content-length") ?? "");
-  if (Number.isFinite(declared) && declared > limit) {
-    await response.body?.cancel();
-    throw new TooLarge();
-  }
-  if (!response.body) return new Uint8Array(0);
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > limit) {
-      await reader.cancel();
-      throw new TooLarge();
-    }
-    chunks.push(value);
-  }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) { out.set(c, offset); offset += c.byteLength; }
-  return out;
-}
-
 function edgeCache(): Cache | undefined {
   try {
     return (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default;
@@ -151,10 +124,10 @@ export async function handleSportsProxy(request: Request, ctx: SportsProxyContex
     } catch { /* cache is an optimisation only */ }
   }
 
-  let upstream: Response;
+  let upstream: EgressResponse;
   try {
-    upstream = await fetch(upstreamURL(target, Date.now()), {
-      method: "GET",
+    // Through the egress relay so Tencent/Migu/ESPN never see this Worker (see egress.ts).
+    upstream = await egressFetch(upstreamURL(target, Date.now()), {
       headers: {
         "user-agent": USER_AGENT,
         accept: "application/json, text/html;q=0.9, */*;q=0.8",
@@ -162,26 +135,19 @@ export async function handleSportsProxy(request: Request, ctx: SportsProxyContex
       },
       // An allowlisted host must not bounce the proxy somewhere else.
       redirect: "manual",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      timeoutMs: TIMEOUT_MS,
+      maxBytes: target.rule.maxBytes,
     });
   } catch (error) {
-    const timeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+    if (error instanceof EgressError && error.code === "too_large") return reply("upstream body too large", 502);
+    const timeout = error instanceof EgressError && error.code === "timeout";
     return reply(timeout ? "upstream timeout" : "upstream unavailable", timeout ? 504 : 502);
   }
-  if (upstream.status !== 200) {
-    await upstream.body?.cancel();
-    return reply(`upstream ${upstream.status}`, 502);
-  }
+  if (upstream.status !== 200) return reply(`upstream ${upstream.status}`, 502);
 
-  let bytes: Uint8Array<ArrayBuffer>;
-  try {
-    bytes = await readCapped(upstream, target.rule.maxBytes);
-  } catch (error) {
-    const timeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
-    return reply(error instanceof TooLarge ? "upstream body too large" : "upstream unavailable", timeout ? 504 : 502);
-  }
+  const bytes = new Uint8Array(upstream.body);
   let body: Uint8Array<ArrayBuffer> | string = bytes;
-  let contentType = upstream.headers.get("content-type") ?? "text/plain; charset=utf-8";
+  let contentType = upstream.contentType || "text/plain; charset=utf-8";
   if (target.rule.compactCatalog) {
     body = compactCatalog(catalogRows(new TextDecoder("utf-8").decode(bytes)));
     contentType = "text/html; charset=utf-8";

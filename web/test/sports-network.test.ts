@@ -7,6 +7,7 @@ import type { LiveMatch, MatchSource } from "../src/core/models";
 import { MultiSportsClient } from "../src/sports/client";
 import { DanmakuQueue, MatchInsightsController, STATUS } from "../src/sports/controller";
 import { allowSportsURL, handleSportsProxy } from "../worker/sports";
+import { configureEgress } from "../worker/egress";
 
 type Fixture = Record<string, any>;
 const contract = (name: string): Fixture =>
@@ -226,6 +227,8 @@ describe("worker sports proxy allowlist", () => {
   const call = (url: string, init?: RequestInit) =>
     handleSportsProxy(new Request(`https://app.test/api/sports?url=${encodeURIComponent(url)}`, init), ctx);
 
+  // These cases stub global fetch; production goes through the relay (test/relay.test.ts).
+  beforeEach(() => configureEgress({ EGRESS: "direct" }));
   afterEach(() => vi.unstubAllGlobals());
 
   it("sets Tencent referer only for qq hosts, strips cookies, passes content-type", async () => {

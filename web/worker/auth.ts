@@ -12,6 +12,10 @@ export interface Env {
   CLIENT_ID: string;
   PUBLIC_ORIGIN: string;
   SESSION_SECRET: string;
+  /** Egress relay (see egress.ts): http://<vm>:<port>/f and its shared secret. */
+  RELAY_URL?: string;
+  RELAY_SECRET?: string;
+  EGRESS?: string;
 }
 
 const SESSION_COOKIE = "ls_session";

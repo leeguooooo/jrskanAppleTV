@@ -10,6 +10,7 @@
 // The specifier must end in .wasm for wrangler to load it as CompiledWasm.
 import wasmModule from "../node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm";
 import { handleAuth, handleMe, readSession, signLink, verifyLink, type Env } from "./auth";
+import { configureEgress } from "./egress";
 import { handleSportsProxy } from "./sports";
 import { fetchChannels, fetchEvents, fetchSchedule, resolveStream, setQuickJSWasm } from "./upstream";
 import type { LiveMatch, MatchSource } from "../src/core/models";
@@ -122,6 +123,7 @@ async function api(request: Request, env: Env, ctx: ExecutionContext, url: URL):
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    configureEgress(env);
     const url = new URL(request.url);
     if (url.pathname.startsWith("/auth/")) return handleAuth(request, env, url);
     if (url.pathname.startsWith("/api/")) return api(request, env, ctx, url);
