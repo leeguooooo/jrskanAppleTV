@@ -3,14 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/copy-vendor.mjs && vite",
-    "build": "node scripts/copy-vendor.mjs && tsc --noEmit -p . && tsc --noEmit -p worker && vite build",
+    "dev": "vite",
+    "build": "tsc --noEmit -p . && tsc --noEmit -p worker && vite build",
     "test": "vitest run",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@jitl/quickjs-wasmfile-release-sync": "^0.31.0",
-    "hls.js": "1.6.13",
     "preact": "10.27.2",
     "quickjs-emscripten-core": "^0.31.0"
   },

@@ -80,13 +80,14 @@ export function Player({ model, onClose, overlay, danmaku }: {
   const frame = useRef<HTMLDivElement>(null);
   const iframe = useRef<HTMLIFrameElement>(null);
   const [frameReady, setFrameReady] = useState(false);
+  const [unsupported, setUnsupported] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [idle, setIdle] = useState(false);
   const request = model.playback;
   const watermark = config.watermark;
 
-  // The <video> lives in a sandboxed, opaque-origin iframe (public/player.html):
-  // stream CDNs then see `Origin: null` and no Referer, never this site.
+  // The <video> lives in a sandboxed, opaque-origin iframe (public/player.html)
+  // and plays only via native HLS, so stream CDNs get no Origin and no Referer.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.source === iframe.current?.contentWindow && event.data?.type === "ready") setFrameReady(true);
@@ -102,11 +103,13 @@ export function Player({ model, onClose, overlay, danmaku }: {
     const onMessage = (event: MessageEvent) => {
       if (event.source !== target || event.data?.id !== request.id) return;
       if (event.data.type === "status") latest = event.data as FrameStatus;
+      if (event.data.type === "unsupported") {
+        // Not a line failure: no other line would play either, so don't switch.
+        clearInterval(watchdog);
+        setUnsupported(true);
+      }
       if (event.data.type === "ended") model.handleStall("播放已停止，请重试或切换线路。", request.id);
     };
-    addEventListener("message", onMessage);
-    target.postMessage({ type: "load", id: request.id, url: request.url }, "*");
-
     const health = new PlaybackHealthMonitor(performance.now() / 1000);
     const watchdog = setInterval(() => {
       if (model.playback?.id !== request.id) return;
@@ -121,6 +124,8 @@ export function Player({ model, onClose, overlay, danmaku }: {
         model.handleStall(health.confirmed ? "播放中断，暂时无法恢复。" : "20 秒内没有出现画面。", request.id);
       }
     }, 1000);
+    addEventListener("message", onMessage);
+    target.postMessage({ type: "load", id: request.id, url: request.url }, "*");
 
     return () => {
       clearInterval(watchdog);
@@ -195,6 +200,13 @@ export function Player({ model, onClose, overlay, danmaku }: {
           <button type="button" aria-label="关闭播放" onClick={onClose}><Icon name="close" /></button>
         </div>
       </div>
+      {unsupported && (
+        <div class="center-msg" style={{ background: "#000" }}>
+          <p style={{ maxWidth: "26rem", margin: 0 }}>
+            这个浏览器不能直接播放直播流。为了不向第三方暴露网站，网页版只用浏览器自带的 HLS 播放，请换用 Chrome、Edge 或 Safari。
+          </p>
+        </div>
+      )}
       {menuOpen && (
         <div class="menu" role="menu">
           {channels.map((source, index) => (

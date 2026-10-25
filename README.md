@@ -6,7 +6,7 @@
 
 tvOS 17+ · iOS 17+ · macOS 14+（Mac Catalyst）· SwiftUI · AVFoundation · XcodeGen
 Android 8.0+ · Kotlin · Jetpack Compose · Media3
-Web · Preact · TypeScript · hls.js · Cloudflare Workers（静态资源 + API）· QuickJS
+Web · Preact · TypeScript · 原生 HLS · Cloudflare Workers（静态资源 + API）· QuickJS
 
 ---
 
@@ -170,7 +170,7 @@ git tag android-v1.0.1 && git push origin android-v1.0.1
 一个 Worker（`leeguoo-sports-web`）同时托管静态页面和 `/api`、`/auth`：
 
 - 赛程、事件源、线路页和站点播放器脚本都在 Worker 里解析；播放器脚本在 QuickJS（wasm）沙箱里执行，浏览器只拿到校验过的 m3u8，视频直接从线路 CDN 播放，不经过 Cloudflare。
-- **第三方看不到我们**：Worker 的子请求会被 Cloudflare 强制加 `Cf-Worker: leeguoo.com`，所以所有对外抓取（jrs03、线路页、播放器脚本、腾讯/咪咕/ESPN）都加密交给 `web/relay/` 的出口中转，从腾讯云上海的 VM 发出，只带 UA 和上游自己的 Referer；中转没配好时 Worker 直接拒绝抓取，不会退回直连。视频在 `sandbox` 的 iframe（`public/player.html`，不透明来源）里播放，线路 CDN 收到的是 `Origin: null`、没有 Referer。
+- **第三方看不到我们**：Worker 的子请求会被 Cloudflare 强制加 `Cf-Worker: leeguoo.com`，所以所有对外抓取（jrs03、线路页、播放器脚本、腾讯/咪咕/ESPN）都加密交给 `web/relay/` 的出口中转，从腾讯云上海的 VM 发出，只带 UA 和上游自己的 Referer；中转没配好时 Worker 直接拒绝抓取，不会退回直连。视频在 `sandbox` 的 iframe（`public/player.html`）里只用浏览器自带的 HLS 播放（不用 hls.js，它的请求一定带 Origin），线路 CDN 收到的 m3u8/ts 请求没有 Origin、没有 Referer、没有 Cookie（2026-10-25 用记录请求头的测试端点在 Chrome 155 上实测）。没有原生 HLS 的浏览器（如 Firefox）会提示换用 Chrome、Edge 或 Safari。
 - 登录走账号中心（client `leeguoo-sports-web`，授权码 + PKCE，Worker 在服务端换 token），会话是加密的 HttpOnly cookie，不用 KV/D1。所有 `/api` 都要登录；线路地址由 Worker 签名后才能回传，比赛数据接口是固定白名单，不是通用代理。
 - 赛程（60 秒）、事件源（10 秒）、线路页（60 秒）、解析结果（30 秒）放在边缘缓存里共享，上游压力不随观看人数增长。
 
