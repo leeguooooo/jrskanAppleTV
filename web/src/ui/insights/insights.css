@@ -1,0 +1,301 @@
+/* Sports insights + danmaku. Uses the global tokens --bg, --surface, --surface-2,
+   --text, --muted, --border, --accent, --live, --radius (defined by the app). */
+
+.lg-ins {
+  --ins-left: #3d87ff;
+  --ins-right: #ffa64a;
+  --ins-line: color-mix(in srgb, var(--text) 9%, transparent);
+  --ins-row: 44px;
+  --ins-name: 116px;
+  --ins-cellw: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.lg-ins-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 180px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 15px;
+}
+.lg-ins-empty p { margin: 0; }
+.lg-ins-icon { color: var(--ins-left); }
+
+.lg-ins-caption {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.lg-ins-updated { display: flex; align-items: center; gap: 6px; }
+.lg-ins-none {
+  margin: 0;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Scoreboard */
+.lg-ins-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.lg-ins-period { font-size: 14px; font-weight: 600; color: var(--ins-left); }
+.lg-ins-board-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.lg-ins-team { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.lg-ins-team-name {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lg-ins-team-bar { width: 24px; height: 3px; border-radius: 2px; }
+.lg-ins-team-bar.is-left { background: var(--ins-left); }
+.lg-ins-team-bar.is-right { background: var(--ins-right); }
+.lg-ins-crest {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: var(--surface-2);
+}
+.lg-ins-crest.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+.lg-ins-score {
+  display: flex;
+  gap: 10px;
+  font-size: clamp(26px, 8vw, 40px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lg-ins-colon { color: var(--muted); }
+
+/* Tabs */
+.lg-ins-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--ins-line);
+}
+.lg-ins-tabs button {
+  flex: 1;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 10px 0 12px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+}
+.lg-ins-tabs button.is-selected { color: var(--ins-left); }
+.lg-ins-tabs button.is-selected::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  width: 56px;
+  height: 3px;
+  margin-left: -28px;
+  border-radius: 2px;
+  background: var(--ins-left);
+}
+.lg-ins-tabs button:focus-visible,
+.lg-ins-chips button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.lg-ins-pane { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.lg-ins-block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lg-ins-section {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.lg-ins-section::before {
+  content: "";
+  width: 3px;
+  height: 16px;
+  background: var(--ins-left);
+}
+
+/* Tables */
+.lg-ins-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  max-width: 100%;
+}
+.lg-ins table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+.lg-ins th, .lg-ins td {
+  height: var(--ins-row);
+  padding: 0 4px;
+  border-bottom: 0.5px solid var(--ins-line);
+  white-space: nowrap;
+  text-align: center;
+  font-weight: 400;
+}
+.lg-ins thead th { color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--text) 4%, transparent); }
+
+.lg-ins-periods { width: 100%; }
+.lg-ins-periods th:first-child { width: 80px; min-width: 80px; text-align: left; padding-left: 8px; }
+.lg-ins-periods td, .lg-ins-periods thead th:not(:first-child) { min-width: 34px; }
+.lg-ins-periods .is-total { font-weight: 600; background: color-mix(in srgb, var(--ins-left) 8%, transparent); }
+
+.lg-ins-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lg-ins-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.lg-ins .is-left { color: var(--ins-left); }
+.lg-ins-legend .is-right, .lg-ins-compare-row .is-right { color: var(--ins-right); }
+.lg-ins-compare { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.lg-ins-compare li { display: flex; flex-direction: column; gap: 8px; }
+.lg-ins-compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px;
+  font-size: 14px;
+}
+.lg-ins-compare-row .is-left, .lg-ins-compare-row .is-right {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lg-ins-compare-row .is-right { text-align: right; }
+.lg-ins-compare-label { font-size: 12px; color: var(--muted); text-align: center; }
+.lg-ins-bar { display: flex; gap: 3px; height: 5px; }
+.lg-ins-bar span { flex-basis: 0; min-width: 0; border-radius: 3px; }
+.lg-ins-bar .is-left { background: var(--ins-left); }
+.lg-ins-bar .is-right { background: var(--ins-right); }
+
+.lg-ins-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.lg-ins-chips button {
+  appearance: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.lg-ins-chips button.is-selected {
+  background: color-mix(in srgb, var(--ins-left) 20%, transparent);
+  border-color: var(--ins-left);
+}
+
+/* Player table: the name column stays fixed while the rest scrolls. */
+.lg-ins-players th, .lg-ins-players td { min-width: var(--ins-cellw); }
+.lg-ins-players .is-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: var(--ins-name);
+  min-width: var(--ins-name);
+  max-width: var(--ins-name);
+  padding-left: 8px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  background: var(--bg);
+  border-right: 1px solid var(--ins-line);
+}
+.lg-ins-players thead .is-name { background: var(--surface); }
+.lg-ins-players tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--text) 2.5%, transparent); }
+.lg-ins-players td.is-key { color: var(--ins-left); font-weight: 600; }
+.lg-ins-players tr.is-total td, .lg-ins-players tr.is-total th { font-weight: 600; }
+
+@media (min-width: 900px) {
+  .lg-ins { --ins-row: 46px; --ins-name: 150px; --ins-cellw: 68px; }
+  .lg-ins-crest { width: 56px; height: 56px; }
+}
+
+/* Danmaku overlay: fills its positioned parent, never takes input. */
+.lg-dm {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+  z-index: 2;
+}
+.lg-dm-item {
+  position: absolute;
+  left: 100%;
+  top: calc(max(70px, 17cqh) + var(--lane, 0) * 29px);
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 1px 1px 2px #000;
+  will-change: transform;
+  animation: lg-dm-fly 7s linear forwards;
+}
+@keyframes lg-dm-fly {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100cqw - 100%)); }
+}
+
+/* Listing-feed facts (半场/角球/分差/总分) */
+.lg-ins-facts { display: flex; gap: 24px; margin: 0; }
+.lg-ins-facts div { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.lg-ins-facts dt { font-size: 12px; color: var(--muted); }
+.lg-ins-facts dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }

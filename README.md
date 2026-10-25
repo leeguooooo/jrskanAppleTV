@@ -1,9 +1,12 @@
-# JRKAN Apple TV
+# leeguoo sports
 
-面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad / Mac 版，以及用 Kotlin 移植的安卓手机版（`android/`）。
+面向实体 Apple TV 的原生 tvOS 赛事观看应用，另有共用业务层的 iPhone / iPad / Mac 版、用 Kotlin 移植的安卓手机版（`android/`），以及跑在 Cloudflare 上的网页版（`web/`，[sports.leeguoo.com](https://sports.leeguoo.com)）。
+
+> 原名 JRKAN（2026-10-25 改名）。只改了对外显示名；Bundle ID `com.leeguoo.jrskan.tv`、安卓包名 `com.leeguoo.jrkan`、Xcode target/scheme、`JRKAN_*` CI 变量、远程配置 KV 键 `jrkan`、账号中心租户/client id 都保持不变。
 
 tvOS 17+ · iOS 17+ · macOS 14+（Mac Catalyst）· SwiftUI · AVFoundation · XcodeGen
 Android 8.0+ · Kotlin · Jetpack Compose · Media3
+Web · Preact · TypeScript · hls.js · Cloudflare Workers（静态资源 + API）· QuickJS
 
 ---
 
@@ -160,6 +163,26 @@ git tag android-v1.0.1 && git push origin android-v1.0.1
 
 与 Apple 端同一条产品决定：只给内部成员装，草稿 Release 不公开发布，不上架任何应用商店。
 
+## 网页版
+
+[sports.leeguoo.com](https://sports.leeguoo.com)，登录 leeguoo 账号后可看，功能与 App 同步：赛程分组、分类与搜索、比分与事件状态、关注与最近观看、中文高清优先自动起播、失效自动换线与断流重连、腾讯/咪咕/ESPN 比赛数据、弹幕、远程配置的水印与横幅。窄屏是 iPhone 式堆栈，宽屏是 iPad/Mac 式列表 + 详情。没有录像与 AirPlay。
+
+一个 Worker（`leeguoo-sports-web`）同时托管静态页面和 `/api`、`/auth`：
+
+- 赛程、事件源、线路页和站点播放器脚本都在 Worker 里抓取；播放器脚本在 QuickJS（wasm）沙箱里执行，浏览器只拿到校验过的 m3u8，视频直接从线路 CDN 播放，不经过 Cloudflare。
+- 登录走账号中心（client `leeguoo-sports-web`，授权码 + PKCE，Worker 在服务端换 token），会话是加密的 HttpOnly cookie，不用 KV/D1。所有 `/api` 都要登录；线路地址由 Worker 签名后才能回传，比赛数据接口是固定白名单，不是通用代理。
+- 赛程（60 秒）、事件源（10 秒）、线路页（60 秒）、解析结果（30 秒）放在边缘缓存里共享，上游压力不随观看人数增长。
+
+```bash
+cd web
+npm install
+npm test                 # 与 Swift / Kotlin 共用 contracts/ 下的契约样例
+npm run build            # tsc（页面 + Worker）+ vite
+npm run deploy           # 部署到 sports.leeguoo.com（Cloudflare 账号 leeguooooo）
+```
+
+本地联调：`npx wrangler dev --local`（`.dev.vars` 里放 `SESSION_SECRET` 和 `PUBLIC_ORIGIN=http://localhost:8787`）+ `npm run dev`。账号中心只登记了线上回调地址，本地测 API 时自己用 `worker/auth.ts` 的 `seal` 造一个会话 cookie。生产密钥只有 `SESSION_SECRET`（`wrangler secret put SESSION_SECRET`），换掉它所有人需要重新登录。
+
 ## 目录
 
 | 路径 | 内容 |
@@ -171,7 +194,8 @@ git tag android-v1.0.1 && git push origin android-v1.0.1
 | `assets/brand/` | 图标与插画原始素材、生成脚本、合成脚本 |
 | `assets/store/` | 商店截图（3840×2160）与 README 用的缩略版 |
 | `Scripts/` | TestFlight 上传脚本、导出配置、ASC API 最小客户端 |
-| `android/` | 安卓版（Gradle 工程，见上一节） |
+| `android/` | 安卓版（Gradle 工程，见「安卓版」） |
+| `web/` | 网页版：`src/core`（赛程、解析、线路与播放状态）、`src/sports`（比赛数据与评论）、`src/ui`（Preact 界面）、`worker/`（Cloudflare Worker） |
 | `.github/workflows/android.yml` | 安卓测试与草稿 Release |
 | `docs/app-store-submission.html` | 上架准备：ASC 全部字段、隐私标签、审核信息模板与阻断项 |
 

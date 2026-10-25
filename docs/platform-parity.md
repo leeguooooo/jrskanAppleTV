@@ -1,6 +1,6 @@
 # 平台对齐记录
 
-更新：2026-10-24。Android 目标为手机版；视觉参考 iPhone 端，保留 Android 原生导航、权限、画中画与文件分享方式。
+更新：2026-10-25。Android 目标为手机版；视觉参考 iPhone 端，保留 Android 原生导航、权限、画中画与文件分享方式。网页版（`web/`，sports.leeguoo.com）窄屏参考 iPhone、宽屏参考 iPad/Mac 的列表 + 详情布局。
 
 | 范围 | Android / Apple 共同规则 |
 | --- | --- |
@@ -15,11 +15,22 @@
 | 生命周期 | 后台、画中画不轮询评论；评论/统计超时不改播放状态、线路评分或录像任务 |
 | 其他能力 | 保留赛程、比分、搜索、收藏/历史、账号、远程配置、水印、后台录像及导出 |
 
+## 网页版
+
+网页版同样遵守上表所有规则（同一套线路分级、换线与重连阈值、腾讯/咪咕/ESPN 匹配与补位、评论节流与过期）。业务逻辑在 `web/src/core`（赛程、事件源、线路排序、播放恢复）和 `web/src/sports`（比赛数据与评论），抓取在 `web/worker`：
+
+- 赛程、事件源、线路页、播放器脚本都由 Cloudflare Worker 在服务端抓取；站点播放器脚本跑在 Worker 内的 QuickJS 沙箱里（对应 Apple 的 JSContext、Android 的 Rhino），浏览器只拿到校验过的 m3u8，视频直接从线路 CDN 播放（hls.js，无 MSE 时用原生 HLS）。
+- 必须登录 leeguoo 账号；Worker 只接受自己签过名的线路地址和 `web/worker/sports.ts` 里固定的数据接口白名单，不是通用代理。
+- 关注、观看记录、线路表现记在浏览器 localStorage。
+
+网页版差异：没有录像与导出；不支持 AirPlay；画中画用浏览器标准接口（浏览器不支持时不显示按钮）；浏览器拒绝带声音自动播放时显示「点击播放」，此时算暂停，不触发换线；线路 CDN 没有 CORS 时网页版无法播放该线路，会按无画面自动换线。
+
 平台差异：AirPlay 为 Apple 原生能力，Android 未宣称支持 AirPlay；Android 使用原生画中画和 MediaStore，Apple 使用 AVKit 与照片/文件接口。Android 手机包不等同于 Android TV 遥控器版本。
 
 ## 回归入口
 
 - 共用样例：`contracts/tencent-sports.json` 和 `contracts/multi-sports.json`。
+- 网页：`cd web && npm test`（`test/sports*.test.ts` 读同一份契约样例，`test/core-*.test.ts` 对应 Swift 的列表、赛程、解析、播放测试）。
 - Apple：`TencentSportsTests.testSharedAndroidAppleContract`、`MultiSportsTests`，另有线路回退、过期评论和比赛匹配测试。
 - Android：`TencentSportsTest`、`MultiSportsTest`、`ExperienceTest`；真实站点检查用 `-PjrkanLive=1`，与确定性测试分开。
 - 调试包可通过 `jrkan_qa=overview|players|play` 和 `qa_mid` 打开公开腾讯数据。只有 debug 构建接受这些入口；测试视频/测试弹幕有明确标记，不计为真实赛事或真机验收。

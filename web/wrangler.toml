@@ -1,0 +1,27 @@
+# leeguoo sports — web version. Serves the built UI (dist/) and /api, /auth.
+# Deploy: npm run deploy (account leeguooooo 3d050f54…, zone leeguoo.com)
+name = "leeguoo-sports-web"
+main = "worker/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+routes = [{ pattern = "sports.leeguoo.com", custom_domain = true }]
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# The Worker runs first so /api and /auth never fall through to index.html.
+run_worker_first = ["/api/*", "/auth/*"]
+
+[vars]
+ISSUER = "https://account.leeguoo.com"
+CLIENT_ID = "leeguoo-sports-web"
+PUBLIC_ORIGIN = "https://sports.leeguoo.com"
+
+# Secrets: SESSION_SECRET (HMAC key for session cookies and signed links).
+#   wrangler secret put SESSION_SECRET
+
+[observability]
+enabled = true

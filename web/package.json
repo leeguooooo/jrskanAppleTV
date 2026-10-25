@@ -1,0 +1,31 @@
+{
+  "name": "leeguoo-sports-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p . && tsc --noEmit -p worker && vite build",
+    "test": "vitest run",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@jitl/quickjs-wasmfile-release-sync": "^0.31.0",
+    "hls.js": "1.6.13",
+    "preact": "10.27.2",
+    "quickjs-emscripten-core": "^0.31.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261019.1",
+    "@preact/preset-vite": "2.10.2",
+    "@types/node": "^22.20.5",
+    "typescript": "5.9.3",
+    "vite": "6.4.1",
+    "vitest": "3.2.4",
+    "wrangler": "4.152.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261019.1": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
+  }
+}
