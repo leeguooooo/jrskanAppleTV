@@ -165,7 +165,7 @@ struct TouchPlayerScreen: View {
             .aspectRatio(16 / 9, contentMode: .fit)
             scoreStrip
             ScrollView {
-                SportsStatsContent(model: model.insights, showsScoreboard: false)
+                SportsStatsContent(model: model.insights, showsScoreboard: false, compactWhenEmpty: true)
                     .padding(16)
             }
             .scrollIndicators(.hidden)

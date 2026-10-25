@@ -57,6 +57,9 @@ struct SportsStatsContent: View {
     @ObservedObject var model: MatchInsightsModel
     /// Off where the screen already shows the score above the statistics.
     var showsScoreboard = true
+    /// One quiet line instead of the large placeholder while there is no
+    /// data, for screens where the statistics are not the main content.
+    var compactWhenEmpty = false
     @State private var tab: SportsDataTab = .overview
     @State private var selectedTeam = 0
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -81,6 +84,10 @@ struct SportsStatsContent: View {
                     Text("\(snapshot.sourceName)  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 更新")
                 }
                 .font(.caption).foregroundStyle(Palette.secondaryText)
+            } else if compactWhenEmpty {
+                Label(model.status, systemImage: "chart.bar.xaxis")
+                    .font(.footnote).foregroundStyle(Palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(spacing: 14) {
                     Image(systemName: "chart.bar.xaxis").font(.largeTitle).foregroundStyle(Palette.accent)

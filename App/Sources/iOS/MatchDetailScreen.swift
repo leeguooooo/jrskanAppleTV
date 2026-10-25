@@ -139,7 +139,7 @@ struct MatchDetailScreen: View {
     /// Team and player statistics, inline under the score for the leagues the
     /// sports providers cover; elsewhere the provider's own status line.
     private var statistics: some View {
-        SportsStatsContent(model: model.insights, showsScoreboard: false)
+        SportsStatsContent(model: model.insights, showsScoreboard: false, compactWhenEmpty: true)
             .padding(16)
             .background(Palette.card, in: RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous).strokeBorder(Palette.hairline, lineWidth: 1))
