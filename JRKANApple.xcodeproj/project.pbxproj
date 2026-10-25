@@ -54,6 +54,7 @@
 		5A2395024770E37E33F1ECCE /* HLSRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5863CD90AC4412E187B5137 /* HLSRecorder.swift */; };
 		5C11EF67F00E71AC327076A6 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		5C914807D7A4A5DBC7F305D9 /* MatchDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0234E27651736E182F447240 /* MatchDetailScreen.swift */; };
+		5D9E1402C6E538EA83B4532A /* OrientationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */; };
 		61434824021049A6A521E3B5 /* MatchCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */; };
 		626D5F4ECC13986CF4A1FD12 /* AccountSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C77CF8B3571CF73BC4B586F /* AccountSession.swift */; };
 		65C930740BA8BCAC3E9041FD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */; };
@@ -107,6 +108,7 @@
 		F10B92C072A5FFF23518B045 /* RecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E948B5683E5A996105970426 /* RecordingStore.swift */; };
 		F21A5DAFDB0A5722A5F676AB /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
 		F2A21FB1ECB5AEC80CCFC655 /* recording-1.mpegts in Resources */ = {isa = PBXBuildFile; fileRef = CE8F35AD507BEAEF582D7A0E /* recording-1.mpegts */; };
+		F332D358D8158C7647F9740A /* OrientationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */; };
 		F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */; };
 		F653E886998A45AFC179D6A3 /* AccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182FA6FA19422F8C514EF6D /* AccountStore.swift */; };
 		F702DD8A96C50B4F9A7A9099 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
@@ -159,6 +161,7 @@
 		5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchDesign.swift; sourceTree = "<group>"; };
 		624EF5584288107D4B442797 /* RecordingCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingCenter.swift; sourceTree = "<group>"; };
 		653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationPolicyTests.swift; sourceTree = "<group>"; };
 		68B3E8B1E431F8497F427872 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		69F83218E20D6D878567E0B5 /* recording-0.mpegts */ = {isa = PBXFileReference; path = "recording-0.mpegts"; sourceTree = "<group>"; };
 		6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchCard.swift; sourceTree = "<group>"; };
@@ -300,6 +303,7 @@
 				CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */,
 				8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */,
 				E801DCA1C64C4ADCDE644D83 /* MultiSportsTests.swift */,
+				67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */,
 				07E3369A41475C2141317361 /* RecordingTests.swift */,
 				146FE878061FD60A7E8B410D /* StreamResolverTests.swift */,
 				5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */,
@@ -587,6 +591,7 @@
 				6BD40C7F3851EBC43C6655AB /* LiveSiteContractTests.swift in Sources */,
 				7624C69B95E5DE3C5F191081 /* MatchScheduleTests.swift in Sources */,
 				E7D93D9F8556B2FDAD19351A /* MultiSportsTests.swift in Sources */,
+				5D9E1402C6E538EA83B4532A /* OrientationPolicyTests.swift in Sources */,
 				A4C7C851E944B830DF73D1F8 /* RecordingTests.swift in Sources */,
 				30B0BD0144ACC59F0826B89E /* StreamResolverTests.swift in Sources */,
 				35E5D4E0D86AB68191BB53D7 /* TencentSportsTests.swift in Sources */,
@@ -652,6 +657,7 @@
 				7BEEDDBD3F10896D8FBBFF23 /* LiveSiteContractTests.swift in Sources */,
 				927FB31C55A0E0DC5F26AAE2 /* MatchScheduleTests.swift in Sources */,
 				595266967D23DE1036772DB8 /* MultiSportsTests.swift in Sources */,
+				F332D358D8158C7647F9740A /* OrientationPolicyTests.swift in Sources */,
 				E52C9CF68F6C803E8C60D345 /* RecordingTests.swift in Sources */,
 				200218C81A1D8941BB310C8D /* StreamResolverTests.swift in Sources */,
 				55A7FD0CC11D5EAAFC8A48BF /* TencentSportsTests.swift in Sources */,

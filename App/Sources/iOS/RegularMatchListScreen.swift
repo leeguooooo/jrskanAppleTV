@@ -8,6 +8,7 @@ struct RegularMatchListScreen: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
     @ObservedObject private var appConfig = AppConfigStore.shared
+    @ObservedObject private var handoff = LayoutHandoff.shared
 
     @State private var now = Date()
     @State private var selection: LiveMatch?
@@ -37,7 +38,7 @@ struct RegularMatchListScreen: View {
             NavigationStack {
                 RecordingsScreen()
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
+                        ToolbarItem(placement: donePlacement) {
                             Button("完成") { showsRecordings = false }
                         }
                     }
@@ -47,7 +48,7 @@ struct RegularMatchListScreen: View {
             NavigationStack {
                 SettingsScreen()
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
+                        ToolbarItem(placement: donePlacement) {
                             Button("完成") { showsSettings = false }
                         }
                     }
@@ -57,6 +58,10 @@ struct RegularMatchListScreen: View {
         // right: it usually is not in the new list, and the two panes then
         // disagree about what is selected.
         .onChange(of: model.filter) { _, _ in selection = nil }
+        .onChange(of: selection) { _, match in handoff.openMatch = match }
+        // Unfolding iPhone Duo hands over the match the compact stack had open.
+        .onAppear(perform: adoptHandoff)
+        .onChange(of: handoff.pending) { _, _ in adoptHandoff() }
         #if DEBUG
         .onChange(of: model.isLoading) { _, loading in
             guard !loading, !model.matches.isEmpty, !appliedDebugRoute, selection == nil else { return }
@@ -268,6 +273,18 @@ struct RegularMatchListScreen: View {
                 illustration: Illustration.noMatches
             )
         }
+    }
+
+    /// Pinned trailing keeps 完成 at the top of iPhone Duo's side bar, under
+    /// the status bar, the way the system's own sheets place it.
+    private var donePlacement: ToolbarItemPlacement {
+        if #available(iOS 27.0, *) { return .topBarPinnedTrailing }
+        return .confirmationAction
+    }
+
+    private func adoptHandoff() {
+        guard handoff.pending != nil, let match = handoff.take() else { return }
+        select(match, autoplay: false)
     }
 
     private func select(_ match: LiveMatch, autoplay: Bool = true) {

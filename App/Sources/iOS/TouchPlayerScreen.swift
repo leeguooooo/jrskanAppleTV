@@ -11,37 +11,20 @@ import SwiftUI
 /// The screen only shows the stream; `PlayerSession` owns it, so closing the
 /// screen during Picture in Picture keeps the floating window playing.
 ///
-/// A match is a landscape picture. The screen is forced into landscape while
-/// the player is up and released when it closes, so the video fills the phone
-/// instead of sitting in a strip across a portrait screen.
+/// A match is a landscape picture. On a phone-shaped screen the player forces
+/// landscape while it is up and releases it when it closes, so the video
+/// fills the phone instead of sitting in a strip across a portrait screen.
+/// The open iPhone Duo is left in whatever shape the viewer holds it.
 struct TouchPlayerScreen: View {
     @ObservedObject var session: PlayerSession
     @ObservedObject var model: MatchPlaybackModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var showsStatistics = false
     @State private var visibleNotice: String?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-
-            PlayerContainer(controller: session.controller)
-                .ignoresSafeArea()
-
-            SportsDanmakuOverlay(model: model.insights).ignoresSafeArea()
-
-            VStack(spacing: 8) {
-                overlay
-                if let notice = visibleNotice {
-                    Text(notice).font(.caption).foregroundStyle(.white)
-                        .padding(8).background(.black.opacity(0.6), in: Capsule())
-                }
-                if model.resolvingIndex != nil {
-                    Label("正在恢复播放…", systemImage: "arrow.clockwise")
-                        .font(.footnote).foregroundStyle(.white)
-                        .padding(8).background(.black.opacity(0.6), in: Capsule())
-                }
-            }
-        }
+        stage
         .task(id: model.notice) {
             visibleNotice = model.notice
             guard visibleNotice != nil else { return }
@@ -53,10 +36,94 @@ struct TouchPlayerScreen: View {
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .onAppear { Orientation.enterLandscape() }
+        .onChange(of: horizontalSizeClass) { _, _ in Orientation.fitPlayer() }
+        .onChange(of: verticalSizeClass) { _, _ in Orientation.fitPlayer() }
+        #if DEBUG
+        // `-close-player <seconds>` closes the player on its own, to check the
+        // screen it returns to without synthesising a tap.
+        .task {
+            let args = CommandLine.arguments
+            guard let index = args.firstIndex(of: "-close-player"), index + 1 < args.count,
+                  let seconds = Double(args[index + 1]) else { return }
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            session.isPresented = false
+        }
+        #endif
         .onDisappear {
             Orientation.restoreDefault()
             if !showsStatistics { session.screenDidDisappear() }
         }
+    }
+
+    /// Normally the controls float over the picture. On a half-folded iPhone
+    /// Duo the overlay arrangement puts the picture on one half and the
+    /// controls on the other, clear of the fold, and that half has room for
+    /// the match statistics as well.
+    /// Mac Catalyst has no fold and no ArrangementView.
+    @ViewBuilder
+    private var stage: some View {
+        #if targetEnvironment(macCatalyst)
+        floatingStage
+        #else
+        if #available(iOS 27.1, *) {
+            GeometryReader { proxy in
+                let folded = proxy.reservedRegions(kind: .division).contains { $0.isActive }
+                ArrangementView {
+                    controls(showsStatistics: folded)
+                } secondary: {
+                    picture
+                }
+                .arrangementViewStyle(.overlay)
+            }
+            .background(Color.black.ignoresSafeArea())
+        } else {
+            floatingStage
+        }
+        #endif
+    }
+
+    private var floatingStage: some View {
+        ZStack(alignment: .top) {
+            picture
+            controls(showsStatistics: false)
+        }
+    }
+
+    private var picture: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            PlayerContainer(controller: session.controller)
+                .ignoresSafeArea()
+            SportsDanmakuOverlay(model: model.insights).ignoresSafeArea()
+        }
+    }
+
+    /// Only the controls themselves take touches; the empty space around them
+    /// passes through to the player's own controls.
+    private func controls(showsStatistics: Bool) -> some View {
+        VStack(spacing: 8) {
+            overlay
+            if let notice = visibleNotice {
+                Text(notice).font(.caption).foregroundStyle(.white)
+                    .padding(8).background(.black.opacity(0.6), in: Capsule())
+            }
+            if model.resolvingIndex != nil {
+                Label("正在恢复播放…", systemImage: "arrow.clockwise")
+                    .font(.footnote).foregroundStyle(.white)
+                    .padding(8).background(.black.opacity(0.6), in: Capsule())
+            }
+            if showsStatistics {
+                ScrollView {
+                    SportsStatsContent(model: model.insights)
+                        .padding(16)
+                        .frame(maxWidth: 720)
+                        .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var overlay: some View {

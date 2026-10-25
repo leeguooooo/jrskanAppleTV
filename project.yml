@@ -76,8 +76,11 @@ targets:
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: BrandMark
+        # 列表与播放器在普通 iPhone 上由 Orientation 收窄；iPhone Duo 内屏
+        # 和 iPad 一样四个方向都要转。
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:

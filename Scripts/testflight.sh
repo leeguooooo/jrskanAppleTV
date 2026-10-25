@@ -25,6 +25,16 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 PLATFORM="${1:?用法: testflight.sh <tvos|ios|all> [build-number]}"
 BUILD_NUMBER="${2:-$(date -u +%Y%m%d%H%M)}"
 
+# iPhone Duo 只有用 iOS 27.1+ SDK 构建才会铺满屏幕、工具栏竖排；播放器的半折布局
+# （ArrangementView）也只在这个 SDK 里有。旧 SDK 打出来的包在 Duo 上是居中缩着的。
+if [ "$PLATFORM" != tvos ]; then
+  IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+  if [ "$(printf '%s\n27.1\n' "$IOS_SDK" | sort -V | head -1)" != 27.1 ]; then
+    echo "iOS SDK 是 ${IOS_SDK}，iPhone Duo 适配需要 27.1 以上：换 Xcode 27.1+ 或设 DEVELOPER_DIR" >&2
+    exit 1
+  fi
+fi
+
 KEY_DIR="$HOME/.appstoreconnect/private_keys"
 if [ -z "${ASC_KEY_ID:-}" ]; then
   KEYS=("$KEY_DIR"/AuthKey_*.p8)

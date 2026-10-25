@@ -13,9 +13,10 @@ struct CompactMatchListScreen: View {
     @EnvironmentObject private var preferences: Preferences
     @ObservedObject private var appConfig = AppConfigStore.shared
     @ObservedObject private var recordings = RecordingCenter.shared
+    @ObservedObject private var handoff = LayoutHandoff.shared
 
     @State private var now = Date()
-    @State private var path = NavigationPath()
+    @State private var path: [MatchRoute] = []
     #if DEBUG
     @State private var appliedDebugRoute = false
     #endif
@@ -37,35 +38,39 @@ struct CompactMatchListScreen: View {
                             NavigationLink {
                                 RecordingsScreen()
                             } label: {
-                                Image(systemName: recordings.active.isEmpty ? "film.stack" : "record.circle")
+                                // A title as well as a symbol: iPhone Duo puts bars on the side
+                                // and moves items into an overflow menu, which shows the title.
+                                Label("录像", systemImage: recordings.active.isEmpty ? "film.stack" : "record.circle")
                                     .foregroundStyle(recordings.active.isEmpty ? Palette.accent : Palette.live)
                             }
-                            .accessibilityLabel("录像")
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink {
                             SettingsScreen()
                         } label: {
-                            Image(systemName: "gearshape")
+                            Label("设置", systemImage: "gearshape")
                         }
-                        .accessibilityLabel("设置")
                     }
                 }
-                .navigationDestination(for: LiveMatch.self) { match in
-                    MatchDetailScreen(match: match, preferences: preferences, autoplay: true)
+                .navigationDestination(for: MatchRoute.self) { route in
+                    MatchDetailScreen(match: route.match, preferences: preferences, autoplay: route.autoplay)
                 }
         }
         .onReceive(minuteTick) { now = $0 }
+        .onAppear(perform: adoptHandoff)
+        .onChange(of: handoff.pending) { _, _ in adoptHandoff() }
+        .onChange(of: path) { _, _ in reportOpenMatch() }
+        .onChange(of: model.filter) { _, _ in reportOpenMatch() }
         #if DEBUG
         .onChange(of: model.isLoading) { _, loading in
             guard sport == .all, !loading, !model.matches.isEmpty, !appliedDebugRoute, path.isEmpty else { return }
             if DebugRoute.raw == "resume", let match = model.continueMatch {
                 appliedDebugRoute = true
-                path.append(match)
+                path.append(MatchRoute(match: match))
             } else if let target = DebugRoute.target(in: model.filteredMatches) {
                 appliedDebugRoute = true
-                path.append(target)
+                path.append(MatchRoute(match: target))
             }
         }
         #endif
@@ -102,7 +107,7 @@ struct CompactMatchListScreen: View {
 
             if sport == .all, model.filter == .all, let match = model.continueMatch {
                 Section {
-                    Button { path.append(match) } label: {
+                    Button { path.append(MatchRoute(match: match)) } label: {
                         ContinueWatchingRow(match: match)
                     }
                     .tint(.primary)
@@ -124,7 +129,7 @@ struct CompactMatchListScreen: View {
             ForEach(model.sections) { section in
                 Section {
                     ForEach(section.matches) { match in
-                        Button { path.append(match) } label: {
+                        Button { path.append(MatchRoute(match: match)) } label: {
                             ScoreboardRow(match: match, now: now)
                         }
                         .tint(.primary)
@@ -144,6 +149,22 @@ struct CompactMatchListScreen: View {
         .overlay {
             if model.filteredMatches.isEmpty { emptyState }
         }
+    }
+
+    /// Every sport has a tab of its own; 热门 / 关注 / 最近观看 live under 全部.
+    private var isShownTab: Bool {
+        (SportFilter.tabs.contains(model.filter) ? model.filter : .all) == sport
+    }
+
+    private func reportOpenMatch() {
+        if isShownTab { handoff.openMatch = path.last?.match }
+    }
+
+    /// Reopen what the split view had open, without starting it again: if it
+    /// is still playing, the detail screen picks up the session's model.
+    private func adoptHandoff() {
+        guard isShownTab, handoff.pending != nil, let match = handoff.take() else { return }
+        path = [MatchRoute(match: match, autoplay: false)]
     }
 
     private var title: String {
@@ -190,11 +211,10 @@ struct CompactMatchListScreen: View {
                 }
             }
         } label: {
-            Image(systemName: model.filter == .all
+            Label("筛选", systemImage: model.filter == .all
                   ? "line.3.horizontal.decrease"
                   : "line.3.horizontal.decrease.circle.fill")
         }
-        .accessibilityLabel("筛选")
     }
 
     @ViewBuilder
@@ -248,4 +268,11 @@ struct NavigationSubtitle: ViewModifier {
             content
         }
     }
+}
+
+/// A match pushed onto a tab's stack. A match reopened after a layout switch
+/// shows its detail without starting playback again.
+struct MatchRoute: Hashable {
+    let match: LiveMatch
+    var autoplay = true
 }

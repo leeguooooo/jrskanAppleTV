@@ -16,7 +16,14 @@ struct MatchDetailScreen: View {
 
     init(match: LiveMatch, preferences: Preferences, autoplay: Bool = true) {
         self.autoplay = autoplay
-        _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
+        // Folding iPhone Duo swaps layouts and rebuilds this screen. If its
+        // match is the one playing, keep that model: a fresh one would reload
+        // the channels and leave the screen out of step with the player.
+        if let playing = PlayerSession.shared.model, playing.match.id == match.id {
+            _model = StateObject(wrappedValue: playing)
+        } else {
+            _model = StateObject(wrappedValue: MatchPlaybackModel(match: match, preferences: preferences))
+        }
     }
 
     private var match: LiveMatch {
@@ -63,7 +70,7 @@ struct MatchDetailScreen: View {
         .onReceive(minuteTick) { now = $0 }
         .modifier(SportsInsightsLifecycle(model: model.insights, match: match, channels: model.resolvedChannels))
         .task(id: match.id) {
-            guard !didOpenMatch else { openingPlayback = false; return }
+            guard !didOpenMatch, model.channels == nil else { openingPlayback = false; return }
             openingPlayback = true
             await model.loadChannels()
             var shouldPlay = autoplay
