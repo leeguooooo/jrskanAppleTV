@@ -136,6 +136,16 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             }
             shownRequestID = request.id
 
+            if let current = controller, current.presentingViewController == nil || current.isBeingDismissed {
+                // Off screen or on its way out (Menu pressed a moment ago, or
+                // a presentation that never landed). Swapping the new stream
+                // into it would play it where nobody can see it, and the play
+                // button would look dead; present a fresh player instead.
+                current.player?.pause()
+                current.player = nil
+                controller = nil
+            }
+
             let item = AVPlayerItem(url: request.url)
             item.externalMetadata = metadata
             let player = AVPlayer(playerItem: item)
@@ -175,9 +185,18 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             }
             self.controller = controller
 
-            host.present(controller, animated: true) {
-                player.play()
-                self.startStallWatchdog(for: player, requestID: request.id)
+            let present = {
+                host.present(controller, animated: true) {
+                    player.play()
+                    self.startStallWatchdog(for: player, requestID: request.id)
+                }
+            }
+            // A present asked for while the last player is still animating
+            // away is dropped by UIKit; wait for that to finish.
+            if let transition = host.transitionCoordinator {
+                transition.animate(alongsideTransition: nil) { _ in present() }
+            } else {
+                present()
             }
         }
 
@@ -233,6 +252,11 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         func playerViewControllerDidEndDismissalTransition(
             _ playerViewController: AVPlayerViewController
         ) {
+            playerViewController.player?.pause()
+            playerViewController.player = nil
+            // A newer player already replaced this one; ending playback now
+            // would close it.
+            guard playerViewController === controller else { return }
             endObserver.stop()
             stallWatchdog?.cancel()
             stallWatchdog = nil
