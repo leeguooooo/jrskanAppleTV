@@ -25,6 +25,10 @@ struct TouchPlayerScreen: View {
     @EnvironmentObject private var listModel: MatchListModel
     @State private var showsStatistics = false
     @State private var visibleNotice: String?
+    /// The button row over the picture comes and goes with AVKit's own
+    /// controls: a tap on the picture toggles it, and it fades after a while.
+    @State private var controlsVisible = true
+    @State private var controlsTouch = 0
 
     var body: some View {
         stage
@@ -37,9 +41,25 @@ struct TouchPlayerScreen: View {
         }
         .statusBarHidden(!isUpright)
         .persistentSystemOverlays(.hidden)
-        .onAppear { Orientation.enterPlayer() }
+        .task(id: controlsTouch) {
+            guard controlsVisible else { return }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) { controlsVisible = false }
+        }
+        .onAppear {
+            session.screenDidAppear()
+            Orientation.enterPlayer()
+        }
         .onChange(of: horizontalSizeClass) { _, _ in Orientation.fitPlayer() }
         .onChange(of: verticalSizeClass) { _, _ in Orientation.fitPlayer() }
+        // A new layout brings the row back for a moment, the way a tap does.
+        .onChange(of: isUpright) { _, upright in
+            controlsVisible = true
+            controlsTouch += 1
+            // The upright box has no 铺满 button to undo a crop with.
+            if upright { session.fillsScreen = false }
+        }
         #if DEBUG
         // `-close-player <seconds>` closes the player on its own, to check the
         // screen it returns to without synthesising a tap.
@@ -158,7 +178,7 @@ struct TouchPlayerScreen: View {
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
                 Color.black
-                PlayerContainer(controller: session.controller)
+                PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 SportsDanmakuOverlay(model: model.insights)
                 controls(showsStatistics: false)
             }
@@ -223,17 +243,27 @@ struct TouchPlayerScreen: View {
     private var picture: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            PlayerContainer(controller: session.controller)
+            PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 .ignoresSafeArea(edges: showsStatistics ? [.vertical, .leading] : .all)
             SportsDanmakuOverlay(model: model.insights).ignoresSafeArea()
         }
+    }
+
+    private func togglePictureControls() {
+        withAnimation(.easeOut(duration: 0.2)) { controlsVisible.toggle() }
+        controlsTouch += 1
     }
 
     /// Only the controls themselves take touches; the empty space around them
     /// passes through to the player's own controls.
     private func controls(showsStatistics: Bool) -> some View {
         VStack(spacing: 8) {
-            overlay
+            if controlsVisible {
+                overlay
+                    .transition(.opacity)
+                    // Using a control keeps the row up.
+                    .simultaneousGesture(TapGesture().onEnded { controlsTouch += 1 })
+            }
             if let notice = visibleNotice {
                 Text(notice).font(.caption).foregroundStyle(Palette.primaryText)
                     .padding(8).playerChip()
@@ -258,6 +288,15 @@ struct TouchPlayerScreen: View {
 
     private var overlay: some View {
         HStack(spacing: 8) {
+            if !isUpright {
+                // Upright, 关闭 sits in the score strip under the picture.
+                Button { session.isPresented = false } label: {
+                    Image(systemName: "xmark").font(.footnote.weight(.bold))
+                        .padding(8)
+                        .playerChip()
+                }
+                .accessibilityLabel("关闭播放器")
+            }
             if !model.resolvedChannels.isEmpty {
                 ChannelMenu(model: model)
             }
@@ -274,15 +313,21 @@ struct TouchPlayerScreen: View {
             }
             RecordControl(model: model)
 
-            Button {
-                session.fillsScreen.toggle()
-            } label: {
-                Image(systemName: session.fillsScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                    .font(.footnote.weight(.semibold))
-                    .padding(8)
-                    .playerChip()
+            // Cropping only means something once the picture fills the
+            // screen. Upright it is a 16:9 box, and an expand-arrows glyph
+            // there read as a second 全屏 next to the real one.
+            if !isUpright {
+                Button {
+                    session.fillsScreen.toggle()
+                } label: {
+                    Label(session.fillsScreen ? "完整" : "铺满",
+                          systemImage: session.fillsScreen ? "rectangle.arrowtriangle.2.inward" : "crop")
+                        .font(.footnote.weight(.semibold))
+                        .padding(8)
+                        .playerChip()
+                }
+                .accessibilityLabel(session.fillsScreen ? "完整画面" : "铺满屏幕")
             }
-            .accessibilityLabel(session.fillsScreen ? "适应屏幕" : "填满屏幕")
         }
         .foregroundStyle(Palette.primaryText)
         .padding(.top, 10)
@@ -299,14 +344,20 @@ struct TouchPlayerScreen: View {
 /// one adopts it, and an old one only lets go if it still holds it.
 private struct PlayerContainer: UIViewControllerRepresentable {
     let controller: AVPlayerViewController
+    /// A tap on the picture, which also toggles AVKit's own controls.
+    var onTap: () -> Void = {}
 
     func makeUIViewController(context: Context) -> PlayerHost { PlayerHost(player: controller) }
-    func updateUIViewController(_ host: PlayerHost, context: Context) { host.adopt() }
+    func updateUIViewController(_ host: PlayerHost, context: Context) {
+        host.onTap = onTap
+        host.adopt()
+    }
     static func dismantleUIViewController(_ host: PlayerHost, coordinator: ()) { host.release() }
 }
 
-private final class PlayerHost: UIViewController {
+private final class PlayerHost: UIViewController, UIGestureRecognizerDelegate {
     let player: AVPlayerViewController
+    var onTap: () -> Void = {}
 
     init(player: AVPlayerViewController) {
         self.player = player
@@ -318,8 +369,18 @@ private final class PlayerHost: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
+        // Watch taps alongside AVKit's own recogniser rather than taking them.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        tap.cancelsTouchesInView = false
+        tap.delegate = self
+        view.addGestureRecognizer(tap)
         adopt()
     }
+
+    @objc private func tapped() { onTap() }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)

@@ -63,6 +63,19 @@ struct MatchDetailScreen: View {
         .sheet(isPresented: $showsStatistics) { SportsStatsSheet(model: model.insights) }
         #if DEBUG
         .onAppear { if CommandLine.arguments.contains("-show-stats") { showsStatistics = true } }
+        // `-resume-player <seconds>` taps 继续观看 that long after the player
+        // first closes (or goes to the floating window), to check it comes back.
+        .task {
+            let args = CommandLine.arguments
+            guard let index = args.firstIndex(of: "-resume-player"), index + 1 < args.count,
+                  let seconds = Double(args[index + 1]) else { return }
+            let session = PlayerSession.shared
+            while !session.isPresented, !Task.isCancelled { try? await Task.sleep(nanoseconds: 20_000_000) }
+            while session.isPresented, !Task.isCancelled { try? await Task.sleep(nanoseconds: 20_000_000) }
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await resume()
+        }
         #endif
         .onReceive(minuteTick) { now = $0 }
         .modifier(SportsInsightsLifecycle(model: model.insights, match: match, channels: model.resolvedChannels))
@@ -130,7 +143,7 @@ struct MatchDetailScreen: View {
     /// Back to the stream that is already up, or start the top-ranked channel.
     private func resume() async {
         if isPlayingHere, model.errorMessage == nil {
-            PlayerSession.shared.show(model)
+            PlayerSession.shared.show(model, userInitiated: true)
         } else {
             await model.startSuggestedPlayback()
         }

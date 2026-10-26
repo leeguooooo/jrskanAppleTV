@@ -29,6 +29,10 @@ final class PlayerSession: NSObject, ObservableObject {
     let controller = AVPlayerViewController()
 
     private(set) var isPictureInPictureActive = false
+    /// The player screen is in the window, which lags `isPresented` by the
+    /// length of the cover's animation.
+    private var screenIsUp = false
+    private var presentsWhenGone = false
     private var watchdog: Task<Void, Never>?
     private var shownRequestID: UUID?
     private var playbackObservation: AnyCancellable?
@@ -47,7 +51,9 @@ final class PlayerSession: NSObject, ObservableObject {
     }
 
     /// Called when a match screen's model has a resolved stream to show.
-    func show(_ model: MatchPlaybackModel) {
+    /// `userInitiated` is the viewer tapping 继续观看: that always brings the
+    /// screen back, floating window or not; only automatic switches stay out.
+    func show(_ model: MatchPlaybackModel, userInitiated: Bool = false) {
         if self.model !== model {
             end()
             self.model = model
@@ -60,17 +66,40 @@ final class PlayerSession: NSObject, ObservableObject {
                     // value it delivers rather than the model.
                     Task { @MainActor in self?.apply(request) }
                 }
-        } else if isPictureInPictureActive && !isPresented {
+        } else if isPictureInPictureActive && !isPresented && !userInitiated {
             // An automatic channel switch inside the floating window must
             // not throw the full-screen player back over the match list.
             return
         }
+        if screenIsUp && !isPresented {
+            // The last screen is still animating away. A cover asked for now
+            // is dropped, and its disappearance would then end this stream;
+            // present once it has gone instead.
+            presentsWhenGone = true
+            return
+        }
         isPresented = true
+        if userInitiated && isPictureInPictureActive {
+            // Take the picture back from the floating window; left floating,
+            // the screen would open on AVKit's empty placeholder.
+            controller.allowsPictureInPicturePlayback = false
+            controller.allowsPictureInPicturePlayback = true
+        }
+    }
+
+    func screenDidAppear() {
+        screenIsUp = true
     }
 
     /// The player screen left the window. Without Picture in Picture that is
     /// the viewer closing it; with it, the floating window keeps playing.
     func screenDidDisappear() {
+        screenIsUp = false
+        if presentsWhenGone {
+            presentsWhenGone = false
+            Task { @MainActor in self.isPresented = self.model != nil }
+            return
+        }
         isPresented = false
         if !isPictureInPictureActive { end() }
     }
@@ -86,6 +115,7 @@ final class PlayerSession: NSObject, ObservableObject {
         playbackObservation = nil
         model?.stopPlayback()
         model = nil
+        presentsWhenGone = false
         isPresented = false
     }
 
@@ -173,11 +203,23 @@ extension PlayerSession: AVPlayerViewControllerDelegate {
         MainActor.assumeIsolated { isPresented = false }
     }
 
+    /// Will-start already set the flag. Left set, closing the screen would
+    /// keep the stream playing unseen and 继续观看 would do nothing.
+    nonisolated func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        failedToStartPictureInPictureWithError error: Error
+    ) {
+        MainActor.assumeIsolated {
+            isPictureInPictureActive = false
+            if !isPresented { end() }
+        }
+    }
+
     nonisolated func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
         MainActor.assumeIsolated {
             isPictureInPictureActive = false
             // Closed from the floating window with no screen behind it.
-            if !isPresented { end() }
+            if !isPresented && !presentsWhenGone { end() }
         }
     }
 
