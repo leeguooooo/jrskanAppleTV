@@ -187,6 +187,7 @@ struct TencentSportsClient {
 final class MatchInsightsModel: ObservableObject {
     @Published private(set) var mid: String?
     @Published private(set) var snapshot: SportsSnapshot?
+    @Published private(set) var isRefreshing = false
     @Published private(set) var status = "正在匹配本场比赛…"
     @Published private(set) var comments: [SportsComment] = []
     @Published var danmakuEnabled = true
@@ -200,8 +201,9 @@ final class MatchInsightsModel: ObservableObject {
     func watch(match: LiveMatch, channels: [MatchSource]) async {
         generation += 1
         let current = generation
+        isRefreshing = false
         guard ["NBA", "CBA"].contains(match.league.uppercased()) else {
-            mid = nil; snapshot = nil; comments = []; status = "暂无可匹配的本场数据"; return
+            context = nil; mid = nil; snapshot = nil; comments = []; status = "暂无可匹配的本场数据"; return
         }
         let channelKey = channels.map { $0.pageURL.absoluteString }.sorted().joined(separator: ",")
         let key = "\(match.id)|\(match.homeTeam)|\(match.awayTeam)|\(match.time)|\(channelKey)"
@@ -210,18 +212,33 @@ final class MatchInsightsModel: ObservableObject {
         mid = key
         status = snapshot == nil ? "正在加载比赛数据…" : ""
         while !Task.isCancelled, current == generation {
-            do {
-                let value = try await client.statistics(match: match, channels: channels) { [weak self] partial in
-                    await self?.accept(partial, generation: current)
-                }
-                try Task.checkCancellation()
-                guard current == generation else { return }
-                snapshot = value; status = ""
-            } catch {
-                if Task.isCancelled || current != generation { return }
-                status = snapshot == nil ? "各数据源暂未提供本场统计，稍后自动重试" : "数据更新暂时中断，显示上次结果"
+            let started = ContinuousClock.now
+            await refresh()
+            // Count network/fallback time toward the interval; never overlap requests
+            // or replay missed ticks after a slow provider.
+            let pause = max(Duration.seconds(1), .seconds(10) - started.duration(to: .now))
+            do { try await Task.sleep(for: pause) } catch { return }
+        }
+    }
+
+    /// Opening the panel and manual refresh share the poll's request guard.
+    /// Keep the last snapshot visible while fetching; never queue duplicate requests.
+    func refresh() async {
+        guard !Task.isCancelled, !isRefreshing, let context, mid != nil else { return }
+        let current = generation
+        isRefreshing = true
+        if snapshot == nil { status = "正在加载比赛数据…" }
+        defer { if current == generation { isRefreshing = false } }
+        do {
+            let value = try await client.statistics(match: context.0, channels: context.1) { [weak self] partial in
+                await self?.accept(partial, generation: current)
             }
-            do { try await Task.sleep(nanoseconds: 30_000_000_000) } catch { return }
+            try Task.checkCancellation()
+            guard current == generation else { return }
+            snapshot = value; status = ""
+        } catch {
+            guard !Task.isCancelled, current == generation else { return }
+            status = snapshot == nil ? "各数据源暂未提供本场统计，稍后自动重试" : "数据更新暂时中断，显示上次结果"
         }
     }
 

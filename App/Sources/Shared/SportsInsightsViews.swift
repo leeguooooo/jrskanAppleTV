@@ -60,12 +60,22 @@ struct SportsStatsContent: View {
     /// One quiet line instead of the large placeholder while there is no
     /// data, for screens where the statistics are not the main content.
     var compactWhenEmpty = false
+    @State private var refreshRevision = 0
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tab: SportsDataTab = .overview
     @State private var selectedTeam = 0
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
         VStack(alignment: .leading, spacing: verticalSizeClass == .compact ? 16 : 24) {
+            HStack {
+                Spacer()
+                Button { refreshRevision += 1 } label: {
+                    Label(model.isRefreshing ? "刷新中…" : "刷新", systemImage: "arrow.clockwise")
+                }
+                .disabled(model.mid == nil || model.isRefreshing)
+                .font(.subheadline)
+            }
             if let snapshot = model.snapshot {
                 if showsScoreboard { scoreboard(snapshot) }
                 if let source = snapshot.scoreSourceName, source != snapshot.sourceName {
@@ -81,7 +91,7 @@ struct SportsStatsContent: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle")
-                    Text("\(snapshot.sourceName)  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 更新")
+                    Text("\(snapshot.sourceName)  \(snapshot.updatedAt.formatted(date: .omitted, time: .standard)) 获取")
                 }
                 .font(.caption).foregroundStyle(Palette.secondaryText)
             } else if compactWhenEmpty {
@@ -103,6 +113,10 @@ struct SportsStatsContent: View {
         #if DEBUG
         .onAppear { if CommandLine.arguments.contains("-stats-players") { tab = .players } }
         #endif
+        .task(id: "\(scenePhase)-\(model.mid ?? "")-\(refreshRevision)") {
+            guard scenePhase == .active else { return }
+            await model.refresh()
+        }
         .foregroundStyle(Palette.primaryText)
         .frame(maxWidth: 1200)
         .frame(maxWidth: .infinity)

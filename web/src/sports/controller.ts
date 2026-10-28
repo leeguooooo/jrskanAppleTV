@@ -5,7 +5,7 @@ import type { LiveMatch, MatchSource } from "../core/models";
 import { matchKey, sharedSportsClient, type MultiSportsClient } from "./client";
 import type { SportsComment, SportsSnapshot } from "./types";
 
-export const STATS_INTERVAL_MS = 30_000;
+export const STATS_INTERVAL_MS = 10_000;
 export const COMMENT_INTERVAL_MS = 10_000;
 export const COMMENT_MAX_AGE_MS = 120_000;
 export const DANMAKU_EMIT_MS = 2_500;
@@ -26,6 +26,7 @@ export interface InsightsState {
   /** Set when the league can be matched (NBA/CBA); the danmaku toggle shows only then. */
   key?: string;
   snapshot?: SportsSnapshot;
+  refreshing?: boolean;
   /** Empty when the latest poll succeeded with data. */
   status: string;
   /** Fresh (< 120 s) comments, oldest first, at most 24. */
@@ -87,7 +88,7 @@ export class MatchInsightsController {
   private statsInFlight = false;
   private commentsInFlight = false;
 
-  /** Start statistics polling (30 s). Idempotent. */
+  /** Start statistics polling (10 s). Idempotent. */
   start(): void {
     if (!this.current.key || this.statisticsRunning) return;
     const generation = ++this.statsGeneration;
@@ -100,11 +101,21 @@ export class MatchInsightsController {
     clearTimeout(this.statsTimer);
     this.statsTimer = undefined;
     this.statsInFlight = false;
+    if (this.current.refreshing) this.update({ refreshing: false });
+  }
+
+  /** Refresh a visible panel immediately; share the poll's in-flight guard. */
+  refresh(): void {
+    if (!this.current.key || this.statsInFlight || !this.statisticsRunning) return;
+    clearTimeout(this.statsTimer);
+    void this.pollStatistics(this.statsGeneration);
   }
 
   private async pollStatistics(generation: number) {
+    const started = this.now();
     this.statsTimer = undefined;
     this.statsInFlight = true;
+    this.update({ refreshing: true });
     try {
       const value = await this.client.statistics(this.match, this.channels, (partial) => {
         if (generation === this.statsGeneration) this.update({ snapshot: partial, status: "" });
@@ -117,7 +128,10 @@ export class MatchInsightsController {
     } finally {
       if (generation === this.statsGeneration) {
         this.statsInFlight = false;
-        this.statsTimer = setTimeout(() => void this.pollStatistics(generation), this.statsInterval);
+        this.update({ refreshing: false });
+        // Count request time toward the interval, with no overlapping/catch-up polls.
+        const pause = Math.max(1_000, Math.min(this.statsInterval, this.statsInterval - (this.now() - started)));
+        this.statsTimer = setTimeout(() => void this.pollStatistics(generation), pause);
       }
     }
   }

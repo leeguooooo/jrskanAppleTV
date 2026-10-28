@@ -22,13 +22,14 @@ class MatchInsightsModel(
     data class State(
         val mid: String? = null, val snapshot: SportsSnapshot? = null,
         val status: String = "正在匹配本场比赛…", val comments: List<SportsComment> = emptyList(),
-        val danmakuEnabled: Boolean = true,
+        val danmakuEnabled: Boolean = true, val isRefreshing: Boolean = false,
     )
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state
     private val seen = LinkedHashSet<String>()
     private var generation = 0
     private var verifiedKey: String? = null
+    private var context: Pair<LiveMatch, String>? = null
 
     fun setDanmakuEnabled(enabled: Boolean) {
         _state.update { it.copy(danmakuEnabled = enabled, comments = if (enabled) it.comments else emptyList()) }
@@ -37,6 +38,8 @@ class MatchInsightsModel(
 
     suspend fun watch(match: LiveMatch, channels: List<MatchSource>) {
         val current = ++generation
+        context = null
+        _state.update { it.copy(isRefreshing = false) }
         suspend fun check() {
             currentCoroutineContext().ensureActive()
             if (current != generation) throw CancellationException("Superseded match data request")
@@ -70,16 +73,39 @@ class MatchInsightsModel(
                 check(); _state.update { it.copy(status = "赛事暂未匹配，请稍后重试") }; return
             }
         }
+        context = match to mid
         while (true) {
             check()
-            try {
-                val snapshot = provider.statistics(mid, match) { partial ->
-                    check(); _state.update { it.copy(snapshot = partial, status = "") }
-                }; check()
-                _state.update { it.copy(snapshot = snapshot, status = if (snapshot.tables.isEmpty()) "暂无本场技术统计" else "") }
-            } catch (cancel: CancellationException) { throw cancel }
-            catch (_: Exception) { check(); _state.update { it.copy(status = if (it.snapshot == null) "各数据源暂未提供本场统计，稍后自动重试" else "数据更新暂时中断，显示上次结果") } }
-            delay(30_000)
+            val started = clock()
+            refresh()
+            // Include request time without overlapping polls or catching up missed ticks.
+            delay((10_000 - (clock() - started)).coerceIn(1_000, 10_000))
+        }
+    }
+
+    /** Open/manual refresh shares the poll guard and retains the last snapshot. */
+    suspend fun refresh() {
+        currentCoroutineContext().ensureActive()
+        val (match, mid) = context ?: return
+        if (_state.value.isRefreshing) return
+        val current = generation
+        suspend fun check() {
+            currentCoroutineContext().ensureActive()
+            if (current != generation) throw CancellationException("Superseded statistics refresh")
+        }
+        _state.update { it.copy(isRefreshing = true) }
+        try {
+            val snapshot = provider.statistics(mid, match) { partial ->
+                check(); _state.update { it.copy(snapshot = partial, status = "") }
+            }
+            check()
+            _state.update { it.copy(snapshot = snapshot, status = if (snapshot.tables.isEmpty()) "暂无本场技术统计" else "") }
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: Exception) {
+            check()
+            _state.update { it.copy(status = if (it.snapshot == null) "各数据源暂未提供本场统计，稍后自动重试" else "数据更新暂时中断，显示上次结果") }
+        } finally {
+            if (current == generation) _state.update { it.copy(isRefreshing = false) }
         }
     }
 

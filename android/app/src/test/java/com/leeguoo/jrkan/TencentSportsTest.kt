@@ -87,9 +87,11 @@ class TencentSportsTest {
     private inner class Provider : SportsDataProvider {
         var verifies = 0; var stats = 0; var polls = 0
         var failStats = false; var failComments = false
+        var statsDelay = 0L
         override suspend fun verify(match: LiveMatch, mid: String) { verifies++ }
         override suspend fun statistics(mid: String, match: LiveMatch): SportsSnapshot {
             stats++
+            kotlinx.coroutines.delay(statsDelay)
             if (failStats) throw IOException("offline")
             return TencentSportsClient.parseStatistics(fixture().getValue("statistics").jsonObject, mid, 1_000_000)
         }
@@ -120,6 +122,48 @@ class TencentSportsTest {
         model.setDanmakuEnabled(false)
         val disabled = backgroundScope.launch { model.watchComments() }; runCurrent(); disabled.cancelAndJoin()
         assertTrue(model.state.value.comments.isEmpty()); assertEquals(polls, provider.polls)
+    }
+
+    @Test fun statisticsCadenceIncludesNetworkTimeAndDoesNotOverlap() = runTest {
+        val provider = Provider().apply { statsDelay = 4_000 }
+        val model = MatchInsightsModel(provider) { testScheduler.currentTime }
+        val watch = backgroundScope.launch { model.watch(game(), listOf(channel())) }
+        runCurrent()
+        advanceTimeBy(9_999); runCurrent()
+        assertEquals(1, provider.stats)
+        provider.statsDelay = 25_000
+        advanceTimeBy(1); runCurrent()
+        assertEquals(2, provider.stats)
+        advanceTimeBy(25_999); runCurrent()
+        assertEquals(2, provider.stats)
+        advanceTimeBy(1); runCurrent()
+        assertEquals(3, provider.stats)
+        watch.cancelAndJoin()
+        advanceTimeBy(60_000); runCurrent()
+        assertEquals(3, provider.stats)
+    }
+
+    @Test fun manualRefreshIsImmediateAndSharesThePollGuard() = runTest {
+        val provider = Provider().apply { statsDelay = 4_000 }
+        val model = MatchInsightsModel(provider) { testScheduler.currentTime }
+        val watch = backgroundScope.launch { model.watch(game(), listOf(channel())) }
+        runCurrent()
+        assertTrue(model.state.value.isRefreshing)
+        model.refresh()
+        assertEquals(1, provider.stats)
+        advanceTimeBy(4_000); runCurrent()
+        assertFalse(model.state.value.isRefreshing)
+        val previous = model.state.value.snapshot
+        val manual = backgroundScope.launch { model.refresh() }
+        runCurrent()
+        assertEquals(2, provider.stats)
+        assertEquals(previous, model.state.value.snapshot)
+        assertTrue(model.state.value.isRefreshing)
+        model.refresh()
+        assertEquals(2, provider.stats)
+        manual.cancelAndJoin()
+        assertFalse(model.state.value.isRefreshing)
+        watch.cancelAndJoin()
     }
 
     @Test fun outagesKeepLastStatisticsAndNeverThrowToCaller() = runTest {

@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -122,6 +124,7 @@ fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier,
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 1200.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 20.dp)) {
+            SportsRefreshControl(model)
             if (snapshot == null) {
                 Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                     Text(state.status, color = Palette.secondaryText, fontSize = 15.sp, textAlign = TextAlign.Center)
@@ -145,6 +148,24 @@ fun SportsStatsContent(model: MatchInsightsModel, modifier: Modifier = Modifier,
     }
 }
 
+/** Fetch on entry/resume and on explicit refresh, even when no data is available. */
+@Composable
+private fun SportsRefreshControl(model: MatchInsightsModel) {
+    val state by model.state.collectAsState()
+    val owner = LocalLifecycleOwner.current
+    var revision by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(model, owner, state.mid, revision) {
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { model.refresh() }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        TextButton(onClick = { revision++ }, enabled = state.mid != null && !state.isRefreshing) {
+            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(if (state.isRefreshing) "刷新中…" else "刷新")
+        }
+    }
+}
+
 /** Which page a stats tab shows. */
 enum class StatsTab(val title: String) {
     Overview("赛况"), Players("球员数据"), PlayersShort("球员"), Team("球队对比"), TeamShort("球队"), Periods("分节"),
@@ -161,6 +182,7 @@ fun SportsStatsTabs(model: MatchInsightsModel, tabs: List<StatsTab>, modifier: M
     var selected by rememberSaveable { mutableIntStateOf(initial) }
     val snapshot = state.snapshot
     Column(modifier) {
+        SportsRefreshControl(model)
         UnderlineTabs(tabs.map { it.title }, selected, Modifier.padding(horizontal = 14.dp)) { selected = it }
         Column(Modifier.weight(1f, fill = true).verticalScroll(rememberScrollState()).padding(top = 10.dp)
             .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
@@ -239,7 +261,7 @@ private fun PlayersSection(snapshot: SportsSnapshot) {
 @Composable
 private fun Footer(snapshot: SportsSnapshot, status: String) {
     val time = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(snapshot.updatedAt))
-    Text("${snapshot.sourceName} · $time 更新", color = Palette.tertiaryText, style = chakraStyle(11.sp, FontWeight.SemiBold, Palette.tertiaryText))
+    Text("${snapshot.sourceName} · $time 获取", color = Palette.tertiaryText, style = chakraStyle(11.sp, FontWeight.SemiBold, Palette.tertiaryText))
     if (status.isNotEmpty()) Text(status, color = Palette.secondaryText, fontSize = 12.sp)
 }
 

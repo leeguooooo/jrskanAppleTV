@@ -33,10 +33,17 @@ export function MatchInsights({ match, active, channels }: MatchInsightsProps): 
     return () => controller.stop();
   }, [controller, running]);
 
+  const refreshButton = (
+    <div class="lg-ins-refresh">
+      <button type="button" onClick={() => controller.refresh()} disabled={!running || !state.key || state.refreshing}
+        aria-busy={state.refreshing ?? false}>{state.refreshing ? "刷新中…" : "刷新"}</button>
+    </div>
+  );
   const snapshot = state.snapshot;
   if (!snapshot) {
     return (
       <section class="lg-ins" aria-live="polite">
+        {refreshButton}
         <div class="lg-ins-empty">
           <ChartIcon />
           <p>{state.status}</p>
@@ -48,6 +55,7 @@ export function MatchInsights({ match, active, channels }: MatchInsightsProps): 
   const comparison = comparisonTable(snapshot);
   return (
     <section class="lg-ins">
+      {refreshButton}
       <Scoreboard snapshot={snapshot} />
       {snapshot.scoreSourceName && snapshot.scoreSourceName !== snapshot.sourceName && (
         <p class="lg-ins-caption">比分来源：{snapshot.scoreSourceName}</p>
@@ -73,7 +81,7 @@ export function MatchInsights({ match, active, channels }: MatchInsightsProps): 
       )}
       <p class="lg-ins-caption lg-ins-updated">
         <CheckIcon />
-        {`${snapshot.sourceName}  ${formatClock(snapshot.updatedAt)} 更新`}
+        {`${snapshot.sourceName}  ${formatClock(snapshot.updatedAt)} 获取`}
       </p>
       {state.status && state.status !== STATUS.empty && (
         <p class="lg-ins-caption lg-ins-status" aria-live="polite">{state.status}</p>

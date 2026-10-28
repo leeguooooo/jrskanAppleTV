@@ -92,6 +92,52 @@ final class TencentSportsTests: XCTestCase {
         XCTAssertThrowsError(try TencentSportsClient.parseStatistics([:], mid: mid))
     }
 
+    @MainActor
+    func testStatisticsPollAgainWithinTenSecondsAndCancelCleanly() async throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let fixture = try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("contracts/tencent-sports.json"))) as! [String: Any]
+        var statistics = fixture["statistics"] as! [String: Any]
+        var info = statistics["teamInfo"] as! [String: Any]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let now = Date()
+        info["startTime"] = formatter.string(from: now)
+        statistics["teamInfo"] = info
+        let bytes = try JSONSerialization.data(withJSONObject: ["code": 0, "data": statistics])
+        let twice = expectation(description: "Two statistics polls, including request time")
+        twice.expectedFulfillmentCount = 2
+        InsightsPollingProtocol.handler = { request in
+            XCTAssertEqual(request.url?.path, "/kbs/matchStat")
+            twice.fulfill()
+            return bytes
+        }
+        defer { InsightsPollingProtocol.handler = nil }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [InsightsPollingProtocol.self]
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        let model = MatchInsightsModel(client: TencentSportsClient(session: session))
+        formatter.dateFormat = "MM-dd HH:mm"
+        let game = LiveMatch(id: "poll", league: "NBA", time: formatter.string(from: now), homeTeam: "湖人", awayTeam: "快船",
+                             homeLogoURL: nil, awayLogoURL: nil, isHot: false, sources: [])
+        let channels = [MatchSource(id: "t", name: "中文高清Q", pageURL: URL(string: "https://fixture.example/play/kbs/?id=10022600102")!)]
+        let task = Task { await model.watch(match: game, channels: channels) }
+        defer { task.cancel() }
+        await fulfillment(of: [twice], timeout: 15)
+        while model.isRefreshing { await Task.yield() }
+        XCTAssertNotNil(model.snapshot)
+        let manual = expectation(description: "Manual refresh does not wait for the next poll")
+        InsightsPollingProtocol.handler = { _ in manual.fulfill(); return bytes }
+        await model.refresh()
+        await fulfillment(of: [manual], timeout: 1)
+        XCTAssertFalse(model.isRefreshing)
+        task.cancel()
+        await task.value
+        XCTAssertEqual(model.status, "")
+    }
+
     func testLivePublicStatisticsAndCommentContract() async throws {
         guard ProcessInfo.processInfo.environment["RUN_LIVE_JRS_TESTS"] == "1" else {
             throw XCTSkip("Set RUN_LIVE_JRS_TESTS=1 for public Tencent contracts.")
@@ -109,5 +155,20 @@ final class TencentSportsTests: XCTestCase {
             return
         }
         throw XCTSkip("No current NBA fixture exposes a Tencent event ID.")
+    }
+}
+
+private final class InsightsPollingProtocol: URLProtocol {
+    static var handler: ((URLRequest) -> Data)?
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+    override func startLoading() {
+        guard let bytes = Self.handler?(request) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.cancelled)); return
+        }
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: bytes)
+        client?.urlProtocolDidFinishLoading(self)
     }
 }

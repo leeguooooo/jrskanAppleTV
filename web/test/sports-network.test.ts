@@ -109,7 +109,7 @@ describe("MatchInsightsController", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("polls statistics every 30 s only while started", async () => {
+  it("polls statistics every 10 s only while started", async () => {
     let count = 0;
     const fake = { statistics: async () => { count++; throw new Error("down"); }, comments: async () => [] } as unknown as MultiSportsClient;
     const ctl = new MatchInsightsController(game(), channels, { client: fake });
@@ -120,12 +120,64 @@ describe("MatchInsightsController", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(count).toBe(1);
     expect(ctl.state.status).toBe(STATUS.unavailable);
-    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(10_000);
     expect(count).toBe(2);
     ctl.stop();
     await vi.advanceTimersByTimeAsync(120_000);
     expect(count).toBe(2);
     expect(statuses[0]).toBe(STATUS.matching);
+  });
+
+  it("counts slow requests toward the interval without overlapping or catching up", async () => {
+    const starts: number[] = [];
+    let duration = 4_000;
+    const fake = { statistics: async () => {
+      starts.push(Date.now());
+      await new Promise((resolve) => setTimeout(resolve, duration));
+      throw new Error("down");
+    } } as unknown as MultiSportsClient;
+    const ctl = new MatchInsightsController(game(), channels, { client: fake });
+    const start = Date.now();
+    ctl.start();
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(starts).toEqual([start]);
+    duration = 25_000;
+    await vi.advanceTimersByTimeAsync(1);
+    expect(starts).toEqual([start, start + 10_000]);
+    await vi.advanceTimersByTimeAsync(25_999);
+    expect(starts).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(starts).toEqual([start, start + 10_000, start + 36_000]);
+    ctl.stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(starts).toHaveLength(3);
+  });
+
+  it("manual refresh runs immediately, deduplicates in-flight polls and stops when hidden", async () => {
+    let calls = 0;
+    const fake = { statistics: async () => {
+      calls++;
+      await new Promise((resolve) => setTimeout(resolve, 4_000));
+      throw new Error("offline");
+    } } as unknown as MultiSportsClient;
+    const ctl = new MatchInsightsController(game(), channels, { client: fake });
+    ctl.refresh();
+    expect(calls).toBe(0);
+    ctl.start();
+    expect(ctl.state.refreshing).toBe(true);
+    ctl.refresh();
+    expect(calls).toBe(1);
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(ctl.state.refreshing).toBe(false);
+    ctl.refresh();
+    expect(calls).toBe(2);
+    ctl.refresh();
+    expect(calls).toBe(2);
+    ctl.stop();
+    expect(ctl.state.refreshing).toBe(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    ctl.refresh();
+    expect(calls).toBe(2);
   });
 
   it("unsupported leagues never poll", async () => {
