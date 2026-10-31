@@ -397,6 +397,30 @@ struct SportsStatsSheet: View {
     }
 }
 
+/// Hosting controllers on a UIKit-presented player sit outside the SwiftUI
+/// scene, where `scenePhase` stays `.background` forever. Feed it from the
+/// application lifecycle so views inside behave as they do in a scene.
+struct UIKitHostedScene<Content: View>: View {
+    @State private var phase = Self.currentPhase
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content
+            .environment(\.scenePhase, phase)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in phase = .active }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in phase = .inactive }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in phase = .background }
+    }
+
+    private static var currentPhase: ScenePhase {
+        switch UIApplication.shared.applicationState {
+        case .active: return .active
+        case .inactive: return .inactive
+        default: return .background
+        }
+    }
+}
+
 struct SportsDanmakuOverlay: View {
     @ObservedObject var model: MatchInsightsModel
     @Environment(\.scenePhase) private var scenePhase

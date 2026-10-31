@@ -111,11 +111,11 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         var onDismiss: () -> Void = {}
 
         var insights: MatchInsightsModel?
-        private var commentsHost: UIHostingController<SportsDanmakuOverlay>?
+        private var commentsHost: UIHostingController<UIKitHostedScene<SportsDanmakuOverlay>>?
 
         func presentStatistics() {
             guard let insights, let controller, controller.presentedViewController == nil else { return }
-            let panel = UIHostingController(rootView: SportsStatsSheet(model: insights))
+            let panel = UIHostingController(rootView: UIKitHostedScene { SportsStatsSheet(model: insights) })
             controller.present(panel, animated: true)
         }
 
@@ -168,7 +168,7 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             controller.delegate = self
             PlayerWatermark.install(on: controller)
             if let insights, let overlay = controller.contentOverlayView {
-                let host = UIHostingController(rootView: SportsDanmakuOverlay(model: insights))
+                let host = UIHostingController(rootView: UIKitHostedScene { SportsDanmakuOverlay(model: insights) })
                 controller.addChild(host)
                 host.view.backgroundColor = .clear
                 host.view.isUserInteractionEnabled = false
