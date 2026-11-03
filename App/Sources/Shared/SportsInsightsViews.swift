@@ -154,15 +154,26 @@ struct SportsStatsContent: View {
         let scores = snapshot.score.components(separatedBy: ":").map { $0.trimmingCharacters(in: .whitespaces) }
         return Group {
         if verticalSizeClass == .compact {
-            HStack(spacing: 10) {
+            // The side panel beside the picture is only ~360 pt wide: the
+            // score stays on one line and the names shrink before it wraps.
+            HStack(spacing: 8) {
                 TeamCrest(url: snapshot.leftBadge, teamName: snapshot.left, size: 26)
-                Text(snapshot.left).font(.subheadline)
-                LEDScore(text: scores[safe: 0] ?? "—", size: 30)
-                Spacer(minLength: 8)
-                Text(snapshot.period).font(.caption).foregroundStyle(Palette.secondaryText)
-                Spacer(minLength: 8)
-                LEDScore(text: scores[safe: 1] ?? "—", size: 30)
-                Text(snapshot.right).font(.subheadline)
+                Text(snapshot.left).font(.subheadline).lineLimit(1).minimumScaleFactor(0.6)
+                Spacer(minLength: 4)
+                VStack(spacing: 2) {
+                    HStack(spacing: 6) {
+                        LEDScore(text: scores[safe: 0] ?? "—", size: 30)
+                        Text(":").font(BrandFont.score(24)).foregroundStyle(Palette.tertiaryText)
+                        LEDScore(text: scores[safe: 1] ?? "—", size: 30)
+                    }
+                    .lineLimit(1).fixedSize()
+                    .accessibilityLabel("比分 \(snapshot.score)")
+                    Text(snapshot.period).font(.caption).foregroundStyle(Palette.secondaryText)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .layoutPriority(1)
+                Spacer(minLength: 4)
+                Text(snapshot.right).font(.subheadline).lineLimit(1).minimumScaleFactor(0.6)
                 TeamCrest(url: snapshot.rightBadge, teamName: snapshot.right, size: 26)
             }
             .padding(10).background(Palette.card, in: RoundedRectangle(cornerRadius: 8))
