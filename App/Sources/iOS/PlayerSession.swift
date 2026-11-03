@@ -33,6 +33,11 @@ final class PlayerSession: NSObject, ObservableObject {
     /// length of the cover's animation.
     private var screenIsUp = false
     private var presentsWhenGone = false
+    /// AVKit's restore callback, held until the screen it restores into is
+    /// in the window. Answered at once, AVKit animated the picture back into
+    /// a controller that was not on screen yet and paused the stream.
+    private var pendingRestore: ((Bool) -> Void)?
+    private var resumesAfterPictureInPicture = false
     private var watchdog: Task<Void, Never>?
     private var shownRequestID: UUID?
     private var playbackObservation: AnyCancellable?
@@ -89,6 +94,10 @@ final class PlayerSession: NSObject, ObservableObject {
 
     func screenDidAppear() {
         screenIsUp = true
+        guard let restore = pendingRestore else { return }
+        pendingRestore = nil
+        // Let the host adopt the controller first.
+        Task { @MainActor in restore(true) }
     }
 
     /// The player screen left the window. Without Picture in Picture that is
@@ -113,6 +122,9 @@ final class PlayerSession: NSObject, ObservableObject {
         player.replaceCurrentItem(with: nil)
         shownRequestID = nil
         playbackObservation = nil
+        pendingRestore?(false)
+        pendingRestore = nil
+        resumesAfterPictureInPicture = false
         model?.stopPlayback()
         model = nil
         presentsWhenGone = false
@@ -151,7 +163,8 @@ final class PlayerSession: NSObject, ObservableObject {
                     mediaTime: player.currentTime().seconds, playing: player.timeControlStatus == .playing,
                     paused: player.timeControlStatus == .paused && player.currentItem?.status != .unknown,
                     ready: self.hasPicture,
-                    itemFailed: player.currentItem?.status == .failed)
+                    itemFailed: player.currentItem?.status == .failed,
+                    buffered: player.currentItem?.loadedTimeRanges.last.map { CMTimeRangeGetEnd($0.timeRangeValue).seconds })
                 switch event {
                 case .confirmed(let startup):
                     model.confirmPlayback(requestID: requestID, startupSeconds: startup)
@@ -215,11 +228,19 @@ extension PlayerSession: AVPlayerViewControllerDelegate {
         }
     }
 
+    nonisolated func playerViewControllerWillStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        MainActor.assumeIsolated { resumesAfterPictureInPicture = player.timeControlStatus != .paused }
+    }
+
     nonisolated func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
         MainActor.assumeIsolated {
             isPictureInPictureActive = false
             // Closed from the floating window with no screen behind it.
-            if !isPresented && !presentsWhenGone { end() }
+            if !isPresented && !presentsWhenGone { end(); return }
+            // Coming back to the app hands the picture back; AVKit can leave
+            // it paused on the way, and a live match should just carry on.
+            if resumesAfterPictureInPicture && model?.playback != nil { player.play() }
+            resumesAfterPictureInPicture = false
         }
     }
 
@@ -229,8 +250,17 @@ extension PlayerSession: AVPlayerViewControllerDelegate {
     ) {
         MainActor.assumeIsolated {
             guard model != nil else { return completionHandler(false) }
-            isPresented = true
-            completionHandler(true)
+            if screenIsUp && isPresented { return completionHandler(true) }
+            pendingRestore?(false)
+            pendingRestore = completionHandler
+            if screenIsUp { presentsWhenGone = true } else { isPresented = true }
+            // Never leave AVKit waiting if the screen does not come up.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard let self, let restore = self.pendingRestore else { return }
+                self.pendingRestore = nil
+                restore(self.screenIsUp)
+            }
         }
     }
 }

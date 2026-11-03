@@ -54,6 +54,30 @@ final class PlaybackHealthTests: XCTestCase {
         var failed = PlaybackHealthMonitor(now: 0)
         XCTAssertEqual(failed.sample(now: 1, mediaTime: .nan, playing: false, paused: true, ready: false, itemFailed: true), .stalled)
     }
+
+    func testFrozenPictureWaitsLongerWhileSegmentsStillArrive() {
+        var monitor = PlaybackHealthMonitor(now: 0)
+        for second in 1...5 {
+            _ = monitor.sample(now: Double(second), mediaTime: Double(second), playing: true, paused: false,
+                ready: true, itemFailed: false, buffered: Double(second) + 2)
+        }
+        // Weak network: the picture is stuck at 5 s but the buffer keeps growing.
+        for second in 6...49 {
+            XCTAssertNil(monitor.sample(now: Double(second), mediaTime: 5, playing: false, paused: false,
+                ready: true, itemFailed: false, buffered: 7 + Double(second) / 4))
+        }
+        XCTAssertEqual(monitor.sample(now: 50, mediaTime: 5, playing: false, paused: false,
+            ready: true, itemFailed: false, buffered: 20), .stalled)
+
+        var dead = PlaybackHealthMonitor(now: 0)
+        for second in 1...5 {
+            _ = dead.sample(now: Double(second), mediaTime: Double(second), playing: true, paused: false,
+                ready: true, itemFailed: false, buffered: 7)
+        }
+        XCTAssertNil(dead.sample(now: 16, mediaTime: 5, playing: false, paused: false, ready: true, itemFailed: false, buffered: 7))
+        XCTAssertEqual(dead.sample(now: 17, mediaTime: 5, playing: false, paused: false, ready: true,
+            itemFailed: false, buffered: 7), .stalled)
+    }
 }
 
 @MainActor
@@ -172,6 +196,28 @@ final class ExperienceTests: XCTestCase {
         let next = try XCTUnwrap(model.playback)
         model.handleStall("Late old event", requestID: reconnected.id)
         XCTAssertEqual(model.playback?.id, next.id)
+        model.stopPlayback()
+    }
+
+    func testChannelThatPlayedAWhileReconnectsInPlaceAgain() async throws {
+        let (prefs, store, name) = preferences()
+        defer { store.removePersistentDomain(forName: name) }
+        let session = session()
+        defer { session.invalidateAndCancel() }
+        let model = MatchPlaybackModel(match: match(), preferences: prefs, resolver: StreamResolver(session: session))
+        await model.startPlayback(at: 0)
+        let first = try XCTUnwrap(model.playback)
+        model.confirmPlayback(requestID: first.id, startupSeconds: 1)
+        let now = Date()
+        model.handleStall("Disconnected", requestID: first.id, now: now)
+        try await waitUntil { model.playback?.id != first.id }
+        let reconnected = try XCTUnwrap(model.playback)
+        model.confirmPlayback(requestID: reconnected.id, startupSeconds: 1)
+        // Played for 90 seconds before the next hiccup: stay on this channel.
+        model.handleStall("Disconnected again", requestID: reconnected.id, now: now.addingTimeInterval(90))
+        try await waitUntil { model.playback?.id != reconnected.id }
+        XCTAssertEqual(model.playback?.index, 0)
+        XCTAssertTrue(model.stalledIndices.isEmpty)
         model.stopPlayback()
     }
 

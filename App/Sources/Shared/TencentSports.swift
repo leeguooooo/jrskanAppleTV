@@ -247,9 +247,10 @@ final class MatchInsightsModel: ObservableObject {
         snapshot = value; status = ""
     }
 
+    /// Restarted whenever an overlay appears; the comments already fetched
+    /// stay, so a new overlay picks up where the last one was.
     func watchComments() async {
-        comments = []
-        guard danmakuEnabled, let key = mid, let context else { return }
+        guard danmakuEnabled, let key = mid, let context else { comments = []; return }
         while !Task.isCancelled, danmakuEnabled, mid == key {
             do {
                 let batch = try await client.comments(match: context.0, channels: context.1, excluding: Set(seen))

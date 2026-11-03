@@ -236,7 +236,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
                         mediaTime: player.currentTime().seconds, playing: player.timeControlStatus == .playing,
                         paused: player.timeControlStatus == .paused && player.currentItem?.status != .unknown,
                         ready: self.controller?.isReadyForDisplay == true,
-                        itemFailed: player.currentItem?.status == .failed)
+                        itemFailed: player.currentItem?.status == .failed,
+                        buffered: player.currentItem?.loadedTimeRanges.last.map { CMTimeRangeGetEnd($0.timeRangeValue).seconds })
                     switch event {
                     case .confirmed(let startup): self.onConfirmed(requestID, startup)
                     case .stalled:

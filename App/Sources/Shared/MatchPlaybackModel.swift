@@ -43,6 +43,7 @@ final class MatchPlaybackModel: ObservableObject {
     private let sourcePages: SourcePageClient
     private var requestGeneration = 0
     private var confirmedRequestID: UUID?
+    private var confirmedAt: Date?
     private var handledFailureID: UUID?
     private var lastReconnect: [Int: Date] = [:]
     private var recoveryTask: Task<Void, Never>?
@@ -240,20 +241,25 @@ final class MatchPlaybackModel: ObservableObject {
         guard let request = playback, request.id == requestID, confirmedRequestID != requestID,
               resolvedChannels.indices.contains(request.index) else { return }
         confirmedRequestID = requestID
+        confirmedAt = Date()
         preferences.recordPlaybackSuccess(match: match, source: resolvedChannels[request.index],
             index: request.index, startup: resolutionDuration + startupSeconds)
     }
 
     /// Keep the controller on screen during recovery. A confirmed stream gets
-    /// one same-channel reconnect per two minutes before trying other sources.
+    /// one same-channel reconnect per two minutes before trying other sources,
+    /// and always gets one when it had been playing for a minute: on a weak
+    /// network every channel hiccups now and then, and hopping to another
+    /// one only restarts the wait on the same slow connection.
     func handleStall(_ message: String, requestID: UUID? = nil, now: Date = Date()) {
         guard let request = playback, requestID == nil || request.id == requestID,
               handledFailureID != request.id, resolvedChannels.indices.contains(request.index) else { return }
         handledFailureID = request.id
         let index = request.index
         preferences.recordPlaybackFailure(source: resolvedChannels[index], now: now)
+        let playedAWhile = confirmedAt.map { now.timeIntervalSince($0) >= 60 } == true
         let shouldReconnect = confirmedRequestID == request.id
-            && lastReconnect[index].map { now.timeIntervalSince($0) >= 120 } != false
+            && (playedAWhile || lastReconnect[index].map { now.timeIntervalSince($0) >= 120 } != false)
         let next: Int
         if shouldReconnect {
             lastReconnect[index] = now

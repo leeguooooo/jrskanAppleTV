@@ -464,17 +464,34 @@ private final class DanmakuView: UIView {
     func update(comments: [SportsComment], enabled: Bool) {
         self.enabled = enabled
         guard enabled else { stop(); return }
-        for comment in comments where !seen.contains(comment.id) {
+        for comment in comments where !seen.contains(comment.id) && !Self.shown.contains(comment.id) {
             queue.append(comment); seen.append(comment.id)
         }
         queue = Array(queue.suffix(20)); seen = Array(seen.suffix(500))
-        guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in self?.emit() }
+        startTimer()
     }
 
+    /// Comments already flown across any overlay. Opening the data panel or
+    /// turning the phone builds a new overlay; without this it would replay
+    /// the last few comments.
+    private static var shown: [String] = []
+
+    /// Covered by the data panel on tvOS, the overlay leaves the window and
+    /// comes back when the panel closes; carry on from the same queue then
+    /// instead of waiting silently for the next batch.
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window == nil { stop() }
+        if window == nil {
+            timer?.invalidate(); timer = nil
+            subviews.forEach { $0.layer.removeAllAnimations(); $0.removeFromSuperview() }
+        } else if enabled {
+            startTimer()
+        }
+    }
+
+    private func startTimer() {
+        guard timer == nil, window != nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in self?.emit() }
     }
 
     func stop() {
@@ -486,8 +503,10 @@ private final class DanmakuView: UIView {
         guard enabled, window != nil, bounds.width > 100, !queue.isEmpty else { return }
         queue.removeAll { Date().timeIntervalSince($0.postedAt) > 120 }
         guard !queue.isEmpty else { return }
+        let comment = queue.removeFirst()
+        Self.shown.append(comment.id); Self.shown = Array(Self.shown.suffix(500))
         let label = UILabel()
-        label.text = queue.removeFirst().text
+        label.text = comment.text
         #if os(tvOS)
         label.font = .systemFont(ofSize: 27, weight: .semibold)
         let lineHeight: CGFloat = 42

@@ -29,6 +29,11 @@ final class PlaybackEndObserver: ObservableObject {
 }
 
 /// Samples media progress throughout playback. A paused player is not a stall.
+///
+/// On a weak network the picture freezes while segments still trickle in.
+/// Giving up on that channel only trades it for another one on the same slow
+/// network, so while the buffer keeps growing the monitor waits longer before
+/// calling the stream dead.
 struct PlaybackHealthMonitor {
     enum Event: Equatable {
         case confirmed(startupSeconds: TimeInterval)
@@ -38,6 +43,8 @@ struct PlaybackHealthMonitor {
     private var lastSample: TimeInterval
     private var lastProgress: TimeInterval
     private var lastMediaTime: Double?
+    private var lastBuffered: Double?
+    private var lastDataArrival: TimeInterval
     private var activeElapsed: TimeInterval = 0
     private var firstFrameElapsed: TimeInterval?
     private var stablePlayback: TimeInterval = 0
@@ -46,18 +53,26 @@ struct PlaybackHealthMonitor {
     private var failed = false
     var startupTimeout: TimeInterval = 20
     var stallTimeout: TimeInterval = 12
+    /// How long a stream that is still downloading may go without a picture.
+    var slowNetworkTimeout: TimeInterval = 45
 
     init(now: TimeInterval) {
         lastSample = now
         lastProgress = now
+        lastDataArrival = now
     }
 
+    /// `buffered` is the end of the loaded media ranges, if known.
     mutating func sample(now: TimeInterval, mediaTime: Double, playing: Bool,
-                         paused: Bool, ready: Bool, itemFailed: Bool) -> Event? {
+                         paused: Bool, ready: Bool, itemFailed: Bool, buffered: Double? = nil) -> Event? {
         guard !failed else { return nil }
         let delta = max(0, now - lastSample)
         lastSample = now
         if itemFailed { failed = true; return .stalled }
+        if let buffered, buffered.isFinite {
+            if let last = lastBuffered, buffered - last > 0.1 { lastDataArrival = now }
+            lastBuffered = buffered
+        }
         if paused {
             lastProgress = now
             lastMediaTime = mediaTime.isFinite ? mediaTime : nil
@@ -81,8 +96,10 @@ struct PlaybackHealthMonitor {
             stablePlayback = 0
             wasAdvancing = false
         }
-        if (firstFrameElapsed == nil && activeElapsed >= startupTimeout)
-            || (firstFrameElapsed != nil && now - lastProgress >= stallTimeout) {
+        let downloading = now - lastDataArrival < stallTimeout
+        let waited = firstFrameElapsed == nil ? activeElapsed : now - lastProgress
+        let limit = firstFrameElapsed == nil ? startupTimeout : stallTimeout
+        if waited >= limit && (!downloading || waited >= slowNetworkTimeout) {
             failed = true
             return .stalled
         }

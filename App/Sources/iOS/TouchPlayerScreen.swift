@@ -127,22 +127,21 @@ struct TouchPlayerScreen: View {
     private var floatingStage: some View {
         if isUpright {
             uprightStage
-        } else if showsStatistics {
+        } else {
+            // One tree with or without the panel: two branches would rebuild
+            // the picture and its danmaku every time 数据 is opened or closed.
             HStack(spacing: 0) {
                 ZStack(alignment: .top) {
                     picture
                     controls(showsStatistics: false)
                 }
-                statisticsPanel
-                    .frame(width: horizontalSizeClass == .regular ? 420 : 360)
-                    .transition(.move(edge: .trailing))
+                if showsStatistics {
+                    statisticsPanel
+                        .frame(width: horizontalSizeClass == .regular ? 420 : 360)
+                        .transition(.move(edge: .trailing))
+                }
             }
-            .background(Palette.backgroundBottom.ignoresSafeArea())
-        } else {
-            ZStack(alignment: .top) {
-                picture
-                controls(showsStatistics: false)
-            }
+            .background((showsStatistics ? Palette.backgroundBottom : Color.black).ignoresSafeArea())
         }
     }
 
