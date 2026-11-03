@@ -199,7 +199,7 @@ final class MatchListModel: ObservableObject {
             let snapshot = try await client.fetchEvents(from: eventURL)
             try Task.checkCancellation()
             // An older CDN response must not overwrite a newer score snapshot.
-            guard scoresUpdatedAt == nil || snapshot.updatedAt >= scoresUpdatedAt! else { return }
+            if let last = scoresUpdatedAt, snapshot.updatedAt < last { return }
             matches = snapshot.applying(to: scheduleMatches)
             scoresUpdatedAt = snapshot.updatedAt
             scoreNotice = nil
