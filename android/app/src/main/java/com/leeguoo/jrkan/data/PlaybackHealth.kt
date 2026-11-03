@@ -7,6 +7,9 @@ import kotlin.math.min
 /**
  * Port of PlaybackHealthMonitor (App/Sources/Shared/PlaybackHealth.swift).
  * Samples media progress throughout playback. A paused player is not a stall.
+ * On a weak network the picture freezes while segments still trickle in;
+ * while the buffer keeps growing the monitor waits longer before calling the
+ * stream dead, since another channel would sit on the same slow network.
  * Times are seconds as Double, from any monotonic clock the caller picks.
  */
 class PlaybackHealthMonitor(now: Double) {
@@ -18,6 +21,8 @@ class PlaybackHealthMonitor(now: Double) {
     private var lastSample = now
     private var lastProgress = now
     private var lastMediaTime: Double? = null
+    private var lastBuffered: Double? = null
+    private var lastDataArrival = now
     private var activeElapsed = 0.0
     private var firstFrameElapsed: Double? = null
     private var stablePlayback = 0.0
@@ -27,6 +32,8 @@ class PlaybackHealthMonitor(now: Double) {
     private var failed = false
     var startupTimeout = 20.0
     var stallTimeout = 12.0
+    /** How long a stream that is still downloading may go without a picture. */
+    var slowNetworkTimeout = 45.0
 
     fun sample(
         now: Double,
@@ -35,6 +42,8 @@ class PlaybackHealthMonitor(now: Double) {
         paused: Boolean,
         ready: Boolean,
         itemFailed: Boolean,
+        /** End of the buffered media, if known. */
+        buffered: Double? = null,
     ): Event? {
         if (failed) return null
         val delta = max(0.0, now - lastSample)
@@ -42,6 +51,11 @@ class PlaybackHealthMonitor(now: Double) {
         if (itemFailed) {
             failed = true
             return Event.Stalled
+        }
+        if (buffered != null && buffered.isFinite()) {
+            val last = lastBuffered
+            if (last != null && buffered - last > 0.1) lastDataArrival = now
+            lastBuffered = buffered
         }
         if (paused) {
             lastProgress = now
@@ -68,9 +82,10 @@ class PlaybackHealthMonitor(now: Double) {
             wasAdvancing = false
         }
         val firstFrame = firstFrameElapsed
-        if ((firstFrame == null && activeElapsed >= startupTimeout) ||
-            (firstFrame != null && now - lastProgress >= stallTimeout)
-        ) {
+        val downloading = now - lastDataArrival < stallTimeout
+        val waited = if (firstFrame == null) activeElapsed else now - lastProgress
+        val limit = if (firstFrame == null) startupTimeout else stallTimeout
+        if (waited >= limit && (!downloading || waited >= slowNetworkTimeout)) {
             failed = true
             return Event.Stalled
         }

@@ -59,6 +59,7 @@ class MatchPlaybackModel(
 
     private var requestGeneration = 0
     private var confirmedRequestId: String? = null
+    private var confirmedAt: Long? = null
     private var handledFailureId: String? = null
     private val lastReconnect = mutableMapOf<Int, Long>()
     private var recoveryJob: Job? = null
@@ -234,6 +235,7 @@ class MatchPlaybackModel(
         val request = _state.value.playback ?: return
         if (request.id != requestId || confirmedRequestId == requestId || request.index !in resolvedChannels.indices) return
         confirmedRequestId = requestId
+        confirmedAt = clock()
         preferences.recordPlaybackSuccess(
             match, resolvedChannels[request.index], request.index, resolutionMillis / 1000.0 + startupSeconds,
         )
@@ -241,7 +243,9 @@ class MatchPlaybackModel(
 
     /**
      * A confirmed stream gets one same-channel reconnect per two minutes
-     * before other sources are tried.
+     * before other sources are tried, and always gets one when it had been
+     * playing for a minute: on a weak network every channel hiccups now and
+     * then, and hopping only restarts the wait on the same slow connection.
      */
     fun handleStall(message: String, requestId: String? = null, now: Long = clock()) {
         val request = _state.value.playback ?: return
@@ -251,8 +255,9 @@ class MatchPlaybackModel(
         handledFailureId = request.id
         val index = request.index
         preferences.recordPlaybackFailure(resolvedChannels[index], now)
+        val playedAWhile = confirmedAt?.let { now - it >= 60_000 } == true
         val shouldReconnect = confirmedRequestId == request.id &&
-            lastReconnect[index]?.let { now - it >= 120_000 } != false
+            (playedAWhile || lastReconnect[index]?.let { now - it >= 120_000 } != false)
         val next: Int
         if (shouldReconnect) {
             lastReconnect[index] = now

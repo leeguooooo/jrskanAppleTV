@@ -198,6 +198,27 @@ class ExperienceTest {
         model.stopPlayback()
     }
 
+    @Test
+    fun channelThatPlayedAWhileReconnectsInPlaceAgain() {
+        val prefs = Preferences(MemoryPreferences())
+        val model = MatchPlaybackModel(match(), prefs, scope, StreamResolver(streams), SourcePageClient(streams))
+        model.startPlayback(0)
+        waitUntil { model.state.value.playback != null }
+        val first = model.state.value.playback!!
+        model.confirmPlayback(first.id, 1.0)
+        val now = System.currentTimeMillis()
+        model.handleStall("Disconnected", first.id, now)
+        waitUntil { model.state.value.playback?.id.let { it != null && it != first.id } }
+        val reconnected = model.state.value.playback!!
+        model.confirmPlayback(reconnected.id, 1.0)
+        // Played for 90 seconds before the next hiccup: stay on this channel.
+        model.handleStall("Disconnected again", reconnected.id, now + 90_000)
+        waitUntil { model.state.value.playback?.id.let { it != null && it != reconnected.id } }
+        assertEquals(0, model.state.value.playback?.index)
+        assertTrue(model.state.value.stalledIndices.isEmpty())
+        model.stopPlayback()
+    }
+
     /** The site as the Swift ExperienceProtocol served it, per configured state. */
     private class FakeSite {
         @Volatile var score = 1

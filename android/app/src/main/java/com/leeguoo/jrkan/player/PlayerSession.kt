@@ -180,6 +180,7 @@ object PlayerSession {
                     paused = !exo.playWhenReady,
                     ready = exo.playbackState == Player.STATE_READY,
                     itemFailed = exo.playerError != null,
+                    buffered = exo.bufferedPosition / 1000.0,
                 )
                 when (event) {
                     is PlaybackHealthMonitor.Event.Confirmed -> model.confirmPlayback(requestId, event.startupSeconds)

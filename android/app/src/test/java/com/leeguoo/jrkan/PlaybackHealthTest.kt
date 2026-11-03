@@ -16,7 +16,8 @@ class PlaybackHealthTest {
         paused: Boolean = false,
         ready: Boolean = true,
         failed: Boolean = false,
-    ) = sample(now, media, playing, paused, ready, failed)
+        buffered: Double? = null,
+    ) = sample(now, media, playing, paused, ready, failed, buffered)
 
     @Test
     fun lateFirstFrameCanFinishConfirmationAfterStartupDeadline() {
@@ -62,5 +63,21 @@ class PlaybackHealthTest {
         assertEquals(Event.Stalled, monitor.at(20.0, 20.0, playing = true, ready = false))
         val failed = PlaybackHealthMonitor(0.0)
         assertEquals(Event.Stalled, failed.at(1.0, Double.NaN, playing = false, paused = true, ready = false, failed = true))
+    }
+
+    @Test
+    fun frozenPictureWaitsLongerWhileSegmentsStillArrive() {
+        val monitor = PlaybackHealthMonitor(0.0)
+        for (second in 1..5) monitor.at(second.toDouble(), second.toDouble(), playing = true, buffered = second + 2.0)
+        // Weak network: the picture is stuck at 5 s but the buffer keeps growing.
+        for (second in 6..49) {
+            assertNull(monitor.at(second.toDouble(), 5.0, playing = false, buffered = 7 + second / 4.0))
+        }
+        assertEquals(Event.Stalled, monitor.at(50.0, 5.0, playing = false, buffered = 20.0))
+
+        val dead = PlaybackHealthMonitor(0.0)
+        for (second in 1..5) dead.at(second.toDouble(), second.toDouble(), playing = true, buffered = 7.0)
+        assertNull(dead.at(16.0, 5.0, playing = false, buffered = 7.0))
+        assertEquals(Event.Stalled, dead.at(17.0, 5.0, playing = false, buffered = 7.0))
     }
 }
