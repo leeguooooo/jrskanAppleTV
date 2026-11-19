@@ -6,7 +6,7 @@ import SwiftUI
 /// follow the match while a passer-by sees code being written. Purely
 /// decorative text; nothing is read from or written to disk.
 struct CodeVeil: View {
-    /// How opaque the veil is (0.6 faint … 0.88 thick).
+    /// How opaque the veil is, 0.1 (the match shows clearly) to 0.9.
     let strength: Double
     @State private var lines: [VeilLine] = []
     @State private var cursor = 0
@@ -23,6 +23,8 @@ struct CodeVeil: View {
             .clipped()
         }
         .font(.system(size: 12, design: .monospaced))
+        // Keeps the code readable over a bright picture when the veil is faint.
+        .shadow(color: .black.opacity(0.7), radius: 1.5)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(TerminalStyle.background.opacity(strength))
@@ -67,8 +69,10 @@ struct CodeVeil: View {
                 Spacer(minLength: 0)
             }
             .lineLimit(1)
-            .background(line.kind == .added ? Color(hex: 0x1F4A2A).opacity(0.55)
-                         : line.kind == .removed ? Color(hex: 0x5A2226).opacity(0.55) : Color.clear)
+            // The bands fade with the veil; the text stays legible, so even a
+            // faint veil still reads as code.
+            .background(line.kind == .added ? Color(hex: 0x1F4A2A).opacity(min(0.8, strength * 0.9))
+                         : line.kind == .removed ? Color(hex: 0x5A2226).opacity(min(0.8, strength * 0.9)) : Color.clear)
         }
     }
 }

@@ -148,6 +148,8 @@ struct CommentsWindowScreen: View {
     /// screen reads as work. On by default; the plain look is one click away.
     @AppStorage("commentsTerminalSkin") private var terminal = true
     @AppStorage(TerminalStyle.sizeKey) private var fontSize = TerminalStyle.defaultSize
+    /// Top scorers of both teams pinned above the comments.
+    @AppStorage("commentsShowsPlayers") private var showsPlayers = false
 
     private var match: LiveMatch? {
         guard let matchID else { return nil }
@@ -159,11 +161,16 @@ struct CommentsWindowScreen: View {
     var body: some View {
         Group {
             if terminal {
-                TerminalCommentsView(match: match, feed: feed, insights: insights) { controls }
+                TerminalCommentsView(match: match, feed: feed, insights: insights, showsPlayers: showsPlayers) { controls }
             } else {
                 VStack(spacing: 0) {
                     header
                     Divider().overlay(Palette.hairline)
+                    if showsPlayers, let snapshot = insights.snapshot {
+                        PlayerLeaders(snapshot: snapshot, terminal: false, fontSize: fontSize)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                        Divider().overlay(Palette.hairline)
+                    }
                     content
                 }
                 .background(Palette.backgroundBottom.ignoresSafeArea())
@@ -241,7 +248,9 @@ struct CommentsWindowScreen: View {
     private var controls: some View {
         HStack(spacing: terminal ? 2 : 8) {
             iconButton("terminal", label: terminal ? "普通样式" : "终端样式", active: false) { terminal.toggle() }
-            iconButton("textformat.size.smaller", label: "字号缩小（⌘-）", active: false) { TerminalStyle.adjustSize(by: -1) }
+            iconButton(showsPlayers ? "person.2.fill" : "person.2", label: showsPlayers ? "收起球员得分" : "球员得分和评论一起看",
+                       active: showsPlayers) { showsPlayers.toggle() }
+                        iconButton("textformat.size.smaller", label: "字号缩小（⌘-）", active: false) { TerminalStyle.adjustSize(by: -1) }
             iconButton("textformat.size.larger", label: "字号放大（⌘=）", active: false) { TerminalStyle.adjustSize(by: 1) }
             if session.model?.match.id == matchID, session.model?.playback != nil {
                 iconButton(session.isCovered ? "eye.slash.fill" : "eye",
@@ -408,6 +417,7 @@ private struct TerminalCommentsView<Controls: View>: View {
     let match: LiveMatch?
     @ObservedObject var feed: CommentFeedModel
     @ObservedObject var insights: MatchInsightsModel
+    var showsPlayers = false
     @ViewBuilder let controls: () -> Controls
     @AppStorage("commentsTerminalPane") private var pane = Pane.comments
     @AppStorage(TerminalStyle.sizeKey) private var fontSize = TerminalStyle.defaultSize
@@ -428,6 +438,22 @@ private struct TerminalCommentsView<Controls: View>: View {
             .padding(.horizontal, 10)
             .padding(.top, 6)
             .padding(.bottom, 4)
+            // Pinned above the scrollback while reading comments, like the
+            // output of a watch command that keeps refreshing.
+            if showsPlayers, pane == .comments, let snapshot = insights.snapshot {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("⏺").foregroundStyle(TerminalStyle.bullet)
+                        (Text("Bash").bold().foregroundColor(TerminalStyle.text)
+                            + Text("(watch -n 10 ./scripts/top)").foregroundColor(TerminalStyle.dim))
+                    }
+                    PlayerLeaders(snapshot: snapshot, terminal: true, fontSize: fontSize)
+                        .padding(.leading, 18)
+                }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 6)
+                .overlay(alignment: .bottom) { Rectangle().fill(TerminalStyle.faint.opacity(0.4)).frame(height: 1) }
+            }
             // Like a real terminal, the newest output sits right above the
             // prompt; short output leaves the empty space at the top.
             GeometryReader { geometry in
@@ -618,6 +644,72 @@ private struct TerminalCommentsView<Controls: View>: View {
             return rest.isEmpty ? short : "\(short) \(rest)"
         }
         return label.unicodeScalars.contains { $0.value > 0x2E7F } ? "live" : label
+    }
+}
+
+/// Both teams' top five scorers side by side: name, points, rebounds,
+/// assists. Terminal style uses tricodes and pts/reb/ast.
+struct PlayerLeaders: View {
+    let snapshot: SportsSnapshot
+    let terminal: Bool
+    let fontSize: Double
+
+    private struct Leader: Hashable { let name: String; let pts: Int; let reb: String; let ast: String }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            ForEach(Array(snapshot.playerTables.prefix(2).enumerated()), id: \.offset) { _, table in
+                column(table)
+            }
+        }
+        .font(terminal ? .system(size: fontSize, design: .monospaced) : .system(size: fontSize))
+    }
+
+    private func column(_ table: SportsTable) -> some View {
+        let team = table.title.components(separatedBy: " · ").first ?? table.title
+        let leaders = Self.leaders(table)
+        return Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 2) {
+            GridRow {
+                Text(terminal ? Term.of(team) : team).bold()
+                    .foregroundStyle(terminal ? TerminalStyle.text : Palette.primaryText)
+                ForEach(terminal ? ["pts", "reb", "ast"] : ["分", "板", "助"], id: \.self) { label in
+                    Text(label).foregroundStyle(terminal ? TerminalStyle.faint : Palette.tertiaryText)
+                }
+            }
+            ForEach(leaders, id: \.self) { leader in
+                GridRow {
+                    Text(leader.name).lineLimit(1)
+                        .foregroundStyle(terminal ? TerminalStyle.dim : Palette.secondaryText)
+                    Text("\(leader.pts)").monospacedDigit()
+                        .foregroundStyle(terminal ? TerminalStyle.text : Palette.primaryText)
+                    Text(leader.reb).monospacedDigit()
+                        .foregroundStyle(terminal ? TerminalStyle.dim : Palette.secondaryText)
+                    Text(leader.ast).monospacedDigit()
+                        .foregroundStyle(terminal ? TerminalStyle.dim : Palette.secondaryText)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private static func leaders(_ table: SportsTable) -> [Leader] {
+        func index(_ name: String) -> Int? { table.headers.firstIndex(of: name) }
+        guard let pts = index("得分") else { return [] }
+        let reb = index("篮板"), ast = index("助攻")
+        return table.rows
+            .filter { !["统计", "总计", "合计"].contains($0.first ?? "") }
+            .compactMap { row -> Leader? in
+                guard pts < row.count, let points = Int(row[pts]) else { return nil }
+                // "23 詹姆斯" → "詹姆斯": the shirt number only costs width here.
+                let raw = row.first ?? ""
+                let name = raw.split(separator: " ").last.map(String.init) ?? raw
+                return Leader(name: name, pts: points,
+                              reb: reb.flatMap { $0 < row.count ? row[$0] : nil } ?? "—",
+                              ast: ast.flatMap { $0 < row.count ? row[$0] : nil } ?? "—")
+            }
+            .sorted { $0.pts > $1.pts }
+            .prefix(5)
+            .map { $0 }
     }
 }
 

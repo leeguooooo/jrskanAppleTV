@@ -548,53 +548,10 @@ private struct ChannelMenu: View {
 /// The same actions sit in the 画面 menu with ⌘[ ⌘] ⌘\.
 private struct PictureDimmingMenu: View {
     @ObservedObject var session: PlayerSession
-    private struct Level: Hashable { let dimming: Double; let title: String }
-    private static let levels = [
-        Level(dimming: 0, title: "原亮度"), Level(dimming: 0.3, title: "70%"), Level(dimming: 0.5, title: "50%"),
-        Level(dimming: 0.7, title: "30%"), Level(dimming: PlayerSession.maxDimming, title: "15%")
-    ]
-    /// 代码伪装 strengths (the veil's opacity), reusing the same shape.
-    private static let veilLevels = [
-        Level(dimming: 0, title: "关"), Level(dimming: 0.6, title: "淡"),
-        Level(dimming: 0.75, title: "中"), Level(dimming: 0.88, title: "浓")
-    ]
+    @State private var open = false
 
     var body: some View {
-        Menu {
-            Section("画面亮度（不影响屏幕亮度和声音）") {
-                ForEach(Self.levels, id: \.dimming) { level in
-                    Button {
-                        session.isCovered = false
-                        session.dimming = level.dimming
-                    } label: {
-                        if !session.isCovered && abs(session.dimming - level.dimming) < 0.005 {
-                            Label(level.title, systemImage: "checkmark")
-                        } else {
-                            Text(level.title)
-                        }
-                    }
-                }
-            }
-            Section("代码伪装（画面上滚动代码）") {
-                ForEach(Self.veilLevels, id: \.dimming) { level in
-                    Button {
-                        session.codeVeil = level.dimming
-                    } label: {
-                        if abs(session.codeVeil - level.dimming) < 0.005 {
-                            Label(level.title, systemImage: "checkmark")
-                        } else {
-                            Text(level.title)
-                        }
-                    }
-                }
-            }
-            Button {
-                session.isCovered.toggle()
-            } label: {
-                Label(session.isCovered ? "显示画面" : "遮住画面（声音继续）",
-                      systemImage: session.isCovered ? "eye" : "eye.slash")
-            }
-        } label: {
+        Button { open.toggle() } label: {
             HStack(spacing: 6) {
                 Image(systemName: session.isCovered ? "eye.slash" : session.dimming > 0 ? "sun.min" : "sun.max")
                 if session.isCovered {
@@ -602,12 +559,53 @@ private struct PictureDimmingMenu: View {
                 } else if session.dimming > 0 {
                     Text("\(Int(((1 - session.dimming) * 100).rounded()))%")
                 }
+                if session.codeVeil > 0 { Image(systemName: "chevron.left.forwardslash.chevron.right") }
             }
             .font(.footnote.weight(.semibold))
             .padding(8)
             .playerChip(highlighted: session.isCovered)
         }
-        .accessibilityLabel("画面亮度")
+        .accessibilityLabel("画面亮度和代码伪装")
+        .popover(isPresented: $open) { panel }
+    }
+
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("画面亮度")
+                    Spacer()
+                    Text("\(Int(((1 - session.dimming) * 100).rounded()))%").monospacedDigit()
+                        .foregroundStyle(Palette.secondaryText)
+                }
+                Slider(value: Binding(get: { 1 - session.dimming },
+                                      set: { session.isCovered = false; session.dimming = 1 - $0 }),
+                       in: (1 - PlayerSession.maxDimming)...1)
+                Text("只压暗视频，不动屏幕亮度和声音。⌘[ ⌘]").font(.caption).foregroundStyle(Palette.secondaryText)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("代码伪装", isOn: Binding(get: { session.codeVeil > 0 },
+                                             set: { session.setCodeVeil(on: $0) }))
+                HStack {
+                    Text("浓度").foregroundStyle(Palette.secondaryText)
+                    Slider(value: Binding(get: { session.codeVeil > 0 ? session.codeVeil : session.lastCodeVeil },
+                                          set: { session.codeVeil = $0 }),
+                           in: PlayerSession.codeVeilRange)
+                    Text("\(Int(((session.codeVeil > 0 ? session.codeVeil : session.lastCodeVeil) * 100).rounded()))%")
+                        .monospacedDigit().foregroundStyle(Palette.secondaryText)
+                }
+                Text("画面上滚动改代码的 diff，越淡越看得清球。⌘'").font(.caption).foregroundStyle(Palette.secondaryText)
+            }
+            Button {
+                session.isCovered.toggle()
+            } label: {
+                Label(session.isCovered ? "显示画面" : "遮住画面（声音继续）⌘\\",
+                      systemImage: session.isCovered ? "eye" : "eye.slash")
+            }
+        }
+        .font(.subheadline)
+        .padding(16)
+        .frame(width: 300)
     }
 }
 #endif

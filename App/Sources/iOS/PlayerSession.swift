@@ -46,8 +46,18 @@ final class PlayerSession: NSObject, ObservableObject {
     /// 代码伪装: a scrolling diff over the picture; 0 is off, otherwise the
     /// veil's opacity. Kept across launches.
     @Published var codeVeil: Double = UserDefaults.standard.double(forKey: "playerCodeVeil") {
-        didSet { UserDefaults.standard.set(codeVeil, forKey: "playerCodeVeil") }
+        didSet {
+            UserDefaults.standard.set(codeVeil, forKey: "playerCodeVeil")
+            if codeVeil > 0 { UserDefaults.standard.set(codeVeil, forKey: "playerCodeVeilLast") }
+        }
     }
+    static let codeVeilRange = 0.1...0.9
+    /// The strength the veil comes back at when switched on again.
+    var lastCodeVeil: Double {
+        let saved = UserDefaults.standard.double(forKey: "playerCodeVeilLast")
+        return saved > 0 ? saved : 0.4
+    }
+    func setCodeVeil(on: Bool) { codeVeil = on ? lastCodeVeil : 0 }
     #endif
     static let maxDimming = 0.85
     private static let dimmingKey = "playerDimming"

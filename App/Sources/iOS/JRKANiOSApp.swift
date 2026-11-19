@@ -117,7 +117,7 @@ private struct PictureCommands: Commands {
             }
             Button("代码伪装 开 / 关") {
                 let session = PlayerSession.shared
-                session.codeVeil = session.codeVeil > 0 ? 0 : 0.75
+                session.setCodeVeil(on: session.codeVeil == 0)
             }
             .keyboardShortcut("'", modifiers: .command)
             Divider()
