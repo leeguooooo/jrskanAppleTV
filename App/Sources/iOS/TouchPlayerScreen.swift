@@ -179,6 +179,7 @@ struct TouchPlayerScreen: View {
                 Color.black
                 PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 SportsDanmakuOverlay(model: model.insights)
+                    .opacity(session.pictureVisibility)
                 controls(showsStatistics: false)
             }
             .aspectRatio(16 / 9, contentMode: .fit)
@@ -244,7 +245,9 @@ struct TouchPlayerScreen: View {
             Color.black.ignoresSafeArea()
             PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 .ignoresSafeArea(edges: showsStatistics ? [.vertical, .leading] : .all)
-            SportsDanmakuOverlay(model: model.insights).ignoresSafeArea()
+            SportsDanmakuOverlay(model: model.insights)
+                .opacity(session.pictureVisibility)
+                .ignoresSafeArea()
         }
     }
 
@@ -311,6 +314,9 @@ struct TouchPlayerScreen: View {
                 .accessibilityLabel("竖屏看数据")
             }
             RecordControl(model: model)
+            #if targetEnvironment(macCatalyst)
+            PictureDimmingMenu(session: session)
+            #endif
 
             // Cropping only means something once the picture fills the
             // screen. Upright it is a 16:9 box, and an expand-arrows glyph
@@ -475,6 +481,58 @@ private struct ChannelMenu: View {
         .accessibilityLabel("线路：\(model.playback?.sourceName ?? "未选择")")
     }
 }
+
+#if targetEnvironment(macCatalyst)
+/// 画面亮度 on the Mac: hold the picture back so a match on a work screen
+/// does not catch the eye, or black it out while the sound carries on.
+/// The same actions sit in the 画面 menu with ⌘[ ⌘] ⌘\.
+private struct PictureDimmingMenu: View {
+    @ObservedObject var session: PlayerSession
+    private struct Level: Hashable { let dimming: Double; let title: String }
+    private static let levels = [
+        Level(dimming: 0, title: "原亮度"), Level(dimming: 0.3, title: "70%"), Level(dimming: 0.5, title: "50%"),
+        Level(dimming: 0.7, title: "30%"), Level(dimming: PlayerSession.maxDimming, title: "15%")
+    ]
+
+    var body: some View {
+        Menu {
+            Section("画面亮度（不影响屏幕亮度和声音）") {
+                ForEach(Self.levels, id: \.dimming) { level in
+                    Button {
+                        session.isCovered = false
+                        session.dimming = level.dimming
+                    } label: {
+                        if !session.isCovered && abs(session.dimming - level.dimming) < 0.005 {
+                            Label(level.title, systemImage: "checkmark")
+                        } else {
+                            Text(level.title)
+                        }
+                    }
+                }
+            }
+            Button {
+                session.isCovered.toggle()
+            } label: {
+                Label(session.isCovered ? "显示画面" : "遮住画面（声音继续）",
+                      systemImage: session.isCovered ? "eye" : "eye.slash")
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: session.isCovered ? "eye.slash" : session.dimming > 0 ? "sun.min" : "sun.max")
+                if session.isCovered {
+                    Text("已遮住")
+                } else if session.dimming > 0 {
+                    Text("\(Int(((1 - session.dimming) * 100).rounded()))%")
+                }
+            }
+            .font(.footnote.weight(.semibold))
+            .padding(8)
+            .playerChip(highlighted: session.isCovered)
+        }
+        .accessibilityLabel("画面亮度")
+    }
+}
+#endif
 
 extension View {
     /// Warm smoked-glass chip for controls over the picture.

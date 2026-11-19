@@ -22,6 +22,27 @@ final class PlayerSession: NSObject, ObservableObject {
     @Published var fillsScreen = false {
         didSet { controller.videoGravity = fillsScreen ? .resizeAspectFill : .resizeAspect }
     }
+    /// How much of the picture is held back, 0 (full) to `maxDimming`: a black
+    /// layer over the video, under AVKit's controls, so the match is less
+    /// eye-catching on a work screen without touching the display brightness.
+    /// Kept across launches. Sound is left alone.
+    @Published var dimming: Double {
+        didSet {
+            // Reassigning inside didSet does not call didSet again.
+            let clamped = min(Self.maxDimming, max(0, dimming))
+            if clamped != dimming { dimming = clamped }
+            UserDefaults.standard.set(dimming, forKey: Self.dimmingKey)
+            applyDimming()
+        }
+    }
+    /// The picture blacked out completely (the stream and sound keep going).
+    @Published var isCovered = false {
+        didSet { applyDimming() }
+    }
+    static let maxDimming = 0.85
+    private static let dimmingKey = "playerDimming"
+    /// Lives in `contentOverlayView`, above the watermark.
+    private let dimView = UIView()
 
     let player = AVPlayer()
     /// Reused for the whole session so Picture in Picture survives the screen
@@ -44,15 +65,46 @@ final class PlayerSession: NSObject, ObservableObject {
     private let endObserver = PlaybackEndObserver()
 
     override private init() {
+        dimming = min(Self.maxDimming, max(0, UserDefaults.standard.double(forKey: Self.dimmingKey)))
         super.init()
         player.allowsExternalPlayback = true
         controller.player = player
         controller.allowsPictureInPicturePlayback = true
         controller.canStartPictureInPictureAutomaticallyFromInline = true
+        #if targetEnvironment(macCatalyst)
+        // The Mac's menu-bar 正在播放 would show both teams to anyone glancing at it.
+        controller.updatesNowPlayingInfoCenter = false
+        #else
         controller.updatesNowPlayingInfoCenter = true
+        #endif
         controller.videoGravity = .resizeAspect
         controller.delegate = self
         PlayerWatermark.install(on: controller)
+        installDimView()
+    }
+
+    private func installDimView() {
+        guard let overlay = controller.contentOverlayView else { return }
+        dimView.backgroundColor = .black
+        dimView.isUserInteractionEnabled = false
+        dimView.isAccessibilityElement = false
+        dimView.frame = overlay.bounds
+        dimView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        overlay.addSubview(dimView)
+        applyDimming()
+    }
+
+    private func applyDimming() {
+        dimView.alpha = isCovered ? 1 : dimming
+    }
+
+    /// What is left of the picture, for layers drawn over it (danmaku).
+    var pictureVisibility: Double { isCovered ? 0 : 1 - dimming }
+
+    /// One step darker or brighter, for the menu and keyboard shortcuts.
+    func adjustDimming(by step: Double) {
+        isCovered = false
+        dimming = ((dimming + step) * 100).rounded() / 100
     }
 
     /// Called when a match screen's model has a resolved stream to show.
@@ -141,7 +193,9 @@ final class PlayerSession: NSObject, ObservableObject {
         guard request.id != shownRequestID, let model else { return }
         shownRequestID = request.id
         let item = AVPlayerItem(url: request.url)
+        #if !targetEnvironment(macCatalyst)
         item.externalMetadata = metadataItems(for: request, match: model.match)
+        #endif
         player.replaceCurrentItem(with: item)
         endObserver.observe(item) { [weak model] in
             model?.handleStall("播放已停止，请重试或切换线路。", requestID: request.id)

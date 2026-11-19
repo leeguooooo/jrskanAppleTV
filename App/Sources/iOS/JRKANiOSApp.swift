@@ -73,5 +73,31 @@ struct JRKANiOSApp: App {
                     }
                 }
         }
+        #if targetEnvironment(macCatalyst)
+        .commands { PictureCommands() }
+        #endif
     }
 }
+
+#if targetEnvironment(macCatalyst)
+/// The 画面 menu in the Mac menu bar. Its shortcuts work whenever the app is
+/// in front, including while the player has the keyboard; ⌘H still hides the
+/// whole app and the stream keeps playing.
+private struct PictureCommands: Commands {
+    var body: some Commands {
+        CommandMenu("画面") {
+            Button("画面调暗") { PlayerSession.shared.adjustDimming(by: 0.1) }
+                .keyboardShortcut("[", modifiers: .command)
+            Button("画面调亮") { PlayerSession.shared.adjustDimming(by: -0.1) }
+                .keyboardShortcut("]", modifiers: .command)
+            Button("恢复原亮度") {
+                PlayerSession.shared.isCovered = false
+                PlayerSession.shared.dimming = 0
+            }
+            Divider()
+            Button("遮住 / 显示画面（声音继续）") { PlayerSession.shared.isCovered.toggle() }
+                .keyboardShortcut("\\", modifiers: .command)
+        }
+    }
+}
+#endif
