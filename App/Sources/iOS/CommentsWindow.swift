@@ -350,20 +350,6 @@ struct CommentsWindowScreen: View {
     }
 }
 
-enum TerminalStyle {
-    static let background = Color(hex: 0x111111)
-    static let text = Color(hex: 0xD6D6D6)
-    static let dim = Color(hex: 0x8A8A8A)
-    static let faint = Color(hex: 0x555555)
-    static let bullet = Color(hex: 0x7FA37F)
-    /// The comments window's text size, set with A−/A＋ or ⌘- / ⌘=.
-    static let sizeKey = "commentsFontSize"
-    static let defaultSize = 12.0
-    static func adjustSize(by step: Double) {
-        let current = UserDefaults.standard.object(forKey: sizeKey) as? Double ?? defaultSize
-        UserDefaults.standard.set(min(22, max(10, current + step)), forKey: sizeKey)
-    }
-}
 
 /// Short English terms in place of the Chinese sports words, so the score
 /// and box score read like a program's printout: NBA teams by tricode,
@@ -407,7 +393,7 @@ enum Term {
 }
 
 /// The comments as the scrollback of an AI coding agent in a terminal: each
-/// comment a ⏺ line, the score folded into the agent's status line, a prompt
+/// comment a ⏺︎ line, the score folded into the agent's status line, a prompt
 /// at the bottom. The prompt's commands switch between /comments, /score
 /// (分节比分 and 球队技术统计) and /players (both teams' box scores), each
 /// drawn as a tool call and its output. No logos or colours.
@@ -443,7 +429,7 @@ private struct TerminalCommentsView<Controls: View>: View {
             if showsPlayers, pane == .comments, let snapshot = insights.snapshot {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("⏺").foregroundStyle(TerminalStyle.bullet)
+                        Text("⏺︎").foregroundStyle(TerminalStyle.bullet)
                         (Text("Bash").bold().foregroundColor(TerminalStyle.text)
                             + Text("(watch -n 10 ./scripts/top)").foregroundColor(TerminalStyle.dim))
                     }
@@ -493,7 +479,7 @@ private struct TerminalCommentsView<Controls: View>: View {
     private var commentLines: some View {
         ForEach(feed.comments) { comment in
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("⏺").foregroundStyle(TerminalStyle.bullet)
+                Text("⏺︎").foregroundStyle(TerminalStyle.bullet)
                 Text(comment.text).foregroundStyle(TerminalStyle.text)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -560,7 +546,7 @@ private struct TerminalCommentsView<Controls: View>: View {
 
     private func toolCall(_ tool: String, _ argument: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("⏺").foregroundStyle(TerminalStyle.bullet)
+            Text("⏺︎").foregroundStyle(TerminalStyle.bullet)
             (Text(tool).bold().foregroundColor(TerminalStyle.text) + Text("(\(argument))").foregroundColor(TerminalStyle.dim))
         }
     }

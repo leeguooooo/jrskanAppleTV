@@ -51,6 +51,7 @@
 		4E77AEC94B5B6EA1D563BBE4 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		4EA7126903D8FBFBB07BA8C4 /* RecordingExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542F0A57AD031B46A19E43DA /* RecordingExporter.swift */; };
 		50A0D6C951653ADCD28B8602 /* DeviceSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739EE460518CFFA4D0DB8DC0 /* DeviceSignIn.swift */; };
+		520420A18CE2F0354C3600B6 /* Disguise.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A5FEDB7AAADC6624A11A27 /* Disguise.swift */; };
 		55A7FD0CC11D5EAAFC8A48BF /* TencentSportsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */; };
 		580BC96B511F1896D43077DD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */; };
 		595266967D23DE1036772DB8 /* MultiSportsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E801DCA1C64C4ADCDE644D83 /* MultiSportsTests.swift */; };
@@ -207,6 +208,7 @@
 		BCBF11EAF493C5299A821529 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BF1F54EB16EA9BBE5C65840A /* CodeVeil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeVeil.swift; sourceTree = "<group>"; };
 		C253D69C104183CC136B6570 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		C5A5FEDB7AAADC6624A11A27 /* Disguise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disguise.swift; sourceTree = "<group>"; };
 		C6F0CA23C2A11AD21E8F97B3 /* JRKANTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANTVApp.swift; sourceTree = "<group>"; };
 		C91064A03F121E128758A8E1 /* ChakraPetch-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ChakraPetch-SemiBold.ttf"; sourceTree = "<group>"; };
 		CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSiteContractTests.swift; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 				FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */,
 				4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */,
 				7FFD81C1588FB4E59CFA7DAA /* ConfigBanner.swift */,
+				C5A5FEDB7AAADC6624A11A27 /* Disguise.swift */,
 				B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */,
 				0234E27651736E182F447240 /* MatchDetailScreen.swift */,
 				423BF4E949A39E0F05368991 /* OrientationController.swift */,
@@ -665,6 +668,7 @@
 				CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */,
 				0C5B37767FC281475F00701C /* DesignSystem.swift in Sources */,
 				50A0D6C951653ADCD28B8602 /* DeviceSignIn.swift in Sources */,
+				520420A18CE2F0354C3600B6 /* Disguise.swift in Sources */,
 				9DA3F097D02CF73DC0CB802D /* HLSPlaylist.swift in Sources */,
 				34E24F4A93FC7FF407B75965 /* HLSRecorder.swift in Sources */,
 				F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */,

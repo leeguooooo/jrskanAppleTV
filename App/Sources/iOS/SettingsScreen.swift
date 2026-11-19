@@ -41,6 +41,25 @@ struct SettingsScreen: View {
             }
             .scoreboardRow()
 
+            #if !targetEnvironment(macCatalyst)
+            Section {
+                Button {
+                    Disguise.shared.set(true)
+                } label: {
+                    Label("试一下一键伪装", systemImage: "terminal")
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("敲两下手机背面就伪装")
+                    Text("设置 › 辅助功能 › 触控 › 轻点背面 › 轻点两下，选「伪装 / 恢复」（在「快捷指令」里也能找到它）。伪装时球赛照常播放、声音不停；在伪装画面上双击，或再敲两下背面，就切回来。离开 App 时也会自动盖上，多任务界面里看不到比赛。")
+                        .font(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                }
+            } header: {
+                Text("一键伪装")
+            }
+            .scoreboardRow()
+
+            #endif
             Section {
                 NavigationLink {
                     RecordingsScreen()

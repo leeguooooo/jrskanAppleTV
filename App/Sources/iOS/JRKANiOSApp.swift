@@ -85,6 +85,9 @@ struct JRKANiOSApp: App {
                     await model.loadIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, phase in
+                    // Cover the app before the app switcher snapshots it.
+                    if phase == .inactive { Disguise.shared.appWillResignActive() }
+                    if phase == .active { Disguise.shared.appDidBecomeActive() }
                     if phase == .active {
                         RecordingCenter.shared.appWillEnterForeground()
                         model.startAutoRefresh()

@@ -1,7 +1,25 @@
-#if targetEnvironment(macCatalyst)
 import SwiftUI
 
-/// Mac only: a coding agent's diff scrolling over the video. The picture
+/// Colours of the terminal disguise (comments window, code veil, the
+/// iPhone disguise screen).
+enum TerminalStyle {
+    static let background = Color(hex: 0x111111)
+    static let text = Color(hex: 0xD6D6D6)
+    static let dim = Color(hex: 0x8A8A8A)
+    static let faint = Color(hex: 0x555555)
+    static let bullet = Color(hex: 0x7FA37F)
+    /// The comments window's text size, set with A−/A＋ or ⌘- / ⌘=.
+    static let sizeKey = "commentsFontSize"
+    static let defaultSize = 12.0
+    static func adjustSize(by step: Double) {
+        let current = UserDefaults.standard.object(forKey: sizeKey) as? Double ?? defaultSize
+        UserDefaults.standard.set(min(22, max(10, current + step)), forKey: sizeKey)
+    }
+}
+
+
+/// A coding agent's diff scrolling over the video (Mac) or filling the
+/// disguise screen (iPhone). The picture
 /// shows faintly through a terminal-coloured veil, so the viewer can still
 /// follow the match while a passer-by sees code being written. Purely
 /// decorative text; nothing is read from or written to disk.
@@ -52,7 +70,7 @@ struct CodeVeil: View {
         switch line.kind {
         case .header:
             HStack(spacing: 6) {
-                Text("⏺").foregroundStyle(TerminalStyle.bullet)
+                Text("⏺︎").foregroundStyle(TerminalStyle.bullet)
                 Text(line.text).bold().foregroundStyle(TerminalStyle.text)
             }
             .padding(.top, 6)
@@ -173,4 +191,3 @@ enum CodeVeilCorpus {
         Template(kind: .summary, text: "No problems found")
     ]
 }
-#endif

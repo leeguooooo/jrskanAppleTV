@@ -83,6 +83,12 @@ struct TouchPlayerScreen: View {
         // screen it returns to without synthesising a tap.
         .task {
             let args = CommandLine.arguments
+            // `-disguise <seconds>` turns the disguise on that long after playing starts.
+            if let index = args.firstIndex(of: "-disguise"), index + 1 < args.count,
+               let seconds = Double(args[index + 1]) {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                Disguise.shared.set(true)
+            }
             #if targetEnvironment(macCatalyst)
             // `-comments-window` opens the comments window once playing (Mac).
             // `-player-pin` floats the main window, to check 置顶 without a click.
@@ -355,6 +361,16 @@ struct TouchPlayerScreen: View {
                 .accessibilityLabel("竖屏看数据")
             }
             RecordControl(model: model)
+            #if !targetEnvironment(macCatalyst)
+            // 一键伪装: a coding terminal over everything, sound keeps going.
+            Button { Disguise.shared.set(true) } label: {
+                Image(systemName: "terminal")
+                    .font(.footnote.weight(.semibold))
+                    .padding(8)
+                    .playerChip()
+            }
+            .accessibilityLabel("一键伪装")
+            #endif
             #if targetEnvironment(macCatalyst)
             Button { session.pinsWindow = session.mainWindow.setFloating(!session.pinsWindow) } label: {
                 Image(systemName: session.pinsWindow ? "pin.fill" : "pin")
