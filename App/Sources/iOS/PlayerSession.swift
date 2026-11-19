@@ -39,6 +39,11 @@ final class PlayerSession: NSObject, ObservableObject {
     @Published var isCovered = false {
         didSet { applyDimming() }
     }
+    #if targetEnvironment(macCatalyst)
+    /// The main window's AppKit side, for 置顶 while watching.
+    let mainWindow = MacWindowHandle()
+    @Published var pinsWindow = false
+    #endif
     static let maxDimming = 0.85
     private static let dimmingKey = "playerDimming"
     /// Lives in `contentOverlayView`, above the watermark.

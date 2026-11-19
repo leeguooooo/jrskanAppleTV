@@ -32,6 +32,18 @@ struct TouchPlayerScreen: View {
     #if targetEnvironment(macCatalyst) && DEBUG
     @Environment(\.openWindow) private var openWindow
     #endif
+    #if targetEnvironment(macCatalyst)
+    @ObservedObject private var commentsWindows = CommentsWindowPresence.shared
+    #endif
+
+    /// What is left of the picture for the danmaku; none on the Mac while a
+    /// comments window shows the same comments.
+    private var danmakuVisibility: Double {
+        #if targetEnvironment(macCatalyst)
+        if commentsWindows.isOpen { return 0 }
+        #endif
+        return session.pictureVisibility
+    }
 
     var body: some View {
         stage
@@ -50,6 +62,9 @@ struct TouchPlayerScreen: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.25)) { controlsVisible = false }
         }
+        #if targetEnvironment(macCatalyst)
+        .background(WindowProbe { session.mainWindow.attach($0, title: "") })
+        #endif
         .onAppear {
             session.screenDidAppear()
             Orientation.enterPlayer()
@@ -70,6 +85,11 @@ struct TouchPlayerScreen: View {
             let args = CommandLine.arguments
             #if targetEnvironment(macCatalyst)
             // `-comments-window` opens the comments window once playing (Mac).
+            // `-player-pin` floats the main window, to check 置顶 without a click.
+            if args.contains("-player-pin") {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                session.pinsWindow = session.mainWindow.setFloating(true)
+            }
             if args.contains("-comments-window") {
                 CommentsWindow.channels[model.match.id] = model.resolvedChannels
                 openWindow(id: CommentsWindow.sceneID, value: model.match.id)
@@ -189,7 +209,7 @@ struct TouchPlayerScreen: View {
                 Color.black
                 PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 SportsDanmakuOverlay(model: model.insights)
-                    .opacity(session.pictureVisibility)
+                    .opacity(danmakuVisibility)
                 controls(showsStatistics: false)
             }
             .aspectRatio(16 / 9, contentMode: .fit)
@@ -256,7 +276,7 @@ struct TouchPlayerScreen: View {
             PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 .ignoresSafeArea(edges: showsStatistics ? [.vertical, .leading] : .all)
             SportsDanmakuOverlay(model: model.insights)
-                .opacity(session.pictureVisibility)
+                .opacity(danmakuVisibility)
                 .ignoresSafeArea()
         }
     }
@@ -325,6 +345,14 @@ struct TouchPlayerScreen: View {
             }
             RecordControl(model: model)
             #if targetEnvironment(macCatalyst)
+            Button { session.pinsWindow = session.mainWindow.setFloating(!session.pinsWindow) } label: {
+                Image(systemName: session.pinsWindow ? "pin.fill" : "pin")
+                    .font(.footnote.weight(.semibold))
+                    .padding(8)
+                    .playerChip(highlighted: session.pinsWindow)
+            }
+            .accessibilityLabel(session.pinsWindow ? "取消置顶" : "画面置顶")
+            .help(session.pinsWindow ? "取消置顶" : "画面置顶")
             PictureDimmingMenu(session: session)
             if CommentFeedModel.hasComments(model.match) {
                 CommentsWindowButton(match: model.match, channels: model.resolvedChannels, chip: true)
@@ -347,8 +375,16 @@ struct TouchPlayerScreen: View {
                 .accessibilityLabel(session.fillsScreen ? "完整画面" : "铺满屏幕")
             }
         }
+        #if targetEnvironment(macCatalyst)
+        // Icons only, quiet colours, and below AVKit's own top bar (close,
+        // picture in picture, volume) instead of on top of it.
+        .labelStyle(.iconOnly)
+        .foregroundStyle(Palette.secondaryText)
+        .padding(.top, 56)
+        #else
         .foregroundStyle(Palette.primaryText)
         .padding(.top, 10)
+        #endif
     }
 }
 

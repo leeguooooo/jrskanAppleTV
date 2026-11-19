@@ -68,6 +68,10 @@ struct JRKANiOSApp: App {
                 .environmentObject(account)
                 .preferredColorScheme(.dark)
                 .tint(Palette.accent)
+                #if targetEnvironment(macCatalyst)
+                // No app name across the top of the window on a work screen.
+                .background(WindowProbe { $0.titlebar?.titleVisibility = .hidden })
+                #endif
                 .task { await account.refreshIfStale() }
                 .task { await AppConfigStore.shared.refreshIfStale() }
                 // Loads the recordings and finishes any MP4 export cut short last time.

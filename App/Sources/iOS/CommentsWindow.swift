@@ -15,6 +15,53 @@ enum CommentsWindow {
     @MainActor static var channels: [String: [MatchSource]] = [:]
 }
 
+/// How many comments windows are open: while one is, the danmaku over the
+/// video is redundant and only draws the eye, so the player hides it.
+@MainActor
+final class CommentsWindowPresence: ObservableObject {
+    static let shared = CommentsWindowPresence()
+    @Published private(set) var openCount = 0
+    var isOpen: Bool { openCount > 0 }
+    func opened() { openCount += 1 }
+    func closed() { openCount = max(0, openCount - 1) }
+}
+
+/// Provider emoticon codes such as [笑哭了] shown as the emoji they stand for;
+/// unknown codes stay as written.
+enum CommentEmoji {
+    static let table: [String: String] = [
+        "笑哭了": "😂", "笑哭": "😂", "破涕为笑": "😂", "笑嘻嘻": "😄", "哈哈": "😆", "大笑": "😆", "笑": "😄",
+        "呲牙": "😁", "微笑": "🙂", "憨笑": "😊", "害羞": "😊", "偷笑": "🤭", "坏笑": "😏", "捂脸": "🤦",
+        "尴尬": "😅", "流汗": "😓", "汗": "😓", "擦汗": "😓", "大哭": "😭", "流泪": "😭", "哭": "😭",
+        "可怜": "🥺", "委屈": "🥺", "生气": "😠", "发怒": "😡", "怒": "😡", "抓狂": "😫", "惊讶": "😮",
+        "惊恐": "😱", "疑问": "❓", "晕": "😵", "酷": "😎", "得意": "😎", "鄙视": "😒", "白眼": "🙄",
+        "无语": "😑", "睡": "😴", "困": "😪", "吐": "🤮", "色": "😍", "亲亲": "😘", "思考": "🤔",
+        "吃瓜": "🍉", "狗头": "🐶", "二哈": "🐶", "赞": "👍", "点赞": "👍", "强": "👍", "棒": "👍",
+        "弱": "👎", "鼓掌": "👏", "抱拳": "🙏", "握手": "🤝", "OK": "👌", "胜利": "✌️", "加油": "💪",
+        "奋斗": "💪", "再见": "👋", "爱心": "❤️", "心": "❤️", "心碎": "💔", "玫瑰": "🌹", "啤酒": "🍺",
+        "篮球": "🏀", "足球": "⚽", "火": "🔥", "666": "👍", "牛": "🐮", "炸弹": "💣", "庆祝": "🎉"
+    ]
+
+    static func render(_ text: String) -> String {
+        guard text.contains("[") else { return text }
+        var result = ""
+        var rest = Substring(text)
+        while let open = rest.firstIndex(of: "[") {
+            result += rest[..<open]
+            let after = rest[rest.index(after: open)...]
+            guard let close = after.firstIndex(of: "]"), after.distance(from: after.startIndex, to: close) <= 8 else {
+                result += "["
+                rest = after
+                continue
+            }
+            let name = String(after[..<close])
+            result += table[name] ?? "[\(name)]"
+            rest = after[after.index(after: close)...]
+        }
+        return result + rest
+    }
+}
+
 /// Opens (or brings forward) the comments window for a match.
 struct CommentsWindowButton: View {
     let match: LiveMatch
@@ -64,8 +111,11 @@ final class CommentFeedModel: ObservableObject {
                 let batch = try await client.comments(match: match, channels: channels, excluding: Set(seen))
                 try Task.checkCancellation()
                 for comment in batch where !seen.contains(comment.id) {
-                    comments.append(comment)
                     seen.append(comment.id)
+                    // The same line posted again and again (湖人总冠军…) shows once.
+                    guard !comments.suffix(8).contains(where: { $0.text == comment.text }) else { continue }
+                    comments.append(SportsComment(id: comment.id, text: CommentEmoji.render(comment.text),
+                                                  postedAt: comment.postedAt))
                 }
                 comments = Array(comments.suffix(300))
                 seen = Array(seen.suffix(1000))
@@ -86,6 +136,8 @@ struct CommentsWindowScreen: View {
     @EnvironmentObject private var listModel: MatchListModel
     @ObservedObject private var session = PlayerSession.shared
     @StateObject private var feed = CommentFeedModel()
+    /// Score, team and player statistics for /score and /players.
+    @StateObject private var insights = MatchInsightsModel()
     @Environment(\.scenePhase) private var scenePhase
     @State private var window = MacWindowHandle()
     @State private var pinned = false
@@ -104,7 +156,7 @@ struct CommentsWindowScreen: View {
     var body: some View {
         Group {
             if terminal {
-                TerminalCommentsView(match: match, feed: feed) { controls }
+                TerminalCommentsView(match: match, feed: feed, insights: insights) { controls }
             } else {
                 VStack(spacing: 0) {
                     header
@@ -115,7 +167,15 @@ struct CommentsWindowScreen: View {
                 .foregroundStyle(Palette.primaryText)
             }
         }
-        .background(WindowProbe { scene in window.attach(scene, title: terminal ? "zsh" : "评论") })
+        .background(WindowProbe { scene in
+            // Small and out of the way; the title (Window menu, Mission
+            // Control) says only zsh or 评论.
+            scene.sizeRestrictions?.minimumSize = CGSize(width: 260, height: 180)
+            scene.sizeRestrictions?.maximumSize = CGSize(width: 640, height: 1400)
+            scene.titlebar?.titleVisibility = .hidden
+            scene.titlebar?.toolbar = nil
+            window.attach(scene, title: terminal ? "zsh" : "评论")
+        })
         .onChange(of: terminal) { _, on in window.setTitle(on ? "zsh" : "评论") }
         #if DEBUG
         // `-comments-pin` floats the window at once, to check 置顶 without a click.
@@ -133,6 +193,13 @@ struct CommentsWindowScreen: View {
             let channels = CommentsWindow.channels[match.id] ?? MatchSource.playbackOrdered(match.sources)
             await feed.run(match: match, channels: channels)
         }
+        .task(id: "stats-\(matchID ?? "")-\(match != nil)-\(scenePhase == .background)") {
+            guard scenePhase != .background, let match, CommentFeedModel.hasComments(match) else { return }
+            let channels = CommentsWindow.channels[match.id] ?? MatchSource.playbackOrdered(match.sources)
+            await insights.watch(match: match, channels: channels)
+        }
+        .onAppear { CommentsWindowPresence.shared.opened() }
+        .onDisappear { CommentsWindowPresence.shared.closed() }
     }
 
     private var header: some View {
@@ -261,15 +328,21 @@ enum TerminalStyle {
 }
 
 /// The comments as the scrollback of an AI coding agent in a terminal: each
-/// comment a ⏺ line, the score folded into the agent's status line
-/// (主队↑ 客队↓), a prompt with a blinking cursor at the bottom. No team
-/// names, logos or colours.
+/// comment a ⏺ line, the score folded into the agent's status line, a prompt
+/// at the bottom. The prompt's commands switch between /comments, /score
+/// (分节比分 and 球队技术统计) and /players (both teams' box scores), each
+/// drawn as a tool call and its output. No logos or colours.
 private struct TerminalCommentsView<Controls: View>: View {
+    enum Pane: String, CaseIterable { case comments, score, players }
+
     let match: LiveMatch?
     @ObservedObject var feed: CommentFeedModel
+    @ObservedObject var insights: MatchInsightsModel
     @ViewBuilder let controls: () -> Controls
-    @State private var cursorOn = true
-    private let blink = Timer.publish(every: 0.6, on: .main, in: .common).autoconnect()
+    @AppStorage("commentsTerminalPane") private var pane = Pane.comments
+    @State private var tick = 0
+    @State private var started = Date()
+    private let clock = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -286,70 +359,180 @@ private struct TerminalCommentsView<Controls: View>: View {
             .padding(.bottom, 4)
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 5) {
-                        ForEach(feed.comments) { comment in
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Text("⏺").foregroundStyle(TerminalStyle.bullet)
-                                Text(comment.text).foregroundStyle(TerminalStyle.text)
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .id(comment.id)
-                        }
-                        if feed.comments.isEmpty {
-                            Text("  ⎿  " + (match == nil ? "no session" : "waiting for output…"))
-                                .foregroundStyle(TerminalStyle.dim)
+                    VStack(alignment: .leading, spacing: 5) {
+                        switch pane {
+                        case .comments: commentLines
+                        case .score: scoreOutput
+                        case .players: playersOutput
                         }
                         statusLine.id("status")
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: feed.comments.last?.id) { _, _ in
+                    guard pane == .comments else { return }
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("status", anchor: .bottom) }
                 }
+                .onChange(of: pane) { _, new in
+                    if new == .comments { proxy.scrollTo("status", anchor: .bottom) }
+                }
             }
-            HStack(spacing: 6) {
-                Text("❯").foregroundStyle(TerminalStyle.text)
-                Rectangle().fill(TerminalStyle.text.opacity(cursorOn ? 0.8 : 0)).frame(width: 7, height: 14)
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .overlay(alignment: .top) { Rectangle().fill(TerminalStyle.faint.opacity(0.6)).frame(height: 1) }
+            prompt
         }
         .font(TerminalStyle.font)
         .background(TerminalStyle.background.ignoresSafeArea())
-        .onReceive(blink) { _ in cursorOn.toggle() }
+        .onReceive(clock) { _ in tick += 1 }
     }
 
+    // MARK: Panes
+
+    @ViewBuilder
+    private var commentLines: some View {
+        ForEach(feed.comments) { comment in
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("⏺").foregroundStyle(TerminalStyle.bullet)
+                Text(comment.text).foregroundStyle(TerminalStyle.text)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .id(comment.id)
+        }
+        if feed.comments.isEmpty {
+            output(match == nil ? "no session" : "waiting for output…")
+        }
+    }
+
+    @ViewBuilder
+    private var scoreOutput: some View {
+        toolCall("Bash", "./scripts/status --live")
+        if let snapshot = insights.snapshot {
+            output("\(snapshot.left)  \(snapshot.score)  \(snapshot.right)   \(snapshot.period)")
+            if let periods = snapshot.periodTable {
+                table(periods).padding(.leading, 26).padding(.top, 4)
+            }
+            if let comparison = snapshot.comparisonTable {
+                toolCall("Read", "team_stats.json").padding(.top, 8)
+                table(comparison).padding(.leading, 26).padding(.top, 2)
+            }
+        } else {
+            output(insights.status.isEmpty ? "no data yet" : insights.status)
+        }
+    }
+
+    @ViewBuilder
+    private var playersOutput: some View {
+        if let snapshot = insights.snapshot, !snapshot.playerTables.isEmpty {
+            ForEach(Array(snapshot.playerTables.enumerated()), id: \.offset) { index, original in
+                let team = original.title.components(separatedBy: " · ").first ?? original.title
+                toolCall("Read", "players/\(index == 0 ? "home" : "away").json")
+                    .padding(.top, index == 0 ? 0 : 8)
+                output(team)
+                table(Self.compact(original), firstColumnWidth: 120).padding(.leading, 26).padding(.top, 2)
+            }
+        } else {
+            toolCall("Read", "players/*.json")
+            output(insights.status.isEmpty ? "no data yet" : insights.status)
+        }
+    }
+
+    /// The box score cut to what fits a small window: player, minutes, points,
+    /// rebounds, assists, shooting when the provider has them.
+    static func compact(_ table: SportsTable) -> SportsTable {
+        let wanted = ["时间", "得分", "篮板", "助攻", "投篮", "三分", "+/-"]
+        var columns = [0]
+        for name in wanted {
+            if let index = table.headers.firstIndex(where: { $0 == name }), !columns.contains(index) { columns.append(index) }
+        }
+        if columns.count == 1 { columns = Array(0..<min(table.headers.count, 6)) }
+        func pick(_ row: [String]) -> [String] { columns.map { $0 < row.count ? row[$0] : "" } }
+        return SportsTable(title: table.title, headers: pick(table.headers), rows: table.rows.map(pick),
+                           sourceName: table.sourceName)
+    }
+
+    // MARK: Pieces
+
+    private func toolCall(_ tool: String, _ argument: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("⏺").foregroundStyle(TerminalStyle.bullet)
+            (Text(tool).bold().foregroundColor(TerminalStyle.text) + Text("(\(argument))").foregroundColor(TerminalStyle.dim))
+        }
+    }
+
+    private func output(_ text: String) -> some View {
+        Text("  ⎿  " + text).foregroundStyle(TerminalStyle.dim).textSelection(.enabled)
+    }
+
+    private func table(_ table: SportsTable, firstColumnWidth: CGFloat = 96) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 3) {
+            GridRow {
+                ForEach(Array(table.headers.enumerated()), id: \.offset) { index, header in
+                    Text(header).foregroundStyle(TerminalStyle.faint)
+                        .frame(width: index == 0 ? firstColumnWidth : nil, alignment: .leading)
+                }
+            }
+            ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
+                GridRow {
+                    ForEach(Array(row.enumerated()), id: \.offset) { index, cell in
+                        Text(cell).foregroundStyle(index == 0 ? TerminalStyle.dim : TerminalStyle.text)
+                            .lineLimit(1)
+                            .frame(width: index == 0 ? firstColumnWidth : nil, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .textSelection(.enabled)
+    }
+
+    private var prompt: some View {
+        HStack(spacing: 10) {
+            Text("❯").foregroundStyle(TerminalStyle.text)
+            ForEach(Pane.allCases, id: \.self) { item in
+                Button("/\(item.rawValue)") { pane = item }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(item == pane ? TerminalStyle.text : TerminalStyle.faint)
+            }
+            Rectangle().fill(TerminalStyle.text.opacity(tick.isMultiple(of: 2) ? 0.8 : 0)).frame(width: 7, height: 14)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .overlay(alignment: .top) { Rectangle().fill(TerminalStyle.faint.opacity(0.6)).frame(height: 1) }
+    }
+
+    /// Spinner glyph and elapsed seconds move like a real agent's status line.
     private var statusLine: some View {
-        HStack(spacing: 0) {
-            Text("✻ ").foregroundStyle(TerminalStyle.dim)
+        let glyphs = ["✻", "✶", "✳", "✢", "·", "✢", "✳", "✶"]
+        return HStack(spacing: 0) {
+            Text(glyphs[tick % glyphs.count] + " ").foregroundStyle(TerminalStyle.bullet)
             Text("Working… ").foregroundStyle(TerminalStyle.dim)
             Text("(\(statusDetail))").foregroundStyle(TerminalStyle.faint)
         }
         .padding(.top, 4)
     }
 
-    /// e.g. "q3 · 102↑ 98↓ tokens"; only what is known.
+    /// e.g. "73s · q3 08:12 · 102↑ 98↓ tokens · esc to interrupt".
     private var statusDetail: String {
-        guard let match else { return "idle" }
-        var parts: [String] = []
-        if case .live(let label) = MatchSchedule.status(for: match, now: Date()) {
-            parts.append(Self.period(label))
-        }
-        if match.scoreText != nil, let home = match.providerState?.homeScore, let away = match.providerState?.awayScore {
-            parts.append("\(home)↑ \(away)↓ tokens")
+        var parts = ["\(Int(Date().timeIntervalSince(started)))s"]
+        if let snapshot = insights.snapshot {
+            if !snapshot.period.isEmpty { parts.append(Self.period(snapshot.period)) }
+            let scores = snapshot.score.components(separatedBy: ":").map { $0.trimmingCharacters(in: .whitespaces) }
+            if scores.count == 2 { parts.append("\(scores[0])↑ \(scores[1])↓ tokens") }
+        } else if let match {
+            if case .live(let label) = MatchSchedule.status(for: match, now: Date()) { parts.append(Self.period(label)) }
+            if match.scoreText != nil, let home = match.providerState?.homeScore, let away = match.providerState?.awayScore {
+                parts.append("\(home)↑ \(away)↓ tokens")
+            }
         }
         parts.append("esc to interrupt")
         return parts.joined(separator: " · ")
     }
 
-    /// 第三节 → q3, 第一节结束 → q1 end; anything else Chinese becomes "live".
-    private static func period(_ label: String) -> String {
+    /// 第三节 08:12 → q3 08:12, 第一节结束 → q1 end; anything else Chinese → live.
+    static func period(_ label: String) -> String {
         let map = ["第一节": "q1", "第二节": "q2", "第三节": "q3", "第四节": "q4", "上半场": "h1", "下半场": "h2",
-                   "中场": "ht", "加时": "ot", "节间": "break"]
+                   "中场": "ht", "加时": "ot", "节间": "break", "已结束": "done", "完赛": "done"]
         for (chinese, short) in map where label.contains(chinese) {
             let rest = label.replacingOccurrences(of: chinese, with: "")
                 .replacingOccurrences(of: "结束", with: "end").trimmingCharacters(in: .whitespaces)
@@ -360,7 +543,7 @@ private struct TerminalCommentsView<Controls: View>: View {
 }
 
 /// Reports the window scene a view lands in.
-private struct WindowProbe: UIViewRepresentable {
+struct WindowProbe: UIViewRepresentable {
     let found: (UIWindowScene) -> Void
     func makeUIView(context: Context) -> ProbeView { ProbeView(found: found) }
     func updateUIView(_ view: ProbeView, context: Context) {}
@@ -391,18 +574,16 @@ final class MacWindowHandle {
     private weak var nsWindow: NSObject?
     func setTitle(_ title: String) { scene?.title = title }
 
+    /// Whether the window is floating right now.
+    private(set) var isFloating = false
+
+    /// Finds the scene's NSWindow; `title` is what the scene is called afterwards.
     func attach(_ scene: UIWindowScene, title: String) {
         guard self.scene !== scene else { return }
         self.scene = scene
-        // Small and out of the way; the title (Window menu, Mission Control)
-        // says only zsh or 评论.
-        scene.sizeRestrictions?.minimumSize = CGSize(width: 260, height: 180)
-        scene.sizeRestrictions?.maximumSize = CGSize(width: 640, height: 1400)
-        scene.titlebar?.titleVisibility = .hidden
-        scene.titlebar?.toolbar = nil
-        // Several comments windows may be open: tag this one with a unique
-        // title just long enough to pick out its NSWindow.
-        let token = "comments-" + UUID().uuidString
+        // Several windows may be open: tag this one with a unique title just
+        // long enough to pick out its NSWindow.
+        let token = "window-" + UUID().uuidString
         scene.title = token
         Task { @MainActor in
             for _ in 0..<20 {
@@ -424,6 +605,7 @@ final class MacWindowHandle {
         // canJoinAllSpaces (1 << 0) | fullScreenAuxiliary (1 << 8): stay
         // visible on every desktop and over a full-screen app.
         nsWindow.setValue(floating ? (1 << 0 | 1 << 8) : 0, forKey: "collectionBehavior")
+        isFloating = floating
         return floating
     }
 
