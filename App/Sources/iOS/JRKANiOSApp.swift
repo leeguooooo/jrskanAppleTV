@@ -29,6 +29,26 @@ struct JRKANiOSApp: App {
     }
 
     var body: some Scene {
+        #if targetEnvironment(macCatalyst)
+        mainWindow
+            .commands {
+                PictureCommands()
+                // One main window only: a second one would share the single player.
+                CommandGroup(replacing: .newItem) {}
+            }
+
+        WindowGroup("评论", id: CommentsWindow.sceneID, for: String.self) { $matchID in
+            CommentsWindowScreen(matchID: matchID)
+                .environmentObject(model)
+                .preferredColorScheme(.dark)
+                .tint(Palette.accent)
+        }
+        #else
+        mainWindow
+        #endif
+    }
+
+    private var mainWindow: some Scene {
         WindowGroup {
             Group {
                 #if DEBUG
@@ -73,9 +93,6 @@ struct JRKANiOSApp: App {
                     }
                 }
         }
-        #if targetEnvironment(macCatalyst)
-        .commands { PictureCommands() }
-        #endif
     }
 }
 

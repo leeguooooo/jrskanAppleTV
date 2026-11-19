@@ -117,6 +117,12 @@ struct MatchDetailScreen: View {
                     Label(playTitle, systemImage: "play.fill").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AmberButtonStyle())
+                #if targetEnvironment(macCatalyst)
+                if CommentFeedModel.hasComments(match) {
+                    CommentsWindowButton(match: match, channels: model.resolvedChannels)
+                        .buttonStyle(.bordered)
+                }
+                #endif
                 if let channel = model.playback?.sourceName ?? model.suggestedChannel?.name {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark").font(.caption.weight(.bold)).foregroundStyle(Palette.healthy)

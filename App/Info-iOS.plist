@@ -40,6 +40,11 @@
 		<string>ChakraPetch-Bold.ttf</string>
 		<string>LeeguooHeading-Black.ttf</string>
 	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

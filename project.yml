@@ -107,6 +107,9 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIUserInterfaceStyle: Dark
+        # Mac 上的评论小窗是第二个窗口。主窗口只允许一个（菜单里去掉了「新建窗口」）。
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
         # 录像生成的 MP4 放在 Documents/录像：「文件」App › 我的 iPhone › leeguoo sports 里能直接看到、分享。
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true

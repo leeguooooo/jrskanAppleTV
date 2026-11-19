@@ -29,6 +29,9 @@ struct TouchPlayerScreen: View {
     /// controls: a tap on the picture toggles it, and it fades after a while.
     @State private var controlsVisible = true
     @State private var controlsTouch = 0
+    #if targetEnvironment(macCatalyst) && DEBUG
+    @Environment(\.openWindow) private var openWindow
+    #endif
 
     var body: some View {
         stage
@@ -65,6 +68,13 @@ struct TouchPlayerScreen: View {
         // screen it returns to without synthesising a tap.
         .task {
             let args = CommandLine.arguments
+            #if targetEnvironment(macCatalyst)
+            // `-comments-window` opens the comments window once playing (Mac).
+            if args.contains("-comments-window") {
+                CommentsWindow.channels[model.match.id] = model.resolvedChannels
+                openWindow(id: CommentsWindow.sceneID, value: model.match.id)
+            }
+            #endif
             // `-player-fullscreen` / `-stats-panel` reach the landscape layouts without rotating by hand.
             // Both wait a few seconds so the turn happens mid-stream, like a real one.
             if args.contains("-player-fullscreen") || args.contains("-stats-panel") {
@@ -316,6 +326,9 @@ struct TouchPlayerScreen: View {
             RecordControl(model: model)
             #if targetEnvironment(macCatalyst)
             PictureDimmingMenu(session: session)
+            if CommentFeedModel.hasComments(model.match) {
+                CommentsWindowButton(match: model.match, channels: model.resolvedChannels, chip: true)
+            }
             #endif
 
             // Cropping only means something once the picture fills the

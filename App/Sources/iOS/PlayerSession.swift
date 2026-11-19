@@ -181,6 +181,8 @@ final class PlayerSession: NSObject, ObservableObject {
         model = nil
         presentsWhenGone = false
         isPresented = false
+        // The next match opens with a picture, not a black screen.
+        isCovered = false
     }
 
     private func apply(_ request: PlaybackRequest?) {
