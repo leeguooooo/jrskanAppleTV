@@ -115,6 +115,11 @@ private struct PictureCommands: Commands {
                 PlayerSession.shared.isCovered = false
                 PlayerSession.shared.dimming = 0
             }
+            Button("代码伪装 开 / 关") {
+                let session = PlayerSession.shared
+                session.codeVeil = session.codeVeil > 0 ? 0 : 0.75
+            }
+            .keyboardShortcut("'", modifiers: .command)
             Divider()
             Button("遮住 / 显示画面（声音继续）") { PlayerSession.shared.isCovered.toggle() }
                 .keyboardShortcut("\\", modifiers: .command)

@@ -31,6 +31,7 @@
 		200218C81A1D8941BB310C8D /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
 		2298AD2DA0DFA4D51919592B /* RecordingServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E323E7B0FAFDBF5E903F96 /* RecordingServer.swift */; };
 		250B58FF657D661D7FEF6E20 /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */; };
+		2585B7647D0A0E9808970AD1 /* CodeVeil.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF1F54EB16EA9BBE5C65840A /* CodeVeil.swift */; };
 		297D4DE391CF71C865489E0B /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F795A4A37A735508DDDBD0A /* AppConfig.swift */; };
 		29F57AE74969BE5F4C84FF86 /* CompactHomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */; };
 		2B66D3DADE77370AA966A3B9 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
@@ -204,6 +205,7 @@
 		B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB5BE82233AE1714BD02AEDE /* StreamResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamResolver.swift; sourceTree = "<group>"; };
 		BCBF11EAF493C5299A821529 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF1F54EB16EA9BBE5C65840A /* CodeVeil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeVeil.swift; sourceTree = "<group>"; };
 		C253D69C104183CC136B6570 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		C6F0CA23C2A11AD21E8F97B3 /* JRKANTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANTVApp.swift; sourceTree = "<group>"; };
 		C91064A03F121E128758A8E1 /* ChakraPetch-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ChakraPetch-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -239,6 +241,7 @@
 			isa = PBXGroup;
 			children = (
 				E9FC89C4ED8CBC9B548807EC /* AccountScreen.swift */,
+				BF1F54EB16EA9BBE5C65840A /* CodeVeil.swift */,
 				8CAB8F67A3E8647674137F51 /* CommentsWindow.swift */,
 				FBBC2F2E1C239E31FAEBB2D0 /* CompactHomeScreen.swift */,
 				4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */,
@@ -654,6 +657,7 @@
 				D9168D89DE0C2F9DD0AA7012 /* AccountSession.swift in Sources */,
 				F653E886998A45AFC179D6A3 /* AccountStore.swift in Sources */,
 				297D4DE391CF71C865489E0B /* AppConfig.swift in Sources */,
+				2585B7647D0A0E9808970AD1 /* CodeVeil.swift in Sources */,
 				D000F5608E1A0A0941D5F29E /* CommentsWindow.swift in Sources */,
 				29F57AE74969BE5F4C84FF86 /* CompactHomeScreen.swift in Sources */,
 				8FB7DFE9E8FFACA2528A34EB /* CompactMatchListScreen.swift in Sources */,

@@ -210,6 +210,7 @@ struct TouchPlayerScreen: View {
                 PlayerContainer(controller: session.controller, onTap: togglePictureControls)
                 SportsDanmakuOverlay(model: model.insights)
                     .opacity(danmakuVisibility)
+                codeVeil
                 controls(showsStatistics: false)
             }
             .aspectRatio(16 / 9, contentMode: .fit)
@@ -278,7 +279,17 @@ struct TouchPlayerScreen: View {
             SportsDanmakuOverlay(model: model.insights)
                 .opacity(danmakuVisibility)
                 .ignoresSafeArea()
+            codeVeil
         }
+    }
+
+    @ViewBuilder
+    private var codeVeil: some View {
+        #if targetEnvironment(macCatalyst)
+        if session.codeVeil > 0 && !session.isCovered {
+            CodeVeil(strength: session.codeVeil).transition(.opacity)
+        }
+        #endif
     }
 
     private func togglePictureControls() {
@@ -542,6 +553,11 @@ private struct PictureDimmingMenu: View {
         Level(dimming: 0, title: "原亮度"), Level(dimming: 0.3, title: "70%"), Level(dimming: 0.5, title: "50%"),
         Level(dimming: 0.7, title: "30%"), Level(dimming: PlayerSession.maxDimming, title: "15%")
     ]
+    /// 代码伪装 strengths (the veil's opacity), reusing the same shape.
+    private static let veilLevels = [
+        Level(dimming: 0, title: "关"), Level(dimming: 0.6, title: "淡"),
+        Level(dimming: 0.75, title: "中"), Level(dimming: 0.88, title: "浓")
+    ]
 
     var body: some View {
         Menu {
@@ -552,6 +568,19 @@ private struct PictureDimmingMenu: View {
                         session.dimming = level.dimming
                     } label: {
                         if !session.isCovered && abs(session.dimming - level.dimming) < 0.005 {
+                            Label(level.title, systemImage: "checkmark")
+                        } else {
+                            Text(level.title)
+                        }
+                    }
+                }
+            }
+            Section("代码伪装（画面上滚动代码）") {
+                ForEach(Self.veilLevels, id: \.dimming) { level in
+                    Button {
+                        session.codeVeil = level.dimming
+                    } label: {
+                        if abs(session.codeVeil - level.dimming) < 0.005 {
                             Label(level.title, systemImage: "checkmark")
                         } else {
                             Text(level.title)

@@ -43,6 +43,11 @@ final class PlayerSession: NSObject, ObservableObject {
     /// The main window's AppKit side, for 置顶 while watching.
     let mainWindow = MacWindowHandle()
     @Published var pinsWindow = false
+    /// 代码伪装: a scrolling diff over the picture; 0 is off, otherwise the
+    /// veil's opacity. Kept across launches.
+    @Published var codeVeil: Double = UserDefaults.standard.double(forKey: "playerCodeVeil") {
+        didSet { UserDefaults.standard.set(codeVeil, forKey: "playerCodeVeil") }
+    }
     #endif
     static let maxDimming = 0.85
     private static let dimmingKey = "playerDimming"
