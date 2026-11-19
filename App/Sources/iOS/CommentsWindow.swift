@@ -147,6 +147,7 @@ struct CommentsWindowScreen: View {
     /// Dressed as a terminal running an AI coding agent, so a glance at the
     /// screen reads as work. On by default; the plain look is one click away.
     @AppStorage("commentsTerminalSkin") private var terminal = true
+    @AppStorage(TerminalStyle.sizeKey) private var fontSize = TerminalStyle.defaultSize
 
     private var match: LiveMatch? {
         guard let matchID else { return nil }
@@ -240,6 +241,8 @@ struct CommentsWindowScreen: View {
     private var controls: some View {
         HStack(spacing: terminal ? 2 : 8) {
             iconButton("terminal", label: terminal ? "普通样式" : "终端样式", active: false) { terminal.toggle() }
+            iconButton("textformat.size.smaller", label: "字号缩小（⌘-）", active: false) { TerminalStyle.adjustSize(by: -1) }
+            iconButton("textformat.size.larger", label: "字号放大（⌘=）", active: false) { TerminalStyle.adjustSize(by: 1) }
             if session.model?.match.id == matchID, session.model?.playback != nil {
                 iconButton(session.isCovered ? "eye.slash.fill" : "eye",
                            label: session.isCovered ? "显示视频画面" : "遮住视频画面（声音继续）",
@@ -311,7 +314,7 @@ struct CommentsWindowScreen: View {
                                     .font(.caption2.monospacedDigit())
                                     .foregroundStyle(Palette.tertiaryText)
                                 Text(comment.text)
-                                    .font(.callout)
+                                    .font(.system(size: fontSize + 2))
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -344,7 +347,13 @@ enum TerminalStyle {
     static let dim = Color(hex: 0x8A8A8A)
     static let faint = Color(hex: 0x555555)
     static let bullet = Color(hex: 0x7FA37F)
-    static let font = Font.system(size: 12, design: .monospaced)
+    /// The comments window's text size, set with A−/A＋ or ⌘- / ⌘=.
+    static let sizeKey = "commentsFontSize"
+    static let defaultSize = 12.0
+    static func adjustSize(by step: Double) {
+        let current = UserDefaults.standard.object(forKey: sizeKey) as? Double ?? defaultSize
+        UserDefaults.standard.set(min(22, max(10, current + step)), forKey: sizeKey)
+    }
 }
 
 /// Short English terms in place of the Chinese sports words, so the score
@@ -401,6 +410,7 @@ private struct TerminalCommentsView<Controls: View>: View {
     @ObservedObject var insights: MatchInsightsModel
     @ViewBuilder let controls: () -> Controls
     @AppStorage("commentsTerminalPane") private var pane = Pane.comments
+    @AppStorage(TerminalStyle.sizeKey) private var fontSize = TerminalStyle.defaultSize
     @State private var tick = 0
     @State private var started = Date()
     private let clock = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -446,7 +456,7 @@ private struct TerminalCommentsView<Controls: View>: View {
             }
             prompt
         }
-        .font(TerminalStyle.font)
+        .font(.system(size: fontSize, design: .monospaced))
         .background(TerminalStyle.background.ignoresSafeArea())
         .onReceive(clock) { _ in tick += 1 }
     }

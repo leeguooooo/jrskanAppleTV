@@ -121,6 +121,11 @@ private struct PictureCommands: Commands {
             }
             .keyboardShortcut("'", modifiers: .command)
             Divider()
+            Button("评论字号放大") { TerminalStyle.adjustSize(by: 1) }
+                .keyboardShortcut("=", modifiers: .command)
+            Button("评论字号缩小") { TerminalStyle.adjustSize(by: -1) }
+                .keyboardShortcut("-", modifiers: .command)
+            Divider()
             Button("遮住 / 显示画面（声音继续）") { PlayerSession.shared.isCovered.toggle() }
                 .keyboardShortcut("\\", modifiers: .command)
         }
