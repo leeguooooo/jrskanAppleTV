@@ -142,6 +142,8 @@ struct CommentsWindowScreen: View {
     @State private var window = MacWindowHandle()
     @State private var pinned = false
     @State private var opacity = 1.0
+    /// Channels with Tencent's event ID, needed to find the comments.
+    @State private var channels: [MatchSource]?
     /// Dressed as a terminal running an AI coding agent, so a glance at the
     /// screen reads as work. On by default; the plain look is one click away.
     @AppStorage("commentsTerminalSkin") private var terminal = true
@@ -188,14 +190,32 @@ struct CommentsWindowScreen: View {
         #endif
         // Stops when the window closes or the app is hidden; a window that is
         // merely behind another app keeps polling, which is the point of it.
-        .task(id: "\(matchID ?? "")-\(match != nil)-\(scenePhase == .background)") {
-            guard scenePhase != .background, let match else { return }
-            let channels = CommentsWindow.channels[match.id] ?? MatchSource.playbackOrdered(match.sources)
+        // The comment providers find the match through the event ID in the
+        // resolved channel pages; the homepage entries usually lack it. A window
+        // restored at launch, or opened before the match screen finished
+        // loading, resolves the channels itself.
+        .task(id: "channels-\(matchID ?? "")-\(match != nil)") {
+            guard let match, channels == nil else { return }
+            if let known = CommentsWindow.channels[match.id], TencentSportsClient.candidateMID(match: match, channels: known) != nil {
+                channels = known
+                return
+            }
+            if let playing = session.model, playing.match.id == match.id, playing.channels != nil {
+                channels = playing.resolvedChannels
+                return
+            }
+            let loader = MatchPlaybackModel(match: match, preferences: listModel.preferences)
+            await loader.loadChannels()
+            guard !Task.isCancelled else { return }
+            channels = loader.resolvedChannels
+            CommentsWindow.channels[match.id] = loader.resolvedChannels
+        }
+        .task(id: "\(matchID ?? "")-\(match != nil)-\(channels?.count ?? -1)-\(scenePhase == .background)") {
+            guard scenePhase != .background, let match, let channels else { return }
             await feed.run(match: match, channels: channels)
         }
-        .task(id: "stats-\(matchID ?? "")-\(match != nil)-\(scenePhase == .background)") {
-            guard scenePhase != .background, let match, CommentFeedModel.hasComments(match) else { return }
-            let channels = CommentsWindow.channels[match.id] ?? MatchSource.playbackOrdered(match.sources)
+        .task(id: "stats-\(matchID ?? "")-\(match != nil)-\(channels?.count ?? -1)-\(scenePhase == .background)") {
+            guard scenePhase != .background, let match, let channels, CommentFeedModel.hasComments(match) else { return }
             await insights.watch(match: match, channels: channels)
         }
         .onAppear { CommentsWindowPresence.shared.opened() }
@@ -327,6 +347,47 @@ enum TerminalStyle {
     static let font = Font.system(size: 12, design: .monospaced)
 }
 
+/// Short English terms in place of the Chinese sports words, so the score
+/// and box score read like a program's printout: NBA teams by tricode,
+/// statistics by their usual abbreviations. Player names and CBA teams stay.
+enum Term {
+    static let teams: [String: String] = [
+        "老鹰": "ATL", "凯尔特人": "BOS", "篮网": "BKN", "黄蜂": "CHA", "公牛": "CHI", "骑士": "CLE",
+        "独行侠": "DAL", "小牛": "DAL", "掘金": "DEN", "活塞": "DET", "勇士": "GSW", "火箭": "HOU",
+        "步行者": "IND", "快船": "LAC", "湖人": "LAL", "灰熊": "MEM", "热火": "MIA", "雄鹿": "MIL",
+        "森林狼": "MIN", "鹈鹕": "NOP", "尼克斯": "NYK", "雷霆": "OKC", "魔术": "ORL", "76人": "PHI",
+        "太阳": "PHX", "开拓者": "POR", "国王": "SAC", "马刺": "SAS", "猛龙": "TOR", "爵士": "UTA", "奇才": "WAS"
+    ]
+    static let words: [String: String] = [
+        "球队": "team", "项目": "stat", "球员": "player", "号码 / 球员": "player", "总分": "tot", "统计": "total",
+        "时间": "min", "得分": "pts", "篮板": "reb", "前场篮板": "oreb", "后场篮板": "dreb", "助攻": "ast",
+        "抢断": "stl", "盖帽": "blk", "失误": "tov", "犯规": "pf", "投篮": "fg", "三分": "3p", "罚球": "ft",
+        "投篮命中率": "fg%", "三分命中率": "3p%", "罚球命中率": "ft%", "真实命中率": "ts%", "加时": "ot",
+        "快攻得分": "fbpts", "内线得分": "paint", "最大领先": "max lead", "替补得分": "bench"
+    ]
+
+    static func of(_ text: String) -> String {
+        if let team = teams[text] { return team }
+        if let word = words[text] { return word }
+        // 第1节 / 第一节 → q1
+        let digits = ["一": "1", "二": "2", "三": "3", "四": "4"]
+        if text.hasPrefix("第"), text.hasSuffix("节") {
+            let middle = String(text.dropFirst().dropLast())
+            return "q" + (digits[middle] ?? middle)
+        }
+        return text
+    }
+
+    /// Headers always; the first column too when it holds teams or stat names.
+    static func table(_ table: SportsTable, firstColumn: Bool) -> SportsTable {
+        SportsTable(title: table.title, headers: table.headers.map(of),
+                    rows: table.rows.map { row in
+                        firstColumn ? row.enumerated().map { $0.offset == 0 ? of($0.element) : $0.element } : row
+                    },
+                    sourceName: table.sourceName)
+    }
+}
+
 /// The comments as the scrollback of an AI coding agent in a terminal: each
 /// comment a ⏺ line, the score folded into the agent's status line, a prompt
 /// at the bottom. The prompt's commands switch between /comments, /score
@@ -357,9 +418,13 @@ private struct TerminalCommentsView<Controls: View>: View {
             .padding(.horizontal, 10)
             .padding(.top, 6)
             .padding(.bottom, 4)
+            // Like a real terminal, the newest output sits right above the
+            // prompt; short output leaves the empty space at the top.
+            GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 5) {
+                        Spacer(minLength: 0)
                         switch pane {
                         case .comments: commentLines
                         case .score: scoreOutput
@@ -369,15 +434,15 @@ private struct TerminalCommentsView<Controls: View>: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .bottomLeading)
                 }
+                .defaultScrollAnchor(.bottom)
                 .onChange(of: feed.comments.last?.id) { _, _ in
                     guard pane == .comments else { return }
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("status", anchor: .bottom) }
                 }
-                .onChange(of: pane) { _, new in
-                    if new == .comments { proxy.scrollTo("status", anchor: .bottom) }
-                }
+                .onChange(of: pane) { _, _ in proxy.scrollTo("status", anchor: .bottom) }
+            }
             }
             prompt
         }
@@ -408,14 +473,18 @@ private struct TerminalCommentsView<Controls: View>: View {
     private var scoreOutput: some View {
         toolCall("Bash", "./scripts/status --live")
         if let snapshot = insights.snapshot {
-            output("\(snapshot.left)  \(snapshot.score)  \(snapshot.right)   \(snapshot.period)")
+            output("\(Term.of(snapshot.left))  \(snapshot.score)  \(Term.of(snapshot.right))   \(snapshot.period)")
             if let periods = snapshot.periodTable {
-                table(periods).padding(.leading, 26).padding(.top, 4)
+                table(Term.table(periods, firstColumn: true)).padding(.leading, 26).padding(.top, 4)
             }
             if let comparison = snapshot.comparisonTable {
                 toolCall("Read", "team_stats.json").padding(.top, 8)
-                table(comparison).padding(.leading, 26).padding(.top, 2)
+                table(Term.table(comparison, firstColumn: true)).padding(.leading, 26).padding(.top, 2)
             }
+            // The scoreboard and the tables can come from different providers;
+            // the tables often trail by a poll or two.
+            Text("     updated \(snapshot.updatedAt.formatted(date: .omitted, time: .standard))")
+                .foregroundStyle(TerminalStyle.faint)
         } else {
             output(insights.status.isEmpty ? "no data yet" : insights.status)
         }
@@ -428,8 +497,8 @@ private struct TerminalCommentsView<Controls: View>: View {
                 let team = original.title.components(separatedBy: " · ").first ?? original.title
                 toolCall("Read", "players/\(index == 0 ? "home" : "away").json")
                     .padding(.top, index == 0 ? 0 : 8)
-                output(team)
-                table(Self.compact(original), firstColumnWidth: 120).padding(.leading, 26).padding(.top, 2)
+                output(Term.of(team))
+                table(Term.table(Self.compact(original), firstColumn: false), firstColumnWidth: 120).padding(.leading, 26).padding(.top, 2)
             }
         } else {
             toolCall("Read", "players/*.json")
