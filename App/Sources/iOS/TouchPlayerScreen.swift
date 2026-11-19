@@ -291,11 +291,9 @@ struct TouchPlayerScreen: View {
 
     @ViewBuilder
     private var codeVeil: some View {
-        #if targetEnvironment(macCatalyst)
         if session.codeVeil > 0 && !session.isCovered {
             CodeVeil(strength: session.codeVeil).transition(.opacity)
         }
-        #endif
     }
 
     private func togglePictureControls() {
@@ -370,6 +368,7 @@ struct TouchPlayerScreen: View {
                     .playerChip()
             }
             .accessibilityLabel("一键伪装")
+            PictureDimmingMenu(session: session)
             #endif
             #if targetEnvironment(macCatalyst)
             Button { session.pinsWindow = session.mainWindow.setFloating(!session.pinsWindow) } label: {
@@ -558,10 +557,10 @@ private struct ChannelMenu: View {
     }
 }
 
-#if targetEnvironment(macCatalyst)
-/// 画面亮度 on the Mac: hold the picture back so a match on a work screen
-/// does not catch the eye, or black it out while the sound carries on.
-/// The same actions sit in the 画面 menu with ⌘[ ⌘] ⌘\.
+/// 画面亮度 and 代码伪装: hold the picture back so a match on a work screen
+/// does not catch the eye, lay a scrolling diff over it, or black it out
+/// while the sound carries on. On the Mac the same actions sit in the 画面
+/// menu with ⌘[ ⌘] ⌘' ⌘\.
 private struct PictureDimmingMenu: View {
     @ObservedObject var session: PlayerSession
     @State private var open = false
@@ -582,7 +581,18 @@ private struct PictureDimmingMenu: View {
             .playerChip(highlighted: session.isCovered)
         }
         .accessibilityLabel("画面亮度和代码伪装")
-        .popover(isPresented: $open) { panel }
+        .popover(isPresented: $open) {
+            panel.presentationCompactAdaptation(.popover)
+        }
+    }
+
+    /// Keyboard shortcuts exist only in the Mac menu bar.
+    private static func keys(_ text: String) -> String {
+        #if targetEnvironment(macCatalyst)
+        return text
+        #else
+        return ""
+        #endif
     }
 
     private var panel: some View {
@@ -597,7 +607,7 @@ private struct PictureDimmingMenu: View {
                 Slider(value: Binding(get: { 1 - session.dimming },
                                       set: { session.isCovered = false; session.dimming = 1 - $0 }),
                        in: (1 - PlayerSession.maxDimming)...1)
-                Text("只压暗视频，不动屏幕亮度和声音。⌘[ ⌘]").font(.caption).foregroundStyle(Palette.secondaryText)
+                Text("只压暗视频，不动屏幕亮度和声音。" + Self.keys(" ⌘[ ⌘]")).font(.caption).foregroundStyle(Palette.secondaryText)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("代码伪装", isOn: Binding(get: { session.codeVeil > 0 },
@@ -610,12 +620,12 @@ private struct PictureDimmingMenu: View {
                     Text("\(Int(((session.codeVeil > 0 ? session.codeVeil : session.lastCodeVeil) * 100).rounded()))%")
                         .monospacedDigit().foregroundStyle(Palette.secondaryText)
                 }
-                Text("画面上滚动改代码的 diff，越淡越看得清球。⌘'").font(.caption).foregroundStyle(Palette.secondaryText)
+                Text("画面上滚动改代码的 diff，越淡越看得清球。" + Self.keys(" ⌘'")).font(.caption).foregroundStyle(Palette.secondaryText)
             }
             Button {
                 session.isCovered.toggle()
             } label: {
-                Label(session.isCovered ? "显示画面" : "遮住画面（声音继续）⌘\\",
+                Label(session.isCovered ? "显示画面" : "遮住画面（声音继续）" + Self.keys(" ⌘\\"),
                       systemImage: session.isCovered ? "eye" : "eye.slash")
             }
         }
@@ -624,7 +634,6 @@ private struct PictureDimmingMenu: View {
         .frame(width: 300)
     }
 }
-#endif
 
 extension View {
     /// Warm smoked-glass chip for controls over the picture.

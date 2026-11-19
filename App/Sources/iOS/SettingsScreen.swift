@@ -54,6 +54,7 @@ struct SettingsScreen: View {
                         .font(.caption)
                         .foregroundStyle(Palette.secondaryText)
                 }
+                AlternateIconToggle()
             } header: {
                 Text("一键伪装")
             }
@@ -143,3 +144,37 @@ struct SettingsScreen: View {
         return build.isEmpty ? version : "\(version) (\(build))"
     }
 }
+
+#if !targetEnvironment(macCatalyst)
+/// Swaps the home-screen icon for a plain grey {} that reads as a code tool.
+/// iOS confirms the change with its own alert.
+private struct AlternateIconToggle: View {
+    @State private var plain = UIApplication.shared.alternateIconName == "AppIconCode"
+    @State private var failed: String?
+
+    var body: some View {
+        Toggle(isOn: Binding(get: { plain }, set: { apply($0) })) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("换成不起眼的图标")
+                Text(failed ?? "主屏上显示灰底 { } 图标，名字不变。")
+                    .font(.caption)
+                    .foregroundStyle(failed == nil ? Palette.secondaryText : Palette.live)
+            }
+        }
+        .disabled(!UIApplication.shared.supportsAlternateIcons)
+    }
+
+    private func apply(_ on: Bool) {
+        UIApplication.shared.setAlternateIconName(on ? "AppIconCode" : nil) { error in
+            Task { @MainActor in
+                if let error {
+                    failed = "没换成：\(error.localizedDescription)"
+                } else {
+                    failed = nil
+                    plain = on
+                }
+            }
+        }
+    }
+}
+#endif

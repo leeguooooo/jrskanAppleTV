@@ -48,7 +48,9 @@ final class Disguise: ObservableObject {
 
     private func apply() {
         guard isOn || coversForBackground else {
+            // Dropped, not just hidden, so its comment polling stops too.
             window?.isHidden = true
+            window = nil
             return
         }
         guard let scene = Self.activeScene() else { return }
@@ -72,64 +74,30 @@ final class Disguise: ObservableObject {
     }
 }
 
-/// What the disguise shows: a terminal running a coding agent.
+/// What the disguise shows: a terminal running a coding agent. The prompt's
+/// commands switch between /code (nothing but a scrolling diff, the
+/// default), /comments, /score and /players for the match that is playing,
+/// all dressed as the agent's output; the status line carries the score.
 struct DisguiseScreen: View {
     @ObservedObject private var session = PlayerSession.shared
-    @State private var tick = 0
-    @State private var started = Date()
-    private let clock = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+    @StateObject private var feed = CommentFeedModel()
+    @StateObject private var spareInsights = MatchInsightsModel()
+
+    private var match: LiveMatch? { session.model?.match }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                Text("~/work/service").foregroundStyle(TerminalStyle.bullet)
-                Text(" (main) ").foregroundStyle(TerminalStyle.dim)
-                Text("% agent").foregroundStyle(TerminalStyle.text)
-                Spacer(minLength: 0)
+        TerminalCommentsView(match: match, feed: feed, insights: session.model?.insights ?? spareInsights,
+                             offersCode: true, paneKey: "disguisePane") { EmptyView() }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(TerminalStyle.background.ignoresSafeArea())
+            .contentShape(Rectangle())
+            // Double-tap anywhere to go back to the match.
+            .onTapGesture(count: 2) { Disguise.shared.set(false) }
+            .accessibilityAction(named: "恢复") { Disguise.shared.set(false) }
+            .task(id: match?.id) {
+                guard let model = session.model, CommentFeedModel.hasComments(model.match) else { return }
+                await feed.run(match: model.match, channels: model.resolvedChannels)
             }
-            .lineLimit(1)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            CodeVeil(strength: 1)
-            statusLine
-                .padding(.horizontal, 14)
-                .padding(.vertical, 4)
-            HStack(spacing: 6) {
-                Text("❯").foregroundStyle(TerminalStyle.text)
-                Rectangle().fill(TerminalStyle.text.opacity(tick.isMultiple(of: 2) ? 0.8 : 0)).frame(width: 7, height: 14)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .overlay(alignment: .top) { Rectangle().fill(TerminalStyle.faint.opacity(0.6)).frame(height: 1) }
-        }
-        .font(.system(size: 12, design: .monospaced))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(TerminalStyle.background.ignoresSafeArea())
-        .contentShape(Rectangle())
-        // Double-tap anywhere to go back to the match.
-        .onTapGesture(count: 2) { Disguise.shared.set(false) }
-        .onReceive(clock) { _ in tick += 1 }
-        .statusBarHidden(false)
-        .accessibilityAction(named: "恢复") { Disguise.shared.set(false) }
-    }
-
-    /// The agent's status line; the score rides along as token counts
-    /// (主队↑ 客队↓), so it can still be followed while disguised.
-    private var statusLine: some View {
-        let glyphs = ["✻", "✶", "✳", "✢", "·", "✢", "✳", "✶"]
-        var parts = ["\(Int(Date().timeIntervalSince(started)))s"]
-        if let snapshot = session.model?.insights.snapshot {
-            let scores = snapshot.score.components(separatedBy: ":").map { $0.trimmingCharacters(in: .whitespaces) }
-            if scores.count == 2 { parts.append("\(scores[0])↑ \(scores[1])↓ tokens") }
-        }
-        parts.append("esc to interrupt")
-        return HStack(spacing: 0) {
-            Text(glyphs[tick % glyphs.count] + " ").foregroundStyle(TerminalStyle.bullet)
-            Text("Working… ").foregroundStyle(TerminalStyle.dim)
-            Text("(" + parts.joined(separator: " · ") + ")").foregroundStyle(TerminalStyle.faint)
-        }
-        .lineLimit(1)
     }
 }
 

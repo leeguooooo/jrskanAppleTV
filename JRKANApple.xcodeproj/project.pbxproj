@@ -840,6 +840,7 @@
 		485E712C5AD3409DF31EDC07 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = AppIconCode;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/JRKANiOS.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = App/JRKANMac.entitlements;
@@ -912,6 +913,7 @@
 		EE776CB21C4251D4AFA52A8B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = AppIconCode;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/JRKANiOS.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = App/JRKANMac.entitlements;

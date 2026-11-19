@@ -124,6 +124,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.leeguoo.jrskan.tv
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # 一键伪装里可换的备用图标（灰底 {}），设置 › 一键伪装 › 换成不起眼的图标。
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: AppIconCode
         SUPPORTS_MACCATALYST: YES
         # Catalyst 默认会派生出 maccatalyst. 前缀的 Bundle ID，那样在 ASC 里会
         # 变成另一个应用；关掉它，三端共用一条记录、一次通用购买。

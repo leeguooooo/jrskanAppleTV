@@ -1,4 +1,3 @@
-#if targetEnvironment(macCatalyst)
 import SwiftUI
 import UIKit
 
@@ -131,6 +130,7 @@ final class CommentFeedModel: ObservableObject {
     }
 }
 
+#if targetEnvironment(macCatalyst)
 struct CommentsWindowScreen: View {
     let matchID: String?
     @EnvironmentObject private var listModel: MatchListModel
@@ -349,7 +349,7 @@ struct CommentsWindowScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
+#endif
 
 /// Short English terms in place of the Chinese sports words, so the score
 /// and box score read like a program's printout: NBA teams by tricode,
@@ -397,15 +397,32 @@ enum Term {
 /// at the bottom. The prompt's commands switch between /comments, /score
 /// (分节比分 and 球队技术统计) and /players (both teams' box scores), each
 /// drawn as a tool call and its output. No logos or colours.
-private struct TerminalCommentsView<Controls: View>: View {
-    enum Pane: String, CaseIterable { case comments, score, players }
+struct TerminalCommentsView<Controls: View>: View {
+    enum Pane: String, CaseIterable { case code, comments, score, players }
 
     let match: LiveMatch?
     @ObservedObject var feed: CommentFeedModel
     @ObservedObject var insights: MatchInsightsModel
     var showsPlayers = false
+    /// /code (nothing but a scrolling diff) is offered on the iPhone disguise.
+    var offersCode = false
     @ViewBuilder let controls: () -> Controls
-    @AppStorage("commentsTerminalPane") private var pane = Pane.comments
+    @AppStorage private var pane: Pane
+
+    init(match: LiveMatch?, feed: CommentFeedModel, insights: MatchInsightsModel, showsPlayers: Bool = false,
+         offersCode: Bool = false, paneKey: String = "commentsTerminalPane",
+         @ViewBuilder controls: @escaping () -> Controls) {
+        self.match = match
+        self.feed = feed
+        self.insights = insights
+        self.showsPlayers = showsPlayers
+        self.offersCode = offersCode
+        self.controls = controls
+        _pane = AppStorage(wrappedValue: offersCode ? .code : .comments, paneKey)
+    }
+
+    private var panes: [Pane] { offersCode ? Pane.allCases : Pane.allCases.filter { $0 != .code } }
+    private var shownPane: Pane { pane == .code && !offersCode ? .comments : pane }
     @AppStorage(TerminalStyle.sizeKey) private var fontSize = TerminalStyle.defaultSize
     @State private var tick = 0
     @State private var started = Date()
@@ -426,7 +443,7 @@ private struct TerminalCommentsView<Controls: View>: View {
             .padding(.bottom, 4)
             // Pinned above the scrollback while reading comments, like the
             // output of a watch command that keeps refreshing.
-            if showsPlayers, pane == .comments, let snapshot = insights.snapshot {
+            if showsPlayers, shownPane == .comments, let snapshot = insights.snapshot {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("⏺︎").foregroundStyle(TerminalStyle.bullet)
@@ -440,6 +457,9 @@ private struct TerminalCommentsView<Controls: View>: View {
                 .padding(.bottom, 6)
                 .overlay(alignment: .bottom) { Rectangle().fill(TerminalStyle.faint.opacity(0.4)).frame(height: 1) }
             }
+            if shownPane == .code {
+                CodeVeil(strength: 1)
+            } else {
             // Like a real terminal, the newest output sits right above the
             // prompt; short output leaves the empty space at the top.
             GeometryReader { geometry in
@@ -447,8 +467,8 @@ private struct TerminalCommentsView<Controls: View>: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 5) {
                         Spacer(minLength: 0)
-                        switch pane {
-                        case .comments: commentLines
+                        switch shownPane {
+                        case .code, .comments: commentLines
                         case .score: scoreOutput
                         case .players: playersOutput
                         }
@@ -464,6 +484,7 @@ private struct TerminalCommentsView<Controls: View>: View {
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("status", anchor: .bottom) }
                 }
                 .onChange(of: pane) { _, _ in proxy.scrollTo("status", anchor: .bottom) }
+            }
             }
             }
             prompt
@@ -579,10 +600,10 @@ private struct TerminalCommentsView<Controls: View>: View {
     private var prompt: some View {
         HStack(spacing: 10) {
             Text("❯").foregroundStyle(TerminalStyle.text)
-            ForEach(Pane.allCases, id: \.self) { item in
+            ForEach(panes, id: \.self) { item in
                 Button("/\(item.rawValue)") { pane = item }
                     .buttonStyle(.plain)
-                    .foregroundStyle(item == pane ? TerminalStyle.text : TerminalStyle.faint)
+                    .foregroundStyle(item == shownPane ? TerminalStyle.text : TerminalStyle.faint)
             }
             Rectangle().fill(TerminalStyle.text.opacity(tick.isMultiple(of: 2) ? 0.8 : 0)).frame(width: 7, height: 14)
             Spacer()
@@ -720,6 +741,7 @@ struct WindowProbe: UIViewRepresentable {
     }
 }
 
+#if targetEnvironment(macCatalyst)
 /// The comments window's AppKit window, for what Catalyst has no API for:
 /// floating above other apps and transparency. Reached only through public
 /// AppKit names (`NSApplication.sharedApplication.windows`, `title`, `level`,
