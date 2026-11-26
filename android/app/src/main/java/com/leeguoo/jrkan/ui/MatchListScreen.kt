@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.SportsScore
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -82,6 +83,7 @@ fun MatchListScreen(
     onOpenMatch: (LiveMatch, Boolean) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenReplays: () -> Unit = {},
 ) {
     val state by model.state.collectAsState()
     val filter by model.filter.collectAsState()
@@ -113,6 +115,11 @@ fun MatchListScreen(
         topBar = {
             ListHeader(title, liveCount) {
                 if (sport == SportFilter.All) RefinementMenu(model, filter)
+                if (appConfig.replay.enabled) {
+                    IconButton(onClick = onOpenReplays) {
+                        Icon(Icons.Outlined.VideoLibrary, "回看", tint = Palette.secondaryText)
+                    }
+                }
                 IconButton(onClick = onOpenSettings) { Icon(Icons.Outlined.Settings, "设置", tint = Palette.secondaryText) }
             }
         },

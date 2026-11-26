@@ -136,6 +136,7 @@ fun MatchDetailScreen(
                     LineCaption(playback, state, showsChannels) { showsChannels = !showsChannels }
                 }
             }
+            item(key = "replays") { MatchReplaySection(match) }
             if (showsChannels) {
                 state.channelNotice?.let { item { Notice(it, Icons.Filled.Info, Palette.secondaryText) } }
                 val channels = playback.resolvedChannels

@@ -16,7 +16,20 @@ import kotlinx.serialization.json.doubleOrNull
 data class AppConfig(
     val watermark: Watermark = Watermark(),
     val slots: Map<String, Slot> = emptyMap(),
+    val replay: Replay = Replay(),
 ) {
+    /** 回看 (AppConfig.Replay in AppConfig.swift). The defaults work with no remote config. */
+    data class Replay(
+        val enabled: Boolean = true,
+        val uploaders: List<String> = listOf("7551290258", "2358578625"),
+        val searchSuffix: String = " 回放",
+        val minDuration: Double = 600.0,
+        val fullDuration: Double = 5400.0,
+        val windowHours: Double = 48.0,
+    ) {
+        val rules: ReplayRules get() = ReplayRules(minDuration, fullDuration, windowHours)
+    }
+
     data class Watermark(
         val enabled: Boolean = true,
         val texts: List<String> = listOf("leeguoo.com"),
@@ -73,7 +86,20 @@ data class AppConfig(
                     hideForMembers = s["hideForMembers"].bool() ?: true,
                 )
             }.toMap()
-            return AppConfig(watermark, slots)
+            val r = root["replay"] as? JsonObject ?: JsonObject(emptyMap())
+            val baseReplay = Replay()
+            val uploaders = (r["uploaders"] as? JsonArray)
+                ?.mapNotNull { (it as? JsonPrimitive)?.content?.takeIf { s -> s.isNotEmpty() && s.all(Char::isDigit) } }
+                .orEmpty().take(10)
+            val replay = Replay(
+                enabled = r["enabled"].bool() ?: baseReplay.enabled,
+                uploaders = uploaders.ifEmpty { baseReplay.uploaders },
+                searchSuffix = r["searchSuffix"].string() ?: baseReplay.searchSuffix,
+                minDuration = (r["minDuration"].number() ?: baseReplay.minDuration).coerceIn(60.0, 3600.0),
+                fullDuration = (r["fullDuration"].number() ?: baseReplay.fullDuration).coerceIn(1800.0, 14_400.0),
+                windowHours = (r["windowHours"].number() ?: baseReplay.windowHours).coerceIn(6.0, 240.0),
+            )
+            return AppConfig(watermark, slots, replay)
         }
 
         private fun JsonElement?.primitive() = this as? JsonPrimitive

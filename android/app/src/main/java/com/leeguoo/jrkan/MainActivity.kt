@@ -45,6 +45,9 @@ import com.leeguoo.jrkan.ui.JrkanTheme
 import com.leeguoo.jrkan.ui.MatchDetailScreen
 import com.leeguoo.jrkan.ui.Palette
 import com.leeguoo.jrkan.ui.RecordingsScreen
+import com.leeguoo.jrkan.ui.ReplayGroupScreen
+import com.leeguoo.jrkan.ui.ReplaysScreen
+import com.leeguoo.jrkan.state.ReplayLibrary
 import com.leeguoo.jrkan.ui.SettingsScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -95,8 +98,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val fullScreen by PlayerSession.fullScreen.collectAsState()
+                val replayOpen by ReplayLibrary.playerOpen.collectAsState()
                 val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-                LaunchedEffect(presented, fullScreen, landscape) { applyPlayerChrome(presented, fullScreen, landscape) }
+                LaunchedEffect(presented, fullScreen, landscape, replayOpen) {
+                    applyPlayerChrome(presented || replayOpen, fullScreen || replayOpen, landscape)
+                }
                 }
             }
         }
@@ -122,7 +128,23 @@ class MainActivity : ComponentActivity() {
                         nav.navigate("match/${URLEncoder.encode(match.id, "UTF-8")}?autoplay=true")
                     },
                     onOpenSettings = { nav.navigate("settings") },
+                    onOpenReplays = { nav.navigate("replays") },
                 )
+            }
+            composable("replays") {
+                ReplaysScreen(
+                    onOpenGroup = { nav.navigate("replay-group/" + URLEncoder.encode(it.id, "UTF-8")) },
+                    onBack = { nav.popBackStack() },
+                )
+            }
+            composable("replay-group/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                val id = URLDecoder.decode(entry.arguments?.getString("id").orEmpty(), "UTF-8")
+                val group = ReplayLibrary.group(id)
+                if (group == null) {
+                    LaunchedEffect(Unit) { nav.popBackStack() }
+                    return@composable
+                }
+                ReplayGroupScreen(group, onBack = { nav.popBackStack() })
             }
             composable(
                 "match/{id}?autoplay={autoplay}",

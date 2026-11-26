@@ -49,7 +49,12 @@ import com.leeguoo.jrkan.state.MatchListModel
  * refine the 比赛 tab and keep it selected.
  */
 @Composable
-fun HomeScreen(model: MatchListModel, onOpenMatch: (LiveMatch, Boolean) -> Unit, onOpenSettings: () -> Unit) {
+fun HomeScreen(
+    model: MatchListModel,
+    onOpenMatch: (LiveMatch, Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenReplays: () -> Unit = {},
+) {
     val filter by model.filter.collectAsState()
     var searching by rememberSaveable { mutableStateOf(false) }
     val selectedSport = if (filter in SportFilter.tabs) filter else SportFilter.All
@@ -77,7 +82,7 @@ fun HomeScreen(model: MatchListModel, onOpenMatch: (LiveMatch, Boolean) -> Unit,
         if (searching) {
             SearchScreen(model, onOpenMatch = { onOpenMatch(it, false) }, modifier = inner)
         } else {
-            MatchListScreen(model, selectedSport, onOpenMatch, onOpenSettings, modifier = inner)
+            MatchListScreen(model, selectedSport, onOpenMatch, onOpenSettings, modifier = inner, onOpenReplays = onOpenReplays)
         }
     }
 }
