@@ -24,5 +24,16 @@
       "url": "https://leeguoo.com",
       "hideForMembers": false
     }
+  },
+  "replay": {
+    "enabled": true,
+    "uploaders": [
+      "7551290258",
+      "2358578625"
+    ],
+    "searchSuffix": " 回放",
+    "minDuration": 600,
+    "fullDuration": 5400,
+    "windowHours": 48
   }
 }
