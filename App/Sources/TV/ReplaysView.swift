@@ -5,6 +5,7 @@ import SwiftUI
 struct ReplaysView: View {
     @ObservedObject private var library = ReplayLibrary.shared
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(ReplayDisclaimer.storageKey) private var accepted = false
 
     var body: some View {
         ZStack {
@@ -17,7 +18,7 @@ struct ReplaysView: View {
                         Text("回看")
                             .font(BrandFont.heading(60, relativeTo: .largeTitle))
                             .foregroundStyle(Palette.primaryText)
-                        Text("录像来自微博网友上传，同一场常有好几个版本。")
+                        Text("录像来自微博网友上传，同一场常有好几个版本。\(ReplayDisclaimer.footer)。")
                             .font(.callout).foregroundStyle(Palette.secondaryText)
                         ForEach(sections, id: \.title) { section in
                             SectionHeader(title: section.title, count: section.groups.count)
@@ -39,6 +40,9 @@ struct ReplaysView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onExitCommand { dismiss() }
         .task { await library.refreshIfStale() }
+        .sheet(isPresented: Binding(get: { !accepted }, set: { _ in })) {
+            ReplayDisclaimerSheet(onAgree: {}, onDecline: { dismiss() })
+        }
     }
 
     @ViewBuilder
@@ -241,6 +245,8 @@ struct MatchReplayRows: View {
     @StateObject private var replays: MatchReplays
     @StateObject private var launcher = TVReplayLauncher()
     @EnvironmentObject private var preferences: Preferences
+    @AppStorage(ReplayDisclaimer.storageKey) private var accepted = false
+    @State private var pendingIndex: Int?
 
     init(match: LiveMatch) {
         _replays = StateObject(wrappedValue: MatchReplays(match: match))
@@ -261,6 +267,7 @@ struct MatchReplayRows: View {
                 case .loaded:
                     ForEach(Array(replays.videos.prefix(6).enumerated()), id: \.element.id) { index, video in
                         Button {
+                            guard accepted else { pendingIndex = index; return }
                             launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
                         } label: {
                             TVReplayVideoCard(video: video, isOpening: launcher.openingID == video.id)
@@ -271,6 +278,14 @@ struct MatchReplayRows: View {
             }
             .task { if replays.state == .idle { await replays.load() } }
             .background(TVReplayPlayerHost(launcher: launcher))
+            .sheet(isPresented: Binding(get: { pendingIndex != nil }, set: { if !$0 { pendingIndex = nil } })) {
+                ReplayDisclaimerSheet(onAgree: {
+                    if let index = pendingIndex {
+                        launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
+                    }
+                    pendingIndex = nil
+                }, onDecline: { pendingIndex = nil })
+            }
         }
     }
 }

@@ -79,6 +79,14 @@ import java.util.Locale
 fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit) {
     val state by ReplayLibrary.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var accepted by remember { mutableStateOf(ReplayDisclaimer.isAccepted(context)) }
+    var readsDisclaimer by remember { mutableStateOf(false) }
+    if (!accepted) {
+        ReplayDisclaimerDialog(onAgree = { ReplayDisclaimer.accept(context); accepted = true }, onDismiss = onBack)
+    } else if (readsDisclaimer) {
+        ReplayDisclaimerDialog(onAgree = null, onDismiss = { readsDisclaimer = false })
+    }
     LaunchedEffect(Unit) { ReplayLibrary.refreshIfStale() }
 
     Scaffold(
@@ -130,9 +138,14 @@ fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit) {
                     }
                     item {
                         Text(
-                            "录像来自微博网友上传，打开时现取播放地址。上传的人删了视频，这里也就看不了了。",
+                            "${ReplayDisclaimer.FOOTER} · 查看回看使用说明",
+                            fontSize = 13.sp, color = Palette.accent,
+                            modifier = Modifier.clickable { readsDisclaimer = true }.padding(horizontal = 32.dp, vertical = 10.dp),
+                        )
+                        Text(
+                            "录像来自微博网友公开上传。上传的人删了视频，这里也就看不了了。",
                             fontSize = 12.sp, color = Palette.tertiaryText,
-                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
                         )
                     }
                 }
@@ -260,6 +273,7 @@ fun MatchReplaySection(match: LiveMatch) {
     val opening by ReplayLauncher.openingId.collectAsState()
     val launchError by ReplayLauncher.error.collectAsState()
     var showsAll by remember { mutableStateOf(false) }
+    var pendingIndex by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(match.id) { if (replays.state.value == MatchReplays.State.Idle) replays.load() }
 
     Column(
@@ -288,6 +302,7 @@ fun MatchReplaySection(match: LiveMatch) {
                 launchError?.let { Text(it, color = Palette.live, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp)) }
                 shown.forEachIndexed { index, video ->
                     Box(Modifier.clickable {
+                        if (!ReplayDisclaimer.isAccepted(context)) { pendingIndex = index; return@clickable }
                         // The match itself is the fixture: it orders the teams and feeds 数据.
                         if (opening == null) ReplayLauncher.play(context, s.videos, index, match, app.preferences, app.scope)
                     }) { ReplayVideoRow(video, isOpening = opening == video.id) }
@@ -299,6 +314,14 @@ fun MatchReplaySection(match: LiveMatch) {
                 }
             }
         }
+    }
+    pendingIndex?.let { index ->
+        val videos = (state as? MatchReplays.State.Loaded)?.videos.orEmpty()
+        ReplayDisclaimerDialog(onAgree = {
+            ReplayDisclaimer.accept(context)
+            pendingIndex = null
+            ReplayLauncher.play(context, videos, index, match, app.preferences, app.scope)
+        }, onDismiss = { pendingIndex = null })
     }
 }
 

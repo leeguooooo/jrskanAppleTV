@@ -66,6 +66,9 @@ private extension Optional where Wrapped == LiveMatch {
 struct ReplaysScreen: View {
     @ObservedObject private var library = ReplayLibrary.shared
     @EnvironmentObject private var preferences: Preferences
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(ReplayDisclaimer.storageKey) private var accepted = false
+    @State private var readsDisclaimer = false
 
     var body: some View {
         List {
@@ -81,13 +84,15 @@ struct ReplaysScreen: View {
                 }
                 .scoreboardRow()
             }
-            if !library.groups.isEmpty {
-                Section {
-                    EmptyView()
-                } footer: {
-                    Text("录像来自微博网友上传，打开时现取播放地址。上传的人删了视频，这里也就看不了了。")
+            Section {
+                Button { readsDisclaimer = true } label: {
+                    Label(ReplayDisclaimer.footer, systemImage: "exclamationmark.shield")
+                        .font(.footnote)
                 }
+            } footer: {
+                Text("录像来自微博网友公开上传。上传的人删了视频，这里也就看不了了。")
             }
+            .scoreboardRow()
         }
         .listStyle(.insetGrouped)
         .scoreboardList()
@@ -110,6 +115,12 @@ struct ReplaysScreen: View {
             }
         }
         .refreshable { await library.refresh() }
+        .sheet(isPresented: Binding(get: { !accepted || readsDisclaimer }, set: { if !$0 { readsDisclaimer = false } })) {
+            ReplayDisclaimerSheet(onAgree: accepted ? nil : {}, onDecline: {
+                readsDisclaimer = false
+                if !accepted { dismiss() }
+            })
+        }
         .navigationTitle("回看")
         .navigationBarTitleDisplayMode(.inline)
         .task { await library.refreshIfStale() }
@@ -248,7 +259,10 @@ struct MatchReplaySection: View {
     @StateObject private var replays: MatchReplays
     @ObservedObject private var launcher = ReplayLauncher.shared
     @EnvironmentObject private var preferences: Preferences
+    @AppStorage(ReplayDisclaimer.storageKey) private var accepted = false
     @State private var showsAll = false
+    /// A tap waiting for the disclaimer to be agreed to.
+    @State private var pendingIndex: Int?
 
     init(match: LiveMatch) {
         _replays = StateObject(wrappedValue: MatchReplays(match: match))
@@ -275,6 +289,7 @@ struct MatchReplaySection: View {
                     if let error = launcher.errorMessage { TouchNotice(message: error, tone: .error) }
                     ForEach(Array(shown.enumerated()), id: \.element.id) { index, video in
                         Button {
+                            guard accepted else { pendingIndex = index; return }
                             // The match itself is the fixture: it orders the teams and feeds 数据.
                             launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
                         } label: {
@@ -292,6 +307,14 @@ struct MatchReplaySection: View {
             .background(Palette.card, in: RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: TouchMetrics.corner, style: .continuous).strokeBorder(Palette.hairline, lineWidth: 1))
             .task { if replays.state == .idle { await replays.load() } }
+            .sheet(isPresented: Binding(get: { pendingIndex != nil }, set: { if !$0 { pendingIndex = nil } })) {
+                ReplayDisclaimerSheet(onAgree: {
+                    if let index = pendingIndex {
+                        launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
+                    }
+                    pendingIndex = nil
+                }, onDecline: { pendingIndex = nil })
+            }
         }
     }
 }
