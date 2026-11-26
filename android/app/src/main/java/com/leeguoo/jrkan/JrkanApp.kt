@@ -28,6 +28,7 @@ class JrkanApp : Application() {
         listModel = MatchListModel(preferences, scope)
         account = AccountSession(store = SharedPreferencesAccountStore(getSharedPreferences("jrkan-account", MODE_PRIVATE)))
         AppConfigStore.init(this)
+        com.leeguoo.jrkan.data.ReplayResume.init(this)
         scope.launch { account.account.collect { AppConfigStore.isMember.value = account.isMember } }
     }
 

@@ -29,15 +29,6 @@ object ReplayLibrary {
 
     val videos: List<ReplayVideo> get() = _state.value.groups.flatMap { it.videos }
 
-    /** A replay is on screen; MainActivity gives it the live player's full-screen chrome. */
-    val playerOpen = MutableStateFlow(false)
-
-    /**
-     * Debug builds: `adb shell am start … --el replay_break_after_ms 40000`
-     * swaps the playing link for one with a broken signature after that long,
-     * which the CDN answers 403 exactly like an expired link.
-     */
-    var debugBreakAfterMs = 0L
 
     fun group(id: String): ReplayGroup? = _state.value.groups.firstOrNull { it.id == id }
 

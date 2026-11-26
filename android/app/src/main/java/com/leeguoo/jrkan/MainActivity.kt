@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
         handleRedirect(intent)
         if (intent?.action == ACTION_OPEN_RECORDINGS) openRecordings = true
         if (BuildConfig.DEBUG) {
-            ReplayLibrary.debugBreakAfterMs = intent?.getLongExtra("replay_break_after_ms", 0L) ?: 0L
+            PlayerSession.debugBreakAfterMs = intent?.getLongExtra("replay_break_after_ms", 0L) ?: 0L
             // `--es replay_search "热火vs76人 回放"`: one live m.weibo.cn search, logged (QA for the weibo.cn visitor path).
             intent?.getStringExtra("replay_search")?.let { query ->
                 app.scope.launch {
@@ -110,11 +110,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val fullScreen by PlayerSession.fullScreen.collectAsState()
-                val replayOpen by ReplayLibrary.playerOpen.collectAsState()
                 val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-                LaunchedEffect(presented, fullScreen, landscape, replayOpen) {
-                    applyPlayerChrome(presented || replayOpen, fullScreen || replayOpen, landscape)
-                }
+                LaunchedEffect(presented, fullScreen, landscape) { applyPlayerChrome(presented, fullScreen, landscape) }
                 }
             }
         }

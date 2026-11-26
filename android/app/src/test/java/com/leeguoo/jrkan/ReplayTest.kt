@@ -117,6 +117,37 @@ class ReplayTest {
     }
 
     @Test
+    fun fixtureEventsNeedBothTeamsAndAFinishedGame() {
+        val root = Json.parseToJsonElement(
+            """{"events":[
+              {"id":"1","competitions":[{"date":"2026-11-26T00:00Z","status":{"type":{"completed":true}},"competitors":[{"homeAway":"home","team":{"abbreviation":"PHI"}},{"homeAway":"away","team":{"abbreviation":"MIA"}}]}]},
+              {"id":"2","competitions":[{"date":"2026-11-26T01:00Z","status":{"type":{"completed":false}},"competitors":[{"homeAway":"home","team":{"abbreviation":"PHI"}},{"homeAway":"away","team":{"abbreviation":"MIA"}}]}]},
+              {"id":"3","competitions":[{"date":"2026-11-26T00:00Z","status":{"type":{"completed":true}},"competitors":[{"homeAway":"home","team":{"abbreviation":"LAL"}},{"homeAway":"away","team":{"abbreviation":"MIA"}}]}]}
+            ]}""",
+        ) as JsonObject
+        val found = com.leeguoo.jrkan.data.ReplayFixture.events(root, setOf("76人", "热火"))
+        assertEquals(listOf("1"), found.map { it.id })
+        assertEquals("76人", found.first().home)
+        assertEquals("热火", found.first().away)
+    }
+
+    @Test
+    fun replayModelKeepsUploadOrderAndStaysOutOfRecentWatches() {
+        val videos = ReplayParsing.groups(ReplayParsing.waterfall(section("waterfall"), rules).videos).first { it.title == "热火 vs 76人" }.videos
+        val prefs = com.leeguoo.jrkan.state.Preferences(MemoryPreferences())
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
+        val model = com.leeguoo.jrkan.state.MatchPlaybackModel.replay(videos, null, prefs, scope)
+        assertTrue(model.isReplay)
+        assertTrue(model.match.id.startsWith("replay:"))
+        // "全场高清回放" must not jump the queue the way 高清 does for live channels.
+        assertEquals(videos.map { it.id }, model.resolvedChannels.map { it.id })
+        assertEquals(videos.indices.toList(), model.rankedIndices)
+        assertFalse(model.automaticFallbackEnabled)
+        model.confirmPlayback("x", 1.0)
+        assertTrue("a replay is not a 最近观看", prefs.recentWatches.value.isEmpty())
+    }
+
+    @Test
     fun remoteConfigReplayBlock() {
         assertEquals(AppConfig.Replay(), AppConfig.parse("{}")!!.replay)
         val config = AppConfig.parse("""{"replay":{"enabled":false,"uploaders":["abc"],"minDuration":1,"windowHours":1000,"searchSuffix":" 录像"}}""")!!

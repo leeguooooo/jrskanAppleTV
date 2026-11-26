@@ -57,6 +57,9 @@ object PlayerSession {
 
     var isInPictureInPicture = false
 
+    /** Debug builds: `--el replay_break_after_ms 40000` (see apply). */
+    var debugBreakAfterMs = 0L
+
     private var player: ExoPlayer? = null
     private var shownRequestId: String? = null
     private var observeJob: Job? = null
@@ -71,8 +74,11 @@ object PlayerSession {
             .also { exo ->
                 exo.addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {
-                        // A live stream that "ends" has stopped, not finished.
-                        if (state == Player.STATE_ENDED) stall("播放已停止，请重试或切换线路。")
+                        if (state != Player.STATE_ENDED) return
+                        // A replay that ends is over; a live stream that "ends" has stopped.
+                        val model = _model.value
+                        if (model?.isReplay == true) model.replayFinished()
+                        else stall("播放已停止，请重试或切换线路。")
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
@@ -143,19 +149,32 @@ object PlayerSession {
         val match = model.match
         val item = MediaItem.Builder()
             .setUri(request.url)
-            .setMimeType(MimeTypes.APPLICATION_M3U8)
+            .setMimeType(if (model.isReplay) MimeTypes.VIDEO_MP4 else MimeTypes.APPLICATION_M3U8)
             .setMediaMetadata(
                 MediaMetadata.Builder()
-                    .setTitle("${match.homeTeam} vs ${match.awayTeam}")
-                    .setSubtitle("${match.league} · ${request.sourceName}")
+                    .setTitle(if (model.isReplay) "${match.homeTeam} vs ${match.awayTeam} 回看" else "${match.homeTeam} vs ${match.awayTeam}")
+                    .setSubtitle(if (model.isReplay) request.sourceName else "${match.league} · ${request.sourceName}")
                     .build()
             )
             .build()
         val exo = player(context)
-        exo.setMediaItem(item)
+        val start = request.startAtMs
+        if (start != null && start > 1_000) exo.setMediaItem(item, start) else exo.setMediaItem(item)
         exo.prepare()
         exo.playWhenReady = true
         startWatchdog(request.id)
+        if (com.leeguoo.jrkan.BuildConfig.DEBUG && model.isReplay && start == null && debugBreakAfterMs > 0) {
+            // Debug: break the link mid-replay (403 like an expired one) to check it renews in place.
+            scope.launch {
+                delay(debugBreakAfterMs)
+                if (shownRequestId != request.id) return@launch
+                val position = exo.currentPosition
+                android.util.Log.i("Replay", "debug break at ${position / 1000}s")
+                exo.setMediaItem(item.buildUpon().setUri(request.url.replace(Regex("ssig=[^&]+"), "ssig=broken0000")).build(), position)
+                exo.prepare()
+            }
+        }
+        if (start != null && start > 1_000) android.util.Log.i("Replay", "starting at ${start / 1000}s")
     }
 
     private fun stall(message: String) {
@@ -173,6 +192,9 @@ object PlayerSession {
                 val model = _model.value ?: return@launch
                 if (model.state.value.playback?.id != requestId) return@launch
                 val exo = player ?: return@launch
+                if (model.isReplay && exo.playbackState == Player.STATE_READY) {
+                    model.reportPosition(exo.currentPosition, exo.duration.takeIf { it > 0 })
+                }
                 val event = health.sample(
                     now = seconds(),
                     mediaTime = exo.currentPosition / 1000.0,

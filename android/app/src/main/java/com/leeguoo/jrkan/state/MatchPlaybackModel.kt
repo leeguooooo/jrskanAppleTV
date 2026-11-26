@@ -2,6 +2,9 @@ package com.leeguoo.jrkan.state
 
 import com.leeguoo.jrkan.data.LiveMatch
 import com.leeguoo.jrkan.data.MatchSource
+import com.leeguoo.jrkan.data.ReplayParsing
+import com.leeguoo.jrkan.data.ReplayResume
+import com.leeguoo.jrkan.data.ReplayVideo
 import com.leeguoo.jrkan.data.SourcePageClient
 import com.leeguoo.jrkan.data.StreamResolver
 import com.leeguoo.jrkan.data.userMessage
@@ -22,6 +25,8 @@ data class PlaybackRequest(
     val sourceName: String,
     val index: Int,
     val id: String = UUID.randomUUID().toString(),
+    /** Replays: where to start (resume, or after a renewed link). Live starts at the edge. */
+    val startAtMs: Long? = null,
 )
 
 /**
@@ -37,7 +42,22 @@ class MatchPlaybackModel(
     private val sourcePages: SourcePageClient = SourcePageClient(),
     private val clock: () -> Long = System::currentTimeMillis,
     val insights: MatchInsightsModel = MatchInsightsModel(),
+    /** A replay (回看): the "channels" are one game's uploads (MatchPlaybackModel.swift ReplaySet). */
+    val replay: ReplaySet? = null,
 ) {
+    data class ReplaySet(val videos: List<ReplayVideo>, val fixture: LiveMatch?)
+
+    val isReplay: Boolean get() = replay != null
+
+    /** The upload playing (or being opened) now. */
+    val currentReplay: ReplayVideo?
+        get() {
+            val index = _state.value.playback?.index ?: _state.value.resolvingIndex ?: return null
+            return replay?.videos?.getOrNull(index)
+        }
+
+    private var lastPositionMs = 0L
+    private var lastSavedAt = 0L
     data class State(
         /** null while loading, empty when the page gave nothing usable. */
         val channels: List<MatchSource>? = null,
@@ -54,7 +74,7 @@ class MatchPlaybackModel(
 
     private var didOpenMatch = false
 
-    private val _state = MutableStateFlow(State())
+    private val _state = MutableStateFlow(State(channels = replay?.let { replaySources(it.videos) }))
     val state: StateFlow<State> = _state
 
     private var requestGeneration = 0
@@ -70,7 +90,8 @@ class MatchPlaybackModel(
 
     /** Parsed channels when the source page gave any, else the homepage entries. */
     val resolvedChannels: List<MatchSource>
-        get() = (_state.value.channels?.takeIf { it.isNotEmpty() } ?: match.sources).sortedBy { it.playbackPriority }
+        get() = replay?.let { replaySources(it.videos) }
+            ?: (_state.value.channels?.takeIf { it.isNotEmpty() } ?: match.sources).sortedBy { it.playbackPriority }
 
     val isLoadingChannels: Boolean get() = _state.value.channels == null
 
@@ -84,10 +105,13 @@ class MatchPlaybackModel(
         get() = preferences.rankedIndices(resolvedChannels, match.id).firstOrNull()?.let { resolvedChannels[it] }
 
     val automaticFallbackEnabled: Boolean
-        get() = preferences.autoNextChannel.value && resolvedChannels.size > 1
+        get() = !isReplay && preferences.autoNextChannel.value && resolvedChannels.size > 1
 
     fun subtitle(source: MatchSource, index: Int): String {
         val state = _state.value
+        replay?.videos?.getOrNull(index)?.let { video ->
+            return if (state.resolvingIndex == index) "正在获取播放地址…" else ReplayVideo.durationText(video.durationSeconds)
+        }
         return when {
             state.resolvingIndex == index -> "正在解析线路…"
             index in state.stalledIndices -> "刚才没有画面"
@@ -166,13 +190,15 @@ class MatchPlaybackModel(
 
     /** Channel indices in automatic-selection order (read-only view of Preferences.rankedIndices). */
     val rankedIndices: List<Int>
-        get() = preferences.rankedIndices(resolvedChannels, match.id)
+        get() = replay?.videos?.indices?.toList() ?: preferences.rankedIndices(resolvedChannels, match.id)
 
     // Playback
 
     fun startPlayback(startIndex: Int, resetStalls: Boolean = true) {
         playbackJob?.cancel()
-        playbackJob = scope.launch { resolveAndPlay(startIndex, resetStalls) }
+        playbackJob = scope.launch {
+            if (replay != null) startReplay(startIndex, resumeAtMs = null) else resolveAndPlay(startIndex, resetStalls)
+        }
     }
 
     private suspend fun resolveAndPlay(startIndex: Int, resetStalls: Boolean) {
@@ -232,6 +258,12 @@ class MatchPlaybackModel(
     }
 
     fun confirmPlayback(requestId: String, startupSeconds: Double) {
+        if (replay != null) {
+            // Nothing to learn about channels, and a replay is not a 最近观看.
+            confirmedRequestId = requestId
+            confirmedAt = clock()
+            return
+        }
         val request = _state.value.playback ?: return
         if (request.id != requestId || confirmedRequestId == requestId || request.index !in resolvedChannels.indices) return
         confirmedRequestId = requestId
@@ -248,6 +280,7 @@ class MatchPlaybackModel(
      * then, and hopping only restarts the wait on the same slow connection.
      */
     fun handleStall(message: String, requestId: String? = null, now: Long = clock()) {
+        if (replay != null) return handleReplayStall(message, requestId, now)
         val request = _state.value.playback ?: return
         if ((requestId != null && request.id != requestId) || handledFailureId == request.id ||
             request.index !in resolvedChannels.indices
@@ -281,10 +314,103 @@ class MatchPlaybackModel(
     }
 
     fun stopPlayback() {
+        currentReplay?.let { ReplayResume.save(lastPositionMs, (it.durationSeconds * 1000).toLong(), it.id) }
         recoveryJob?.cancel()
         recoveryJob = null
         playbackJob?.cancel()
         requestGeneration += 1
         _state.update { it.copy(resolvingIndex = null, playback = null) }
+    }
+
+    // Replay
+
+    /** Fetches a fresh MP4 link (they expire in about an hour) and plays it from resumeAtMs, or where it was left. */
+    private suspend fun startReplay(index: Int, resumeAtMs: Long?) {
+        val replay = replay ?: return
+        val video = replay.videos.getOrNull(index) ?: return
+        requestGeneration += 1
+        val generation = requestGeneration
+        if (resumeAtMs == null) {
+            recoveryJob?.cancel()
+            lastReconnect.clear()
+            handledFailureId = null
+        }
+        _state.update { it.copy(errorMessage = null, resolvingIndex = index) }
+        try {
+            val streams = ReplayParsing.streams(ReplayLibrary.client.status(video.id))
+            if (generation != requestGeneration) return
+            val stream = streams.firstOrNull()
+            if (stream == null) {
+                _state.update { it.copy(playback = null, errorMessage = "这个视频已经看不了了（可能被删除或设为仅粉丝可见）。") }
+                return
+            }
+            val start = resumeAtMs ?: ReplayResume.positionMs(video.id)
+            val notice = if (resumeAtMs == null && start != null) "从上次看到的 ${ReplayVideo.durationText(start / 1000.0)} 接着播" else null
+            lastPositionMs = start ?: 0
+            confirmedRequestId = null
+            _state.update {
+                it.copy(playback = PlaybackRequest(stream.url, "${video.part.label} · ${video.author}", index, startAtMs = start),
+                    notice = notice ?: it.notice)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (generation != requestGeneration) return
+            _state.update { it.copy(playback = null, errorMessage = "拿不到播放地址：${e.userMessage()}") }
+        } finally {
+            if (requestGeneration == generation) _state.update { it.copy(resolvingIndex = null) }
+        }
+    }
+
+    /** Renew the link and carry on in place; twice in 20 s means the upload is gone. Never hop uploads. */
+    private fun handleReplayStall(message: String, requestId: String?, now: Long) {
+        val request = _state.value.playback ?: return
+        if ((requestId != null && request.id != requestId) || handledFailureId == request.id) return
+        handledFailureId = request.id
+        val index = request.index
+        val last = lastReconnect[index]
+        if (last != null && now - last < 20_000) {
+            _state.update { it.copy(playback = null, errorMessage = "这个视频一直播放失败，可能已被删除：$message") }
+            return
+        }
+        lastReconnect[index] = now
+        _state.update { it.copy(notice = "播放中断，正在换新的播放地址…") }
+        val position = lastPositionMs
+        recoveryJob?.cancel()
+        recoveryJob = scope.launch { startReplay(index, resumeAtMs = position) }
+    }
+
+    /** The player's position, for resuming; saved every few seconds. */
+    fun reportPosition(positionMs: Long, durationMs: Long?, now: Long = clock()) {
+        val video = currentReplay ?: return
+        if (positionMs <= 0) return
+        lastPositionMs = positionMs
+        if (now - lastSavedAt < 5_000) return
+        lastSavedAt = now
+        ReplayResume.save(positionMs, durationMs ?: (video.durationSeconds * 1000).toLong(), video.id)
+    }
+
+    /** Played to the end: next time it starts from the beginning. */
+    fun replayFinished() {
+        val video = currentReplay ?: return
+        lastPositionMs = 0
+        ReplayResume.save(0, null, video.id)
+    }
+
+    companion object {
+        /** One game's uploads as a player model; fixture orders the teams and feeds 数据 when known. */
+        fun replay(videos: List<ReplayVideo>, fixture: LiveMatch?, preferences: Preferences, scope: CoroutineScope): MatchPlaybackModel {
+            val first = videos.first()
+            val match = LiveMatch(
+                id = "replay:${first.matchup?.key ?: first.id}@${first.gameDay}", league = fixture?.league ?: "回看",
+                time = fixture?.time ?: "", homeTeam = fixture?.homeTeam ?: first.matchup?.left.orEmpty(),
+                awayTeam = fixture?.awayTeam ?: first.matchup?.right.orEmpty(), homeLogoUrl = fixture?.homeLogoUrl,
+                awayLogoUrl = fixture?.awayLogoUrl, isHot = false, sources = emptyList(),
+            )
+            return MatchPlaybackModel(match, preferences, scope, replay = ReplaySet(videos, fixture))
+        }
+
+        private fun replaySources(videos: List<ReplayVideo>) =
+            videos.map { MatchSource(it.id, "${it.part.label} · ${it.author}", it.shareUrl) }
     }
 }

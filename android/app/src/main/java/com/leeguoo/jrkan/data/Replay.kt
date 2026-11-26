@@ -73,6 +73,12 @@ data class ReplayVideo(
     /** "全场 · 2:11:24 · 花查章" */
     val summary: String get() = "${part.label} · ${durationText(durationSeconds)} · $author"
 
+    /** The post on Weibo, for 分享. */
+    val shareUrl: String get() = if (authorId.isEmpty()) "https://m.weibo.cn/status/$id" else "https://weibo.com/$authorId/$id"
+
+    /** "热火 vs 76人 · 全场" */
+    val displayTitle: String get() = matchup?.let { "${it.left} vs ${it.right} · ${part.label}" } ?: title
+
     companion object {
         private val CHINESE_DIGITS = mapOf(1 to "一", 2 to "二", 3 to "三", 4 to "四")
 

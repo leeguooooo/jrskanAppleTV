@@ -67,6 +67,7 @@ import com.leeguoo.jrkan.data.userMessage
 import com.leeguoo.jrkan.player.PlayerSession
 import com.leeguoo.jrkan.state.MatchReplays
 import com.leeguoo.jrkan.state.ReplayLibrary
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -144,7 +145,11 @@ fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReplayGroupScreen(group: ReplayGroup, onBack: () -> Unit) {
-    var playing by remember { mutableStateOf<ReplayVideo?>(null) }
+    val context = LocalContext.current
+    val app = context.applicationContext as com.leeguoo.jrkan.JrkanApp
+    val opening by ReplayLauncher.openingId.collectAsState()
+    val error by ReplayLauncher.error.collectAsState()
+    LaunchedEffect(Unit) { ReplayLauncher.error.value = null }
     Scaffold(
         containerColor = Palette.background,
         topBar = {
@@ -157,22 +162,60 @@ fun ReplayGroupScreen(group: ReplayGroup, onBack: () -> Unit) {
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = listContentPadding) {
             item { GroupTitle("${group.dayText()} · ${group.videos.size} 个视频") }
+            error?.let { message ->
+                item { Text(message, color = Palette.live, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp)) }
+            }
             group.videos.forEachIndexed { index, video ->
                 item(key = video.id) {
-                    GroupedCell(index, group.videos.size, onClick = { playing = video }) { ReplayVideoRow(video) }
+                    GroupedCell(index, group.videos.size, onClick = {
+                        if (opening == null) ReplayLauncher.play(context, group.videos, index, null, app.preferences, app.scope)
+                    }) { ReplayVideoRow(video, isOpening = opening == video.id) }
                 }
             }
             item {
-                Text("同一场比赛常有好几个人上传，挑一个能播的就行。", fontSize = 12.sp, color = Palette.tertiaryText,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp))
+                Text("同一场比赛常有好几个人上传，挑一个能播的就行。播放时可以换成其他视频；看到一半退出，下次从原处接着播。",
+                    fontSize = 12.sp, color = Palette.tertiaryText, modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp))
             }
         }
     }
-    playing?.let { ReplayPlayer(it, onClose = { playing = null }) }
+}
+
+/**
+ * Opens a replay in the live player (PlayerSession), so it gets the same
+ * furniture: picture in picture, 数据, fill. Resolve first, present second.
+ */
+object ReplayLauncher {
+    val openingId = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val error = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    private var job: kotlinx.coroutines.Job? = null
+
+    fun play(
+        context: android.content.Context, videos: List<ReplayVideo>, index: Int, fixture: LiveMatch?,
+        preferences: com.leeguoo.jrkan.state.Preferences, scope: kotlinx.coroutines.CoroutineScope,
+    ) {
+        if (index !in videos.indices) return
+        job?.cancel()
+        error.value = null
+        openingId.value = videos[index].id
+        job = scope.launch {
+            try {
+                val found = fixture ?: com.leeguoo.jrkan.data.ReplayFixture.nbaMatch(videos)
+                val model = com.leeguoo.jrkan.state.MatchPlaybackModel.replay(videos, found, preferences, scope)
+                model.startPlayback(index)
+                val state = kotlinx.coroutines.withTimeoutOrNull(30_000) {
+                    model.state.first { it.playback != null || it.errorMessage != null }
+                }
+                if (state?.playback != null) PlayerSession.show(context, model)
+                else error.value = state?.errorMessage ?: "这个视频暂时打不开。"
+            } finally {
+                openingId.value = null
+            }
+        }
+    }
 }
 
 @Composable
-private fun ReplayVideoRow(video: ReplayVideo) {
+private fun ReplayVideoRow(video: ReplayVideo, isOpening: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box {
             ReplayCover(video.coverUrl)
@@ -185,9 +228,13 @@ private fun ReplayVideoRow(video: ReplayVideo) {
         Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(video.part.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Text(video.title, fontSize = 12.sp, color = Palette.secondaryText, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text("${video.author} · ${postedFormat.format(Date(video.postedAt))}", fontSize = 11.sp, color = Palette.tertiaryText, maxLines = 1)
+            val resume = com.leeguoo.jrkan.data.ReplayResume.positionMs(video.id)
+            Text("${video.author} · ${postedFormat.format(Date(video.postedAt))}" +
+                (resume?.let { " · 看到 ${ReplayVideo.durationText(it / 1000.0)}" } ?: ""),
+                fontSize = 11.sp, color = Palette.tertiaryText, maxLines = 1)
         }
-        Icon(Icons.Filled.PlayCircle, "播放", tint = Palette.accent, modifier = Modifier.size(28.dp))
+        if (isOpening) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp, color = Palette.accent)
+        else Icon(Icons.Filled.PlayCircle, "播放", tint = Palette.accent, modifier = Modifier.size(28.dp))
     }
 }
 
@@ -208,7 +255,10 @@ fun MatchReplaySection(match: LiveMatch) {
     val replays = remember(match.id) { MatchReplays(match) }
     val state by replays.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var playing by remember { mutableStateOf<ReplayVideo?>(null) }
+    val context = LocalContext.current
+    val app = context.applicationContext as com.leeguoo.jrkan.JrkanApp
+    val opening by ReplayLauncher.openingId.collectAsState()
+    val launchError by ReplayLauncher.error.collectAsState()
     var showsAll by remember { mutableStateOf(false) }
     LaunchedEffect(match.id) { if (replays.state.value == MatchReplays.State.Idle) replays.load() }
 
@@ -235,132 +285,18 @@ fun MatchReplaySection(match: LiveMatch) {
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             } else {
                 val shown = if (showsAll) s.videos else s.videos.take(4)
-                shown.forEach { video -> Box(Modifier.clickable { playing = video }) { ReplayVideoRow(video) } }
+                launchError?.let { Text(it, color = Palette.live, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp)) }
+                shown.forEachIndexed { index, video ->
+                    Box(Modifier.clickable {
+                        // The match itself is the fixture: it orders the teams and feeds 数据.
+                        if (opening == null) ReplayLauncher.play(context, s.videos, index, match, app.preferences, app.scope)
+                    }) { ReplayVideoRow(video, isOpening = opening == video.id) }
+                }
                 if (s.videos.size > shown.size) {
                     TextButton(onClick = { showsAll = true }, modifier = Modifier.padding(horizontal = 4.dp)) {
                         Text("全部 ${s.videos.size} 个视频", color = Palette.accent)
                     }
                 }
-            }
-        }
-    }
-    playing?.let { ReplayPlayer(it, onClose = { playing = null }) }
-}
-
-/**
- * Full-screen player for one recording, separate from the live PlayerSession.
- * Weibo's links expire after about an hour and a game runs two to three, so a
- * playback error (or resuming near expiry) fetches a fresh link and seeks back.
- */
-@Composable
-fun ReplayPlayer(video: ReplayVideo, onClose: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var error by remember(video.id) { mutableStateOf<String?>(null) }
-    var stream by remember(video.id) { mutableStateOf<ReplayStream?>(null) }
-    val refreshes = remember(video.id) { mutableListOf<Long>() }
-    // Where playback was last seen; after an error the player's own position
-    // is not reliable, so recovery seeks back to this.
-    val lastPosition = remember(video.id) { longArrayOf(0L) }
-    val player = remember(video.id) {
-        PlayerSession.pauseForOtherPlayback()
-        ExoPlayer.Builder(context).build()
-    }
-
-    fun load(resumeAt: Long?) {
-        val now = System.currentTimeMillis()
-        refreshes.removeAll { now - it > 120_000 }
-        refreshes += now
-        if (refreshes.size > 3) { error = "这个视频一直播放失败，可能已被删除。"; return }
-        scope.launch {
-            try {
-                val best = ReplayParsing.streams(ReplayLibrary.client.status(video.id)).firstOrNull()
-                if (best == null) { error = "这个视频已经看不了了（可能被删除或设为仅粉丝可见）。"; return@launch }
-                stream = best
-                player.setMediaItem(MediaItem.fromUri(best.url))
-                player.prepare()
-                if (resumeAt != null && resumeAt > 1000) {
-                    player.seekTo(resumeAt)
-                    android.util.Log.i("Replay", "resumed at ${resumeAt / 1000}s")
-                }
-                player.playWhenReady = true
-                error = null
-            } catch (e: Exception) {
-                error = "拿不到播放地址：${e.userMessage()}"
-            }
-        }
-    }
-
-    DisposableEffect(player) {
-        val listener = object : Player.Listener {
-            override fun onPlayerError(e: PlaybackException) {
-                android.util.Log.i("Replay", "item failed at ${lastPosition[0] / 1000}s, fetching a fresh link")
-                load(lastPosition[0])
-            }
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                val expires = stream?.expiresAt ?: return
-                if (isPlaying && expires - System.currentTimeMillis() < 120_000) load(lastPosition[0])
-            }
-        }
-        player.addListener(listener)
-        load(null)
-        onDispose {
-            player.removeListener(listener)
-            player.release()
-        }
-    }
-
-    // MainActivity turns this into landscape with the system bars hidden, the
-    // same chrome as the live player's 全屏, and undoes it on close.
-    DisposableEffect(Unit) {
-        ReplayLibrary.playerOpen.value = true
-        onDispose { ReplayLibrary.playerOpen.value = false }
-    }
-    LaunchedEffect(player) {
-        while (true) {
-            kotlinx.coroutines.delay(1000)
-            if (player.playbackState == Player.STATE_READY && player.currentPosition > 0) lastPosition[0] = player.currentPosition
-        }
-    }
-    if (com.leeguoo.jrkan.BuildConfig.DEBUG && ReplayLibrary.debugBreakAfterMs > 0) {
-        LaunchedEffect(player) {
-            kotlinx.coroutines.delay(ReplayLibrary.debugBreakAfterMs)
-            val url = stream?.url ?: return@LaunchedEffect
-            android.util.Log.i("Replay", "debug break at ${lastPosition[0] / 1000}s")
-            player.setMediaItem(MediaItem.fromUri(url.replace(Regex("ssig=[^&]+"), "ssig=broken0000")))
-            player.prepare()
-            player.seekTo(lastPosition[0])
-        }
-    }
-    BackHandler(onBack = onClose)
-
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                    this.player = player
-                }
-            },
-        )
-        Row(
-            Modifier.fillMaxWidth().statusBarsPadding().background(Color.Black.copy(alpha = 0.45f)).padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "关闭", tint = Color.White) }
-            Text(
-                "${video.matchup?.let { "${it.left} vs ${it.right}" } ?: video.title} · ${video.part.label}" + (stream?.let { " · ${it.qualityLabel}" } ?: ""),
-                color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-        error?.let { message ->
-            Column(
-                Modifier.align(Alignment.Center).padding(24.dp).background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(12.dp)).padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(message, color = Color.White)
-                AmberButton("关闭", onClick = onClose, icon = null)
             }
         }
     }

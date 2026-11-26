@@ -58,6 +58,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -133,10 +135,12 @@ private data class PlayerScore(
 )
 
 @Composable
-private fun rememberPlayerScore(model: MatchPlaybackModel): PlayerScore {
+private fun rememberPlayerScore(model: MatchPlaybackModel, revealed: Boolean = true): PlayerScore {
     val insights by model.insights.state.collectAsState()
     val match = model.match
     val snapshot = insights.snapshot
+    // A replay keeps the result hidden until the viewer opens 数据.
+    if (model.isReplay && !revealed) return PlayerScore(match.homeTeam, match.awayTeam, match.homeLogoUrl, match.awayLogoUrl, null, null)
     return if (snapshot != null) {
         PlayerScore(snapshot.left, snapshot.right, snapshot.leftBadge ?: match.homeLogoUrl, snapshot.rightBadge ?: match.awayLogoUrl,
             splitScore(snapshot.score), snapshot.period.ifBlank { null })
@@ -160,6 +164,8 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
     val fullScreen by PlayerSession.fullScreen.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
     var showsStatistics by rememberSaveable { mutableStateOf(false) }
+    var revealsResult by rememberSaveable(model.match.id) { mutableStateOf(!model.isReplay) }
+    LaunchedEffect(showsStatistics) { if (showsStatistics) revealsResult = true }
     var showsLines by remember { mutableStateOf(false) }
     var visibleNotice by remember { mutableStateOf<String?>(null) }
     SportsInsightsBinding(model, enabled = !inPictureInPicture)
@@ -193,13 +199,14 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
                     setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
                         controlsVisible = visibility == View.VISIBLE
                     })
-                    hideTimeBar()
+                    // Live streams have no useful timeline; a replay needs its scrubber.
+                    if (!model.isReplay) hideTimeBar()
                 }
             },
             update = { view ->
                 view.useController = !inPictureInPicture
                 view.resizeMode = if (fills && !portrait) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
-                view.hideTimeBar()
+                if (!model.isReplay) view.hideTimeBar()
             },
         )
         if (!inPictureInPicture) WatermarkOverlay()
@@ -210,7 +217,8 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
 
     when {
         inPictureInPicture -> Box(Modifier.fillMaxSize().background(Color.Black)) { video() }
-        portrait -> PortraitPlayer(model, state, video, controlsVisible, notice, onPictureInPicture) { showsLines = true }
+        portrait -> PortraitPlayer(model, state, video, controlsVisible, notice, onPictureInPicture, revealsResult,
+            onReveal = { revealsResult = true }) { showsLines = true }
         else -> Box(Modifier.fillMaxSize().scoreboardGround()) {
             Row(Modifier.fillMaxSize()) {
                 Column(
@@ -226,10 +234,11 @@ fun PlayerScreen(model: MatchPlaybackModel, inPictureInPicture: Boolean, onPictu
                     ) {
                         video()
                         if (showsStatistics) {
-                            LiveBadge("直播", Modifier.align(Alignment.TopStart).padding(10.dp), size = 11.sp)
+                            if (model.isReplay) GlassLabel("回看", Modifier.align(Alignment.TopStart).padding(10.dp))
+                            else LiveBadge("直播", Modifier.align(Alignment.TopStart).padding(10.dp), size = 11.sp)
                             GlassLabel("继续播放中", Modifier.align(Alignment.TopEnd).padding(10.dp))
                         } else if (controlsVisible) {
-                            LandscapeControls(model, state, fills, fullScreen, onPictureInPicture,
+                            LandscapeControls(model, state, fills, fullScreen, onPictureInPicture, revealsResult,
                                 onLines = { showsLines = true }, onStatistics = { showsStatistics = true })
                         }
                         if (notice != null) NoticeBubble(notice, Modifier.align(Alignment.Center))
@@ -275,11 +284,13 @@ private fun BoxScope.LandscapeControls(
     fills: Boolean,
     fullScreen: Boolean,
     onPictureInPicture: () -> Unit,
+    revealsResult: Boolean,
     onLines: () -> Unit,
     onStatistics: () -> Unit,
 ) {
     val insights by model.insights.state.collectAsState()
-    val score = rememberPlayerScore(model)
+    val score = rememberPlayerScore(model, revealsResult)
+    val context = LocalContext.current
     // Darken top and bottom bands so the glass controls read over any picture.
     Box(Modifier.matchParentSize().background(Brush.verticalGradient(
         0f to Color.Black.copy(alpha = 0.6f), 0.28f to Color.Transparent, 0.66f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f))))
@@ -294,10 +305,11 @@ private fun BoxScope.LandscapeControls(
         GlassIcon(Icons.Filled.Close, "关闭") { PlayerSession.dismiss() }
         ScoreChip(score)
         Spacer(Modifier.weight(1f))
-        if (insights.mid != null) {
+        if (insights.mid != null && !model.isReplay) {
             GlassIcon(Icons.Filled.Subtitles, if (insights.danmakuEnabled) "关闭弹幕" else "开启弹幕",
                 tint = if (insights.danmakuEnabled) Palette.primaryText else Palette.tertiaryText) { model.insights.toggleDanmaku() }
         }
+        model.currentReplay?.let { video -> GlassIcon(Icons.Filled.Share, "分享") { shareReplay(context, video) } }
         GlassIcon(if (fills) Icons.Filled.FitScreen else Icons.Filled.Crop, if (fills) "完整画面" else "铺满屏幕") { PlayerSession.toggleFill() }
         GlassIcon(Icons.Filled.PictureInPictureAlt, "画中画", onClick = onPictureInPicture)
         if (fullScreen) GlassIcon(Icons.Filled.FullscreenExit, "退出全屏") { PlayerSession.setFullScreen(false) }
@@ -308,10 +320,10 @@ private fun BoxScope.LandscapeControls(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        LiveBadge("直播")
+        if (model.isReplay) GlassLabel("回看", Modifier) else LiveBadge("直播")
         LineBadge(model, state, onLines)
         Spacer(Modifier.weight(1f))
-        RecordButton(model, state)
+        if (!model.isReplay) RecordButton(model, state)
         GlassButton(Icons.Filled.BarChart, "数据", onClick = onStatistics)
     }
 }
@@ -325,17 +337,22 @@ private fun PortraitPlayer(
     controlsVisible: Boolean,
     notice: String?,
     onPictureInPicture: () -> Unit,
+    revealsResult: Boolean,
+    onReveal: () -> Unit,
     onLines: () -> Unit,
 ) {
-    val score = rememberPlayerScore(model)
+    val score = rememberPlayerScore(model, revealsResult)
     val insights by model.insights.state.collectAsState()
+    val context = LocalContext.current
     Column(Modifier.fillMaxSize().scoreboardGround().windowInsetsPadding(WindowInsets.statusBars)) {
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) {
             video()
             if (controlsVisible) {
-                LiveBadge("直播", Modifier.align(Alignment.TopStart).padding(10.dp), size = 11.sp)
+                if (model.isReplay) GlassLabel("回看", Modifier.align(Alignment.TopStart).padding(10.dp))
+                else LiveBadge("直播", Modifier.align(Alignment.TopStart).padding(10.dp), size = 11.sp)
                 Row(Modifier.align(Alignment.TopEnd).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (insights.mid != null) {
+                    model.currentReplay?.let { video -> GlassIcon(Icons.Filled.Share, "分享", size = 32.dp) { shareReplay(context, video) } }
+                    if (insights.mid != null && !model.isReplay) {
                         GlassIcon(Icons.Filled.Subtitles, if (insights.danmakuEnabled) "关闭弹幕" else "开启弹幕", size = 32.dp,
                             tint = if (insights.danmakuEnabled) Palette.primaryText else Palette.tertiaryText) { model.insights.toggleDanmaku() }
                     }
@@ -343,7 +360,7 @@ private fun PortraitPlayer(
                 }
                 Row(Modifier.align(Alignment.BottomStart).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LineBadge(model, state, onLines, compact = true)
-                    RecordButton(model, state, compact = true)
+                    if (!model.isReplay) RecordButton(model, state, compact = true)
                 }
             }
             if (notice != null) NoticeBubble(notice, Modifier.align(Alignment.Center))
@@ -371,8 +388,29 @@ private fun PortraitPlayer(
             }
             GlassIcon(Icons.Filled.Fullscreen, "全屏", size = 32.dp) { PlayerSession.setFullScreen(true) }
         }
-        SportsStatsTabs(model.insights, listOf(StatsTab.Overview, StatsTab.Players, StatsTab.Team), Modifier.fillMaxWidth().weight(1f), initial = 1)
+        if (model.isReplay && !revealsResult) {
+            // The statistics give the result away, so a replay asks first.
+            Column(Modifier.fillMaxWidth().weight(1f).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (model.replay?.fixture == null) {
+                    Text("这场录像没有对上比赛数据（目前只有 NBA 能按日期找到）。", fontSize = 13.sp, color = Palette.secondaryText)
+                } else {
+                    Text("比赛数据里有终场比分，看完再打开不剧透。", fontSize = 13.sp, color = Palette.secondaryText)
+                    GlassButton(Icons.Filled.BarChart, "显示比赛数据", onClick = onReveal)
+                }
+            }
+        } else {
+            SportsStatsTabs(model.insights, listOf(StatsTab.Overview, StatsTab.Players, StatsTab.Team), Modifier.fillMaxWidth().weight(1f), initial = 1)
+        }
     }
+}
+
+/** The system share sheet with the Weibo post. */
+private fun shareReplay(context: android.content.Context, video: com.leeguoo.jrkan.data.ReplayVideo) {
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+        .setType("text/plain")
+        .putExtra(android.content.Intent.EXTRA_SUBJECT, video.displayTitle)
+        .putExtra(android.content.Intent.EXTRA_TEXT, "${video.displayTitle} 回放 ${video.shareUrl}")
+    context.startActivity(android.content.Intent.createChooser(send, "分享").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 /** Score line under the shrunk video while the stats panel is open. */
@@ -425,9 +463,10 @@ private fun LineBadge(model: MatchPlaybackModel, state: MatchPlaybackModel.State
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp),
     ) {
-        Icon(if (manual) Icons.Filled.PanTool else Icons.Filled.Check, null, tint = if (manual) Palette.accent else Palette.ok,
+        Icon(if (model.isReplay) Icons.Filled.Movie else if (manual) Icons.Filled.PanTool else Icons.Filled.Check, null,
+            tint = if (manual || model.isReplay) Palette.accent else Palette.ok,
             modifier = Modifier.size(if (compact) 12.dp else 15.dp))
-        Text("${if (manual) "手动" else "自动"} · $name", color = Palette.primaryText, fontSize = if (compact) 11.sp else 13.sp,
+        Text(if (model.isReplay) name else "${if (manual) "手动" else "自动"} · $name", color = Palette.primaryText, fontSize = if (compact) 11.sp else 13.sp,
             fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
         if (!compact) Icon(Icons.Filled.UnfoldMore, null, tint = Palette.secondaryText, modifier = Modifier.size(14.dp))
     }
@@ -450,8 +489,9 @@ private fun LineMenu(model: MatchPlaybackModel, state: MatchPlaybackModel.State,
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
         ) {
             Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("线路", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Palette.primaryText)
-                Text("按优先级自动选择，失效会自动换下一条", fontSize = 12.sp, color = Palette.secondaryText, lineHeight = 17.sp)
+                Text(if (model.isReplay) "这场的视频" else "线路", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Palette.primaryText)
+                Text(if (model.isReplay) "各自从头或上次看到的地方播" else "按优先级自动选择，失效会自动换下一条",
+                    fontSize = 12.sp, color = Palette.secondaryText, lineHeight = 17.sp)
             }
             Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
                 ranked.forEachIndexed { position, index ->
@@ -459,6 +499,7 @@ private fun LineMenu(model: MatchPlaybackModel, state: MatchPlaybackModel.State,
                     val playing = index == current
                     val (tag, tagColor) = when {
                         state.resolvingIndex == index -> "正在解析…" to Palette.secondaryText
+                        playing && model.isReplay -> "播放中" to Palette.accent
                         playing -> (if (state.choseManually) "手动 · 播放中" else "自动 · 播放中") to (if (state.choseManually) Palette.accent else Palette.ok)
                         index in state.stalledIndices || index in state.failedResolutionIndices -> "刚才失败" to Palette.tertiaryText
                         index == backup -> "备用" to Palette.secondaryText
