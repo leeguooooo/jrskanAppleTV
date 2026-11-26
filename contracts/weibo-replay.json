@@ -1637,7 +1637,8 @@
       "play_info": {
        "url": "https://f.video.weibocdn.com/o0/TBLU0FOElx08CF4jq7WU0104121IeZgw0E0C0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=A67yWk757q&KID=unistore,video",
        "width": 1920,
-       "height": 1080
+       "height": 1080,
+       "size": 1569863716
       }
      },
      {
@@ -1647,7 +1648,8 @@
       "play_info": {
        "url": "https://f.video.weibocdn.com/o0/K7DTLyTrlx08CF4g7SyI01041211l0nT0E0n0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=Tpzf%2Bb7jpa&KID=unistore,video",
        "width": 1280,
-       "height": 720
+       "height": 720,
+       "size": 935915537
       }
      },
      {
@@ -1657,7 +1659,8 @@
       "play_info": {
        "url": "https://f.video.weibocdn.com/o0/AdMZPf2Olx08CF4fd4jS0104120y9UCH0E0d0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=1ZM5mMj3mA&KID=unistore,video",
        "width": 852,
-       "height": 480
+       "height": 480,
+       "size": 504758039
       }
      },
      {

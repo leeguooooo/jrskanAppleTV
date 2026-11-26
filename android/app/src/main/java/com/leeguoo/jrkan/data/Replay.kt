@@ -118,7 +118,7 @@ data class ReplayGroup(val matchup: ReplayVideo.Matchup, val day: Long, val vide
 }
 
 @Serializable
-data class ReplayStream(val label: String, val url: String, val height: Int) {
+data class ReplayStream(val label: String, val url: String, val height: Int, val size: Long? = null) {
     /** Weibo signs links for about an hour ("Expires=<unix seconds>"). */
     val expiresAt: Long? get() = Regex("[?&]Expires=(\\d+)").find(url)?.groupValues?.get(1)?.toLongOrNull()?.times(1000)
     val qualityLabel: String get() = when {
@@ -293,7 +293,7 @@ object ReplayParsing {
             val info = e["play_info"].obj()
             val url = info?.get("url").str()
             if (!label.startsWith("mp4") || url == null || !url.startsWith("https://")) return@mapNotNull null
-            ReplayStream(label, url, info?.get("height").num()?.toInt() ?: 0)
+            ReplayStream(label, url, info?.get("height").num()?.toInt() ?: 0, info?.get("size").num()?.toLong())
         }
         val capped = streams.filter { it.height <= 1080 }
         return capped.ifEmpty { streams }.sortedByDescending { it.height }

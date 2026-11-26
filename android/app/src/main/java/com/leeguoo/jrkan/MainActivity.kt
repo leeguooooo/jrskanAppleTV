@@ -144,7 +144,11 @@ class MainActivity : ComponentActivity() {
                 ReplaysScreen(
                     onOpenGroup = { nav.navigate("replay-group/" + URLEncoder.encode(it.id, "UTF-8")) },
                     onBack = { nav.popBackStack() },
+                    onOpenDownloads = { nav.navigate("replay-downloads") },
                 )
+            }
+            composable("replay-downloads") {
+                com.leeguoo.jrkan.ui.ReplayDownloadsScreen(onBack = { nav.popBackStack() })
             }
             composable("replay-group/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 val id = URLDecoder.decode(entry.arguments?.getString("id").orEmpty(), "UTF-8")

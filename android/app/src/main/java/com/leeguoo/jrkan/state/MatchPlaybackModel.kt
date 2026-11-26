@@ -337,6 +337,18 @@ class MatchPlaybackModel(
             handledFailureId = null
         }
         _state.update { it.copy(errorMessage = null, resolvingIndex = index) }
+        // A downloaded copy plays from disk: no link, no network.
+        ReplayDownloads.localFile(video.id)?.let { local ->
+            val start = resumeAtMs ?: ReplayResume.positionMs(video.id)
+            lastPositionMs = start ?: 0
+            confirmedRequestId = null
+            _state.update {
+                it.copy(playback = PlaybackRequest(android.net.Uri.fromFile(local).toString(), "${video.part.label} · 已下载", index, startAtMs = start),
+                    resolvingIndex = null,
+                    notice = if (resumeAtMs == null && start != null) "从上次看到的 ${ReplayVideo.durationText(start / 1000.0)} 接着播" else it.notice)
+            }
+            return
+        }
         try {
             // A link with time left is reused; after a failure always get a new one.
             val streams = (if (freshLink) null else ReplayCache.usableStreams(video.id))
@@ -370,6 +382,11 @@ class MatchPlaybackModel(
         val request = _state.value.playback ?: return
         if ((requestId != null && request.id != requestId) || handledFailureId == request.id) return
         handledFailureId = request.id
+        // A local file has no link to renew.
+        if (request.url.startsWith("file:")) {
+            _state.update { it.copy(playback = null, errorMessage = "下载的视频播放失败，可以删掉后重新下载。") }
+            return
+        }
         val index = request.index
         val last = lastReconnect[index]
         if (last != null && now - last < 20_000) {

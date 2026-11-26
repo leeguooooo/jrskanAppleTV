@@ -330,7 +330,8 @@ enum ReplayParsing {
             let info = entry["play_info"] as? [String: Any]
             guard label.hasPrefix("mp4"), let raw = info?["url"] as? String,
                   let url = URL(string: raw), url.scheme == "https" else { return nil }
-            return ReplayStream(label: label, url: url, height: Int(number(info?["height"]) ?? 0))
+            return ReplayStream(label: label, url: url, height: Int(number(info?["height"]) ?? 0),
+                                size: number(info?["size"]).map { Int64($0) })
         }
         // 1080p and below: a 4K file of a three-hour game is too heavy to stream.
         let capped = streams.filter { $0.height <= 1080 }
@@ -396,6 +397,8 @@ struct ReplayStream: Hashable, Sendable, Codable {
     let label: String
     let url: URL
     let height: Int
+    /// Bytes, as Weibo reports it (for the download size choice).
+    var size: Int64? = nil
 
     /// Weibo signs links for about an hour ("Expires=<unix time>").
     var expires: Date? {

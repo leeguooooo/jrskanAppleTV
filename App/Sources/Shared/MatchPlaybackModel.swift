@@ -381,6 +381,15 @@ final class MatchPlaybackModel: ObservableObject {
             replayInsights = Task { await insights.watch(match: fixture, channels: []) }
         }
         let video = replay.videos[index]
+        // A downloaded copy plays from disk: no link, no network.
+        if let local = ReplayLocalFiles.lookup(video.id) {
+            let start = resumeAt ?? ReplayResume.position(for: video.id)
+            if resumeAt == nil, let start { notice = "从上次看到的 \(ReplayVideo.durationText(start)) 接着播" }
+            lastPosition = start ?? 0
+            confirmedRequestID = nil
+            playback = PlaybackRequest(url: local, sourceName: "\(video.part.label) · 已下载", index: index, startAt: start)
+            return
+        }
         do {
             // A link with time left is reused; after a failure always get a new one.
             let streams: [ReplayStream]
@@ -418,6 +427,12 @@ final class MatchPlaybackModel: ObservableObject {
         guard let request = playback, requestID == nil || request.id == requestID,
               handledFailureID != request.id else { return }
         handledFailureID = request.id
+        // A local file has no link to renew.
+        if request.url.isFileURL {
+            playback = nil
+            errorMessage = "下载的视频播放失败，可以删掉后重新下载。"
+            return
+        }
         let index = request.index
         if let last = lastReconnect[index], now.timeIntervalSince(last) < 20 {
             playback = nil

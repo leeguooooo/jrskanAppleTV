@@ -123,12 +123,36 @@ struct ReplaysScreen: View {
         }
         .navigationTitle("回看")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink { ReplayDownloadsScreen() } label: {
+                    Label("已下载", systemImage: "arrow.down.circle")
+                }
+            }
+        }
         .task { await library.refreshIfStale() }
         #if DEBUG
         .onChange(of: library.groups) { old, groups in
             if DebugRoute.raw == "replays:play", old.isEmpty, let group = groups.first {
                 ReplayLauncher.shared.play(group.videos, at: 0, fixture: nil, preferences: preferences)
             }
+        }
+        // `-replay-play-download`: play the first finished download (offline path).
+        .task {
+            guard CommandLine.arguments.contains("-replay-play-download"),
+                  let item = ReplayDownloadCenter.shared.items.first(where: { $0.phase == .finished }) else { return }
+            ReplayLauncher.shared.play([item.video], at: 0, fixture: item.fixture, preferences: preferences)
+        }
+        // `-replay-download`: download the shortest recording at 480P, to check
+        // the downloader without tapping (resumes are logged as "download:").
+        .task(id: library.groups.count) {
+            guard CommandLine.arguments.contains("-replay-download"),
+                  let video = library.videos.min(by: { $0.duration < $1.duration }),
+                  ReplayDownloadCenter.shared.item(video.id) == nil,
+                  let streams = try? ReplayParsing.streams(await WeiboClient.shared.status(video.id)),
+                  let stream = streams.first(where: { $0.label == "mp4_hd" }) ?? streams.last else { return }
+            print("download: start \(video.id) \(stream.label) \(stream.size ?? 0)")
+            ReplayDownloadCenter.shared.download(video, stream: stream, fixture: nil)
         }
         #endif
     }
@@ -180,7 +204,7 @@ struct ReplayGroupScreen: View {
                     Button {
                         launcher.play(group.videos, at: index, fixture: nil, preferences: preferences)
                     } label: {
-                        ReplayVideoRow(video: video, isOpening: launcher.openingID == video.id)
+                        ReplayVideoRow(video: video, isOpening: launcher.openingID == video.id, downloadFixture: .some(nil))
                     }
                     .tint(.primary)
                     .disabled(launcher.openingID != nil)
@@ -201,6 +225,8 @@ struct ReplayGroupScreen: View {
 struct ReplayVideoRow: View {
     let video: ReplayVideo
     var isOpening = false
+    /// Shows the download control; the match's fixture rides along for 数据.
+    var downloadFixture: LiveMatch?? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -223,6 +249,8 @@ struct ReplayVideoRow: View {
             Spacer(minLength: 0)
             if isOpening {
                 ProgressView()
+            } else if let fixture = downloadFixture {
+                ReplayDownloadButton(video: video, fixture: fixture)
             } else {
                 Image(systemName: "play.circle.fill").font(.title2).foregroundStyle(Palette.accent)
             }
@@ -293,7 +321,8 @@ struct MatchReplaySection: View {
                             // The match itself is the fixture: it orders the teams and feeds 数据.
                             launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
                         } label: {
-                            ReplayVideoRow(video: video, isOpening: launcher.openingID == video.id)
+                            ReplayVideoRow(video: video, isOpening: launcher.openingID == video.id,
+                                           downloadFixture: .some(replays.match))
                         }
                         .buttonStyle(.plain)
                         .disabled(launcher.openingID != nil)

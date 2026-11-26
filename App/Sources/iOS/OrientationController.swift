@@ -20,6 +20,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let traits = window?.windowScene?.traitCollection
         return Self.playerIsUp ? Orientation.playerMask(for: traits) : Orientation.defaultMask(for: traits)
     }
+
+    /// Replay downloads finished (or need their next range) while the app was
+    /// suspended: the download centre picks the events up and calls back.
+    func application(
+        _ application: UIApplication,
+        handleEventsForBackgroundURLSession identifier: String,
+        completionHandler: @escaping () -> Void
+    ) {
+        guard identifier == ReplayDownloadCenter.sessionID else { return completionHandler() }
+        MainActor.assumeIsolated { ReplayDownloadCenter.shared.backgroundCompletion = completionHandler }
+    }
 }
 
 enum Orientation {

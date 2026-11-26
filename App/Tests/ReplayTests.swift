@@ -184,6 +184,14 @@ final class ReplayTests: XCTestCase {
         XCTAssertNil(ReplayCache.usableStreams(for: "x", now: expires.addingTimeInterval(-300)), "less than 10 minutes left")
     }
 
+    #if os(iOS)
+    func testContentRangeParsing() {
+        XCTAssertEqual(ReplayDownloadCenter.parseContentRange("bytes 0-67108863/1062163937")?.start, 0)
+        XCTAssertEqual(ReplayDownloadCenter.parseContentRange("bytes 67108864-134217727/1062163937")?.total, 1_062_163_937)
+        XCTAssertNil(ReplayDownloadCenter.parseContentRange("bytes */1062163937"))
+    }
+    #endif
+
     func testRemoteConfigReplayBlock() throws {
         XCTAssertEqual(try JSONDecoder().decode(AppConfig.self, from: Data("{}".utf8)).replay, AppConfig.Replay())
         let config = try JSONDecoder().decode(AppConfig.self, from: Data("""

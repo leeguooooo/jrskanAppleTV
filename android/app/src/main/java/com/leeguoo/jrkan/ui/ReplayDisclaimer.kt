@@ -20,14 +20,14 @@ import androidx.compose.ui.window.DialogProperties
 object ReplayDisclaimer {
     const val TITLE = "回看使用说明"
     val points = listOf(
-        "回看里的视频来自微博网友公开发布的内容。本应用只做检索和播放，不制作、不存储、不上传任何视频。",
+        "回看里的视频来自微博网友公开发布的内容。本应用只做检索和播放，不制作、不上传任何视频；你自己下载的视频只保存在你的设备上。",
         "仅供个人研究学习使用，版权归原权利人所有。",
         "禁止分享、转发、传播、公开放映这些视频（包括下载到本机的视频），也不得用于任何商业用途。",
         "下载的视频只保存在本应用里，不会出现在相册或文件管理中；研究学习完请及时删除。",
         "如果你是权利人并认为内容侵犯了你的权利，请通过 leeguoo.com 联系我们，我们会及时处理。",
     )
     const val FOOTER = "仅供个人研究学习，禁止分享传播"
-    private const val KEY = "replayDisclaimerAcceptedV1"
+    private const val KEY = "replayDisclaimerAcceptedV2"
 
     fun isAccepted(context: Context) = context.getSharedPreferences("jrkan-replay", Context.MODE_PRIVATE).getBoolean(KEY, false)
     fun accept(context: Context) = context.getSharedPreferences("jrkan-replay", Context.MODE_PRIVATE).edit().putBoolean(KEY, true).apply()

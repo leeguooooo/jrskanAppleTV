@@ -87,6 +87,13 @@ enum ReplayCache {
     }
 }
 
+/// Downloaded recordings, played from disk instead of Weibo. Only iPhone,
+/// iPad and Mac download; the TV keeps the default (nothing downloaded).
+@MainActor
+enum ReplayLocalFiles {
+    static var lookup: (String) -> URL? = { _ in nil }
+}
+
 extension ReplayVideo.Part: Codable {
     init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)

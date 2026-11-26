@@ -12,6 +12,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.leeguoo.jrkan.data.Http
 import com.leeguoo.jrkan.data.PlaybackHealthMonitor
 import com.leeguoo.jrkan.state.MatchPlaybackModel
@@ -159,7 +160,14 @@ object PlayerSession {
             .build()
         val exo = player(context)
         val start = request.startAtMs
-        if (start != null && start > 1_000) exo.setMediaItem(item, start) else exo.setMediaItem(item)
+        if (model.isReplay) {
+            // Weibo's CDN answers a browser User-Agent without a weibo.com
+            // Referer with 403 (hotlink protection); OkHttp's own agent is fine.
+            val factory = if (request.url.startsWith("file:")) androidx.media3.datasource.DefaultDataSource.Factory(context)
+                else OkHttpDataSource.Factory(Http.client)
+            val source = ProgressiveMediaSource.Factory(factory).createMediaSource(item)
+            exo.setMediaSource(source, start?.takeIf { it > 1_000 } ?: 0L)
+        } else if (start != null && start > 1_000) exo.setMediaItem(item, start) else exo.setMediaItem(item)
         exo.prepare()
         exo.playWhenReady = true
         startWatchdog(request.id)
@@ -170,7 +178,8 @@ object PlayerSession {
                 if (shownRequestId != request.id) return@launch
                 val position = exo.currentPosition
                 android.util.Log.i("Replay", "debug break at ${position / 1000}s")
-                exo.setMediaItem(item.buildUpon().setUri(request.url.replace(Regex("ssig=[^&]+"), "ssig=broken0000")).build(), position)
+                val broken = item.buildUpon().setUri(request.url.replace(Regex("ssig=[^&]+"), "ssig=broken0000")).build()
+                exo.setMediaSource(ProgressiveMediaSource.Factory(OkHttpDataSource.Factory(Http.client)).createMediaSource(broken), position)
                 exo.prepare()
             }
         }

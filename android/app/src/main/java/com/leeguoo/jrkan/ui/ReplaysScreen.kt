@@ -19,6 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.PauseCircle
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.WifiOff
@@ -76,7 +81,7 @@ import java.util.Locale
 /** 回看 (ReplaysScreen.swift): recent recordings fans post on Weibo, a row per game. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit) {
+fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit, onOpenDownloads: () -> Unit = {}) {
     val state by ReplayLibrary.state.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -95,6 +100,7 @@ fun ReplaysScreen(onOpenGroup: (ReplayGroup) -> Unit, onBack: () -> Unit) {
             TopAppBar(
                 title = { Text("回看") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
+                actions = { IconButton(onClick = onOpenDownloads) { Icon(Icons.Filled.Download, "已下载", tint = Palette.secondaryText) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.background),
             )
         },
@@ -228,7 +234,7 @@ object ReplayLauncher {
 }
 
 @Composable
-private fun ReplayVideoRow(video: ReplayVideo, isOpening: Boolean = false) {
+private fun ReplayVideoRow(video: ReplayVideo, isOpening: Boolean = false, downloadFixture: LiveMatch? = null, downloads: Boolean = true) {
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box {
             ReplayCover(video.coverUrl)
@@ -247,6 +253,7 @@ private fun ReplayVideoRow(video: ReplayVideo, isOpening: Boolean = false) {
                 fontSize = 11.sp, color = Palette.tertiaryText, maxLines = 1)
         }
         if (isOpening) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp, color = Palette.accent)
+        else if (downloads) ReplayDownloadButton(video, downloadFixture)
         else Icon(Icons.Filled.PlayCircle, "播放", tint = Palette.accent, modifier = Modifier.size(28.dp))
     }
 }
@@ -305,7 +312,7 @@ fun MatchReplaySection(match: LiveMatch) {
                         if (!ReplayDisclaimer.isAccepted(context)) { pendingIndex = index; return@clickable }
                         // The match itself is the fixture: it orders the teams and feeds 数据.
                         if (opening == null) ReplayLauncher.play(context, s.videos, index, match, app.preferences, app.scope)
-                    }) { ReplayVideoRow(video, isOpening = opening == video.id) }
+                    }) { ReplayVideoRow(video, isOpening = opening == video.id, downloadFixture = match) }
                 }
                 if (s.videos.size > shown.size) {
                     TextButton(onClick = { showsAll = true }, modifier = Modifier.padding(horizontal = 4.dp)) {
@@ -326,3 +333,143 @@ fun MatchReplaySection(match: LiveMatch) {
 }
 
 private val postedFormat = SimpleDateFormat("M月d日 HH:mm", Locale.CHINA)
+
+
+/** Download state for one upload: download (asks for the quality, with sizes), progress, or done. */
+@Composable
+fun ReplayDownloadButton(video: ReplayVideo, fixture: LiveMatch?) {
+    val items by com.leeguoo.jrkan.state.ReplayDownloads.items.collectAsState()
+    val live by com.leeguoo.jrkan.state.ReplayDownloads.liveBytes.collectAsState()
+    val item = items.firstOrNull { it.id == video.id }
+    val scope = rememberCoroutineScope()
+    var choices by remember { mutableStateOf<List<com.leeguoo.jrkan.data.ReplayStream>?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val downloads = com.leeguoo.jrkan.state.ReplayDownloads
+    val phase = item?.phase
+    Box(Modifier.size(40.dp).clickable {
+        when (phase) {
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Downloading, com.leeguoo.jrkan.state.ReplayDownload.Phase.Queued -> downloads.pause(video.id)
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Paused, com.leeguoo.jrkan.state.ReplayDownload.Phase.Failed -> downloads.resume(video.id)
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Finished -> Unit
+            null -> scope.launch {
+                loading = true
+                try {
+                    val streams = com.leeguoo.jrkan.data.ReplayCache.usableStreams(video.id)
+                        ?: ReplayParsing.streams(ReplayLibrary.client.status(video.id)).also { com.leeguoo.jrkan.data.ReplayCache.storeStreams(it, video.id) }
+                    if (streams.isEmpty()) error = "这个视频已经看不了了。" else choices = streams.sortedBy { it.height }
+                } catch (e: Exception) {
+                    error = e.userMessage()
+                } finally { loading = false }
+            }
+        }
+    }, contentAlignment = Alignment.Center) {
+        live.size // recompose on progress
+        when (phase) {
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Finished -> Icon(Icons.Filled.CheckCircle, "已下载", tint = Palette.ok, modifier = Modifier.size(26.dp))
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Downloading, com.leeguoo.jrkan.state.ReplayDownload.Phase.Queued ->
+                CircularProgressIndicator(progress = { downloads.progress(video.id) ?: 0.02f }, modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = Palette.accent)
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Paused -> Icon(Icons.Filled.PauseCircle, "已暂停", tint = Palette.secondaryText, modifier = Modifier.size(26.dp))
+            com.leeguoo.jrkan.state.ReplayDownload.Phase.Failed -> Icon(Icons.Filled.ErrorOutline, "下载失败", tint = Palette.live, modifier = Modifier.size(26.dp))
+            null -> if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Palette.accent)
+                else Icon(Icons.Filled.Download, "下载", tint = Palette.accent, modifier = Modifier.size(26.dp))
+        }
+    }
+    choices?.let { streams ->
+        AlertDialog(
+            onDismissRequest = { choices = null },
+            title = { Text("下载到本机") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("${ReplayDisclaimer.FOOTER}。视频只保存在本应用里，下载时可以切到别的应用。", fontSize = 13.sp, color = Palette.secondaryText)
+                    streams.forEach { stream ->
+                        TextButton(onClick = { choices = null; downloads.download(video, stream, fixture) }) {
+                            Text("${stream.qualityLabel} · ${stream.size?.let { android.text.format.Formatter.formatShortFileSize(androidx.compose.ui.platform.LocalContext.current, it) } ?: "大小未知"}", color = Palette.accent)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { choices = null }) { Text("取消") } },
+            containerColor = Palette.cell,
+        )
+    }
+    error?.let { message ->
+        AlertDialog(onDismissRequest = { error = null }, title = { Text("没法下载") }, text = { Text(message) },
+            confirmButton = { TextButton(onClick = { error = null }) { Text("好") } }, containerColor = Palette.cell)
+    }
+}
+
+/** 已下载: downloads and their progress; a finished one plays offline. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReplayDownloadsScreen(onBack: () -> Unit) {
+    val items by com.leeguoo.jrkan.state.ReplayDownloads.items.collectAsState()
+    val live by com.leeguoo.jrkan.state.ReplayDownloads.liveBytes.collectAsState()
+    val context = LocalContext.current
+    val app = context.applicationContext as com.leeguoo.jrkan.JrkanApp
+    val error by ReplayLauncher.error.collectAsState()
+    var confirmDelete by remember { mutableStateOf<com.leeguoo.jrkan.state.ReplayDownload?>(null) }
+    fun size(bytes: Long) = android.text.format.Formatter.formatShortFileSize(context, bytes)
+    Scaffold(
+        containerColor = Palette.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("已下载") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.background),
+            )
+        },
+    ) { padding ->
+        if (items.isEmpty()) {
+            EmptyState(Icons.Filled.Download, "还没有下载", "在回看里点视频右边的下载按钮。", modifier = Modifier.padding(padding))
+            return@Scaffold
+        }
+        LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = listContentPadding) {
+            error?.let { message -> item { Text(message, color = Palette.live, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp)) } }
+            items.forEachIndexed { index, item ->
+                item(key = item.id) {
+                    GroupedCell(index, items.size, onClick = {
+                        if (item.phase == com.leeguoo.jrkan.state.ReplayDownload.Phase.Finished) {
+                            ReplayLauncher.play(context, listOf(item.video), 0, item.fixture, app.preferences, app.scope)
+                        }
+                    }, onLongClick = { confirmDelete = item }) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ReplayCover(item.video.coverUrl)
+                            Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(item.video.displayTitle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                val total = item.totalBytes ?: item.expectedBytes
+                                val done = live[item.id] ?: item.receivedBytes
+                                val sizes = total?.let { "${size(done)} / ${size(it)}" } ?: size(done)
+                                val status = when (item.phase) {
+                                    com.leeguoo.jrkan.state.ReplayDownload.Phase.Finished -> "已下载 · ${size(item.receivedBytes)} · 点一下离线播放"
+                                    com.leeguoo.jrkan.state.ReplayDownload.Phase.Downloading -> "正在下载 · $sizes"
+                                    com.leeguoo.jrkan.state.ReplayDownload.Phase.Queued -> "排队中 · $sizes"
+                                    com.leeguoo.jrkan.state.ReplayDownload.Phase.Paused -> "已暂停 · $sizes${item.message?.let { " · $it" } ?: ""}"
+                                    com.leeguoo.jrkan.state.ReplayDownload.Phase.Failed -> "${item.message ?: "下载失败"} · 点右边重试"
+                                }
+                                Text(status, fontSize = 12.sp, maxLines = 2,
+                                    color = if (item.phase == com.leeguoo.jrkan.state.ReplayDownload.Phase.Failed) Palette.live else Palette.tertiaryText)
+                            }
+                            ReplayDownloadButton(item.video, item.fixture)
+                        }
+                    }
+                }
+            }
+            item {
+                Text("共占用 ${size(items.sumOf { com.leeguoo.jrkan.state.ReplayDownloads.fileSize(it.id) })}。${ReplayDisclaimer.FOOTER}；视频只保存在本应用里，研究学习完请及时删除。长按可以删除。",
+                    fontSize = 12.sp, color = Palette.tertiaryText, modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp))
+            }
+        }
+    }
+    confirmDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text("删除下载？") },
+            text = { Text("「${item.video.displayTitle}」会从本机删除。") },
+            confirmButton = { TextButton(onClick = { com.leeguoo.jrkan.state.ReplayDownloads.delete(item.id); confirmDelete = null }) { Text("删除", color = Palette.live) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("取消") } },
+            containerColor = Palette.cell,
+        )
+    }
+}

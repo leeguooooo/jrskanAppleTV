@@ -30,6 +30,7 @@ class JrkanApp : Application() {
         AppConfigStore.init(this)
         com.leeguoo.jrkan.data.ReplayResume.init(this)
         com.leeguoo.jrkan.data.ReplayCache.init(this)
+        com.leeguoo.jrkan.state.ReplayDownloads.init(this)
         com.leeguoo.jrkan.state.ReplayLibrary.client.persistCookies(getSharedPreferences("jrkan-weibo", MODE_PRIVATE))
         scope.launch { account.account.collect { AppConfigStore.isMember.value = account.isMember } }
     }
