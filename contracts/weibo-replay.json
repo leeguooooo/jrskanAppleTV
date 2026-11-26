@@ -1,0 +1,1677 @@
+{
+ "_comment": "Trimmed Weibo responses captured 2026-11-26 for the replay feature. waterfall: weibo.com/ajax/profile/getWaterFallContent (uid 7551290258); search: m.weibo.cn/api/container/getIndex containerid=100103type=64&q=热火vs76人 回放; show: weibo.com/ajax/statuses/show?id=Rt7vGnFxj. Consumed by App/Tests/ReplayTests.swift and the Android ReplayTest.",
+ "waterfall": {
+  "data": {
+   "list": [
+    {
+     "created_at": "Thu Nov 26 10:20:21 +0800 2026",
+     "id": "5369447980470702",
+     "mblogid": "Rt8ES1YrY",
+     "text_raw": "这传球视野简直出神入化！老詹闲庭信步观察全场局势，突然甩出一记跨越全场的四分卫长传，球领人走火候恰到好处，直接送出本场第10次助攻！改打控卫的勒布朗掌控全局，这球传得太有艺术感了！#竞技时刻# http://t.cn/AXTRG3rB ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ijfdfsbec9j31hc0u0tdr.jpg",
+      "media_info": {
+       "duration": 55,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_2160p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Nodj0lfJlx08CFfvUONy01041209aQfg0E040.mp4?label=mp4_2160p60&template=3840x2160.23.0&media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=etNdGaWcQf&KID=unistore,video",
+          "width": 3840,
+          "height": 2160
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1440p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/dBZ2kvqSlx08CFfxsKWA01041204IQuJ0E020.mp4?label=mp4_1440p60&template=2560x1440.23.0&media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=Gp1JWaWVVd&KID=unistore,video",
+          "width": 2560,
+          "height": 1440
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/qkzHwbRelx08CFfnI2fC010412024iRA0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=%2BWbAcqcKwN&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/yV2KlClslx08CFfnkWXC010412015Rfp0E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=vS%2BjjZezcx&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/mOWmHxIalx08CFfmIkgU01041200zVYB0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=V1xKUkmGUr&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx1.sinaimg.cn/large/008f2ryaly1ijfdfse1suj30qo4607gw.jpg?media_id=5369445623726094&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=G8%2FnBBZVl3&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 10:16:15 +0800 2026",
+     "id": "5369446950768613",
+     "mblogid": "Rt8Dd3dWZ",
+     "text_raw": "关键球还得看马克西！末节决战面对热火的步步紧逼，马克西无视严密防守，外线果断祭出急停后撤步三分，手起刀落见血封喉！这一记高难度神仙球彻底点燃主场，直接打停热火杀死比赛悬念！#竞技时刻# http://t.cn/AXTRG6HN ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ijfdfnx8syj31hc0u043o.jpg",
+      "media_info": {
+       "duration": 45,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_2160p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Mposx1Qulx08CFfpqnRe01041207mjmu0E030.mp4?label=mp4_2160p60&template=3840x2160.23.0&media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=SPQqRq0T06&KID=unistore,video",
+          "width": 3840,
+          "height": 2160
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1440p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/pYghrKvDlx08CFfogxQA01041203F2jU0E020.mp4?label=mp4_1440p60&template=2560x1440.23.0&media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=%2B%2FRcPqdGrv&KID=unistore,video",
+          "width": 2560,
+          "height": 1440
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/CYE7LxzZlx08CFfl3NEQ01041201DVqm0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=tM%2BQdu7pdZ&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Eoz6w8Y3lx08CFfl0F4k01041200RLgp0E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=zflWvsBe6p&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/YH011EJ7lx08CFfk7EGY01041200s7Zn0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=zu%2FBlWOnXw&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx3.sinaimg.cn/large/008f2ryaly1ijfdfto5jnj30qo460k0q.jpg?media_id=5369445577588889&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=31RoU8ydgS&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 10:12:02 +0800 2026",
+     "id": "5369445887512996",
+     "mblogid": "Rt8Buvwtm",
+     "text_raw": "#NBA杯# 热火客场挑战76人，决胜时刻勒布朗·詹姆斯稳稳收下防守篮板，成功斩获加盟76人以来的首个大号三双！全场掌声雷动，近42岁依然统治攻防两端，以组织大脑之姿掌控全局带领球队锁定胜局！#詹姆斯25分10板12助# http://t.cn/AXTRGvmC ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijfdfebenyj31hc0u0gw6.jpg",
+      "media_info": {
+       "duration": 65,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_2160p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/6jnM0Y4Jlx08CFfqF1CM0104120bqhIg0E050.mp4?label=mp4_2160p60&template=3840x2160.23.0&media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=WthToIUq7m&KID=unistore,video",
+          "width": 3840,
+          "height": 2160
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1440p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/ix96RBRvlx08CFfoRSwo0104120681Np0E030.mp4?label=mp4_1440p60&template=2560x1440.23.0&media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=W4nLvb2Rnc&KID=unistore,video",
+          "width": 2560,
+          "height": 1440
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/4YsKyyIBlx08CFflQygE01041202EUkj0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=lNNgd%2FY9a6&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/9p49hZNTlx08CFflcwhq01041201pam30E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=VjquYCaVB4&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/9sNXJmjelx08CFfkE15S01041200KuLR0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=CU786RxLsh&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx3.sinaimg.cn/large/008f2ryaly1ijfdfhi3cij30qo460qi9.jpg?media_id=5369445519130634&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,22690-g4&Expires=1795664646&ssig=uIUcWAmQY7&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 10:03:53 +0800 2026",
+     "id": "5369443836494597",
+     "mblogid": "Rt8ybrfxz",
+     "text_raw": "11月26日2026-2027赛季NBA杯 热火vs76人下半场录像回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTRb2aJ ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx2.sinaimg.cn/orj480/008f2ryaly1ijfchqntoaj31hc0u00y6.jpg",
+      "media_info": {
+       "duration": 4044,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/EdmPp3Wolx08CFgPjgMM0104122fRRYW0E0O0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369426342772739&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=fCNik%2BiTiH&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/tmOx7P5olx08CFgAdoP60104121c3yRY0E0r0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369426342772739&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=4ELdiwKl0H&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/HItX5nSmlx08CFgsNyyk0104120DW2770E0f0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369426342772739&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=Dxzoow0zV%2F&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijfdewqglwj30qo4604hq.jpg?media_id=5369426342772739&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=tvnt1XAl8%2F&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 09:05:37 +0800 2026",
+     "id": "5369429173208186",
+     "mblogid": "Rt8axdsAW",
+     "text_raw": "11月26日2026-2027赛季NBA杯 热火vs76人全场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTRZnvx ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ijfb6tmowzj31hc0u00xq.jpg",
+      "media_info": {
+       "duration": 7884,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/yETTRozNlx08CFbMeBm80104123AYtTw0E1h0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369421938753589&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=mVAL0fntz7&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/DpTEmGFmlx08CFbGDhVu01041229krzb0E0L0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369421938753589&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=WT3rP7weN4&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/8KZX5Cqolx08CFbzyKnS01041219SJmp0E0q0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369421938753589&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=MidzHa6qnY&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx1.sinaimg.cn/large/008f2ryaly1ijfbdlezyej30qo460h33.jpg?media_id=5369421938753589&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=Bu6qlHWOMO&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 08:25:33 +0800 2026",
+     "id": "5369419090892833",
+     "mblogid": "Rt7Uh3Kgx",
+     "text_raw": "11月26日2026-2027赛季NBA杯 热火vs76人上半场录像回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXT8BBH8 ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf9wgr4hoj31hc0u0n7b.jpg",
+      "media_info": {
+       "duration": 3840,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_2160p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/73QyXCEDlx08CFaQY3ag0104129VdVJl0E3v0.mp4?label=mp4_2160p60&template=3840x2160.23.0&media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=KCyQQYv95i&KID=unistore,video",
+          "width": 3840,
+          "height": 2160
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1440p60"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Ghb6DWHElx08CFaCB2Ja0104124HKqmo0E1F0.mp4?label=mp4_1440p60&template=2560x1440.23.0&media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=85y4UpATh0&KID=unistore,video",
+          "width": 2560,
+          "height": 1440
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/x1WayTAPlx08CF9uGiZy01041224RJ0E0E0K0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=DK9DBiGwK4&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Y6QrbTiAlx08CF9p40qA01041215nNkV0E0o0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=kghfC8kb4p&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/VWob9wMFlx08CF9m5ECk0104120zFPpd0E0d0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=OYulTMZpO5&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx1.sinaimg.cn/large/008f2ryaly1ijfaudttidj30qo4604fs.jpg?media_id=5369402778910774&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=l5aCGqxwlA&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 07:35:24 +0800 2026",
+     "id": "5369406471537684",
+     "mblogid": "Rt7zV6s1m",
+     "text_raw": "【#竞技时刻# 马克西极速突破，波普底角三分打停热火】76人与热火展开精彩对攻，马克西面对字母哥对位防守，凭借极致速度强行突破低手打进；随后詹姆斯突破分球连续传导，波普底角手起刀落稳稳命中三分打停热火，进攻配合赏心悦目！ http://t.cn/AXT8oulk ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ijf8o81h86j31hc0u0411.jpg",
+      "media_info": {
+       "duration": 75,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/gjNAGBoDlx08CF41qyWc01041201QLuM0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369404188459032&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=f2jS1Qsx%2FS&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/sXgLNnqglx08CF40Lw92010412011b480E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369404188459032&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=X8ei51Hi7I&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/BshxTSAjlx08CF3ZS9UQ01041200y1Wm0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369404188459032&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=9jbuH9%2FfQg&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijf8o4pwk8j30qo460ww7.jpg?media_id=5369404188459032&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=MyhT%2FbAJsU&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 07:31:23 +0800 2026",
+     "id": "5369405459662572",
+     "mblogid": "Rt7yhExFW",
+     "text_raw": "【#竞技时刻# 攻防统治！博纳惊天封盖字母哥】76人对阵热火次节渐入佳境，年轻小将博纳在内线遮天蔽日，正面将字母哥的顺下攻筐狠狠扇飞！回头进攻端詹姆斯强突篮下低手挑篮稳稳命中，单节独揽14分带领76人彻底起势，主场氛围彻底沸腾！ http://t.cn/AXT8ShtM ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf8o4tg74j31hc0u0439.jpg",
+      "media_info": {
+       "duration": 100,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/eBpNvCtxlx08CF43jMvK01041202vM9f0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369404167487500&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=hkUonjoyXi&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/WkioeE1Olx08CF41f0YE01041201oHec0E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369404167487500&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=IL3e0w5haF&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/OEJCoPkblx08CF40hDTO01041200KwLo0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369404167487500&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=r1Q72OwqEa&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx3.sinaimg.cn/large/008f2ryaly1ijf8o3gdjej30qo460h4v.jpg?media_id=5369404167487500&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=Ykb1y5SeTO&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 07:26:48 +0800 2026",
+     "id": "5369404307017721",
+     "mblogid": "Rt7wqtrD3",
+     "text_raw": "【#竞技时刻# 詹姆斯超神爆发连中超远三分！】NBA杯76人主场迎战热火，次节詹姆斯彻底接管比赛！他在外线展现超强手感，接连命中高难度三分，反击中更命中超远追身三分，一人独砍12分率队完成反超并打停热火，统治攻防赛场！ http://t.cn/AXT8XvnE ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijf8o142wpj31hc0u0aeo.jpg",
+      "media_info": {
+       "duration": 180,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/BzFnwOUilx08CF428luM01041204VXPs0E020.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369404133933088&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=Y%2B8tO7%2FwKH&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/pafvheO8lx08CF41dvHa01041202SAvo0E020.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369404133933088&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=SQVUfQXVAa&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/4CuIuMvzlx08CF40E0HK01041201xuqQ0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369404133933088&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=lk5T8PCix%2F&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx3.sinaimg.cn/large/008f2ryaly1ijf8o19vwuj30qo4604h2.jpg?media_id=5369404133933088&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,3601-g42,3601-g36,3601-g36,22690-g4&Expires=1795664646&ssig=PZE0Yl%2FG8%2B&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Thu Nov 26 07:24:58 +0800 2026",
+     "id": "5369403845641213",
+     "mblogid": "Rt7vGnFxj",
+     "text_raw": "11月26日2026-2027赛季NBA杯 热火vs76人上半场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXT86Ul9 ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf8i70lorj31hc0u0q6e.jpg",
+      "media_info": {
+       "duration": 3828,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/TBLU0FOElx08CF4jq7WU0104121IeZgw0E0C0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=sJB7ne8ONT&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/K7DTLyTrlx08CF4g7SyI01041211l0nT0E0n0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=VlTdDaGor%2F&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/AdMZPf2Olx08CF4fd4jS0104120y9UCH0E0d0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=z6Rp1qsiUm&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx2.sinaimg.cn/large/008f2ryaly1ijf8kcpfgmj30qo460h33.jpg?media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=G9pf26WsxN&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 21:31:22 +0800 2026",
+     "id": "5369254465503430",
+     "mblogid": "Rt3CKn5H0",
+     "text_raw": "巴萨攻势如潮终于打破僵局！佩德里开出精准战术角球，赫拉德·马丁门前甩头攻门顶入远角，收获个人一线队生涯宝贵进球，助巴塞罗那1-2扳回一城！这一粒关键进球瞬间吹响了全队反击的冲锋号！#西甲##巴塞罗那##竞技时刻# http://t.cn/AXTQZrrx ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx2.sinaimg.cn/orj480/008f2ryaly1ijer7oea37j31hc0u0ju5.jpg",
+      "media_info": {
+       "duration": 60,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/dM7orza1lx08CEoCJ5wA01041201IEng0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369252140744802&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=1y1nS5corv&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/7uE7uanYlx08CEoyUpsA01041200VYBM0E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369252140744802&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=6J0fieXLw3&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/kHlamu9Zlx08CEoxp5h601041200ue4O0E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369252140744802&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=HPMyqiKU1u&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijer7m0dlyj30qo460qga.jpg?media_id=5369252140744802&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=EK%2BGPyTyPh&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 21:27:22 +0800 2026",
+     "id": "5369253454677275",
+     "mblogid": "Rt3B7jCLV",
+     "text_raw": "巴塞罗那绝妙反击打出精妙配合！亚马尔右路内切后送出致命横传，费尔明门前迎球推射近角破门，帮助巴萨将比分扳为2-2平！从早早两球落后到连追两球，诺坎普彻底沸腾，弗里克的球队气势如虹！#西甲##巴塞罗那##竞技时刻# http://t.cn/AXTQ7gLP ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijer7mq784j31hc0u0q64.jpg",
+      "media_info": {
+       "duration": 55,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/773YrL3Mlx08CEozl7Fm01041201zkp50E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369252115578883&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=CElOO4y1eI&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/G6NJaZKLlx08CEoxE5e001041200Rbi70E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369252115578883&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=DLYAccTwWZ&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/2j52NmWSlx08CEox3DHy01041200sck10E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369252115578883&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=DTvY1QSs0D&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijer7rjhajj30qo460tks.jpg?media_id=5369252115578883&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=UUNy4Wzd1Y&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 21:22:54 +0800 2026",
+     "id": "5369252328509310",
+     "mblogid": "Rt3zizHEW",
+     "text_raw": "西甲第13轮上演惊天逆转！巴塞罗那在两球落后的绝境下吹响反击号角，埃里克·加西亚右路下底横传门前造成纳瓦罗乌龙，巴萨3-2反超比分！红蓝军团众志成城连扳三球，展现出顶级豪门的韧性与血性！#西甲##巴塞罗那##竞技时刻# http://t.cn/AXTQPHjx ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijer7q7h9xj31hc0u0taw.jpg",
+      "media_info": {
+       "duration": 55,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/6h26HZhYlx08CEoBU4aY01041201rYDC0E010.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369252082024563&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=0gbXh9fQZR&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/vdp4fejflx08CEowcS8g01041200NeUc0E010.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369252082024563&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=nlcuqAsTC%2B&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/43EVGqhLlx08CEovmlok01041200q5w10E010.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369252082024563&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=ASNDgV5Phz&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijer7ie1lcj30qo460dt2.jpg?media_id=5369252082024563&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=4&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=1jj4yniodf&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 21:20:56 +0800 2026",
+     "id": "5369251835937316",
+     "mblogid": "Rt3yvoUza",
+     "text_raw": "11月22日26/27赛季西甲第13轮 巴塞罗那vs比利亚雷亚尔全场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTQvQog ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijeplvnxknj31hc0u0aej.jpg",
+      "media_info": {
+       "duration": 7780,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/z8frJ0Lslx08CEoAyXe00104122I5eoc0E0Y0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369230087094291&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=ngVKx57DCC&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/MCX94MdMlx08CEolarZe0104121qLUZF0E0w0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369230087094291&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=W2HYcF6Rr7&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/fclSgUc3lx08CEoj1oqY0104120Knz0i0E0h0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369230087094291&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=0SaLX4QmEJ&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx2.sinaimg.cn/large/008f2ryaly1ijeq9f4w72j30qo4604ga.jpg?media_id=5369230087094291&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=g1u%2F3DSSw5&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 20:10:32 +0800 2026",
+     "id": "5369234116843564",
+     "mblogid": "Rt35VsIk4",
+     "text_raw": "11月25日2026-2027赛季NBA杯 独行侠vs掘金全场高清回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTH6mX8 ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijenmqf3wgj31hc0u043u.jpg",
+      "media_info": {
+       "duration": 9411,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/B1eqGhhrlx08CEkDDPoA01041259jQtp0E1P0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369207261691917&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=Nn1VHQwJ04&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/sfkDBOkFlx08CEjURnzW0104122BCxZn0E0V0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369207261691917&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=3fFOnbSh6%2B&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/byUpZbHclx08CEjpO7dC0104121pvCCW0E0v0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369207261691917&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=J4wd8LMZen&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx1.sinaimg.cn/large/008f2ryaly1ijeoer8oivj30qo4604d2.jpg?media_id=5369207261691917&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664646&ssig=RIKe3egvUX&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 17:38:06 +0800 2026",
+     "id": "5369195758096639",
+     "mblogid": "Rt263xYiX",
+     "text_raw": "11月25日2026-2027赛季NBA杯 独行侠vs掘金全场录像回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTTYhAU ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijejfb4aufj31hc0u0taj.jpg",
+      "media_info": {
+       "duration": 9000,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/LEwcQL2Ylx08CE9QbaOc0104124SjZZa0E1J0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369163036950531&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=EXvR9ZiJB5&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/7wOAkntDlx08CE96U9iM0104122qvqJe0E0S0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369163036950531&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=oxY%2FN5Bxcu&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/6lv8pm9Tlx08CE8XEaOA0104121fVWaS0E0s0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369163036950531&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=J4Wf5mWi85&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx2.sinaimg.cn/large/008f2ryaly1ijek2ig1u4j30qo460k8u.jpg?media_id=5369163036950531&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=Qh%2BvdNSXuM&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 16:17:56 +0800 2026",
+     "id": "5369175583494216",
+     "mblogid": "Rt1zweF0k",
+     "text_raw": "11月25日2026-2027赛季NBA杯 独行侠vs掘金全场录像\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTTiE7j ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijeh0tpjyej31hc0u0aeq.jpg",
+      "media_info": {
+       "duration": 8675,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/WFQffQpelx08CE40Fs9a0104125hiJ3N0E1S0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369154010808366&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=ViwjPrx5ZB&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/CHdt1Ag5lx08CE3IG3hu0104122GE3dt0E0X0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369154010808366&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=wUImjsOXRf&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/Pt40AZFmlx08CE3qtcco0104121oBXBx0E0v0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369154010808366&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=Yo40OsT7j5&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx2.sinaimg.cn/large/008f2ryaly1ijehqaiwhej30qo460dyq.jpg?media_id=5369154010808366&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=FkrorGDJvt&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 14:15:06 +0800 2026",
+     "id": "5369144671210127",
+     "mblogid": "Rt0LF54Ob",
+     "text_raw": "11月25日2026-2027赛季NBA杯 独行侠vs掘金全场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTTwhyX ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijeeg393o5j31hc0u0wjf.jpg",
+      "media_info": {
+       "duration": 8416,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/ddEKKh4elx08CDWQbelG0104123LfsvX0E1l0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369136893591578&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=PqUD7BlS16&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/92S0aBJRlx08CDWuaVzG0104122hyJCI0E0O0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369136893591578&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=3z2lIU703a&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/2PzwJL7ilx08CDWpMSk80104121dwYCJ0E0r0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369136893591578&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=KXBR%2B1T%2BJS&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx4.sinaimg.cn/large/008f2ryaly1ijeem9lt0oj30qo4607ui.jpg?media_id=5369136893591578&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=7Y0yw5yO%2FE&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 12:07:22 +0800 2026",
+     "id": "5369112526325975",
+     "mblogid": "RsZVOqxFR",
+     "text_raw": "11月25日2026-2027赛季NBA杯 凯尔特人vs奇才全场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTYjJ2x ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx4.sinaimg.cn/orj480/008f2ryaly1ijeasmbfylj31hc0u042j.jpg",
+      "media_info": {
+       "duration": 8561,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/lDfH8wwMlx08CDO4g1mU0104123SY1vE0E1n0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369105533042797&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=Or1O%2FxDU8a&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/rXCz6RK0lx08CDNPJcFG0104122mMSUS0E0Q0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369105533042797&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=gTh46Gbca7&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/rz39cAVIlx08CDNMj0FW0104121gVh4H0E0s0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369105533042797&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=UjFxE6N4i1&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx3.sinaimg.cn/large/008f2ryaly1ijeay9aophj30qo4607qp.jpg?media_id=5369105533042797&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=Nvd45QUl0d&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "created_at": "Wed Nov 25 11:03:29 +0800 2026",
+     "id": "5369096449295543",
+     "mblogid": "RsZvSD0c7",
+     "text_raw": "11月25日2026-2027赛季NBA杯 活塞vs魔术全场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXTYxXkw ​​​",
+     "user": {
+      "id": 7551290258,
+      "screen_name": "花查章"
+     },
+     "page_info": {
+      "object_type": "video",
+      "page_pic": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ije8r7gjg9j31hc0u040u.jpg",
+      "media_info": {
+       "duration": 7588,
+       "playback_list": [
+        {
+         "meta": {
+          "label": "mp4_1080p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/sziYt7jklx08CDJ6GJdS0104123ix9Ct0E1b0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369087904383031&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=sJtlaU8xWS&KID=unistore,video",
+          "width": 1920,
+          "height": 1080
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_720p"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/ZywOnlzVlx08CDIYloPu0104121YPZJA0E0I0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369087904383031&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=ROMQG3A22R&KID=unistore,video",
+          "width": 1280,
+          "height": 720
+         }
+        },
+        {
+         "meta": {
+          "label": "mp4_hd"
+         },
+         "play_info": {
+          "url": "https://f.video.weibocdn.com/o0/2MX6zVZRlx08CDIP2gIg01041215j29t0E0o0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369087904383031&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=ayCQx6SH5m&KID=unistore,video",
+          "width": 852,
+          "height": 480
+         }
+        },
+        {
+         "meta": {
+          "label": "scrubber_hd"
+         },
+         "play_info": {
+          "url": "https://wx1.sinaimg.cn/large/008f2ryaly1ije8z3shwqj30qo460x33.jpg?media_id=5369087904383031&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4,3601-g38&Expires=1795664646&ssig=KDpAjVN%2BXO&KID=unistore,video",
+          "width": 320,
+          "height": 180
+         }
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "next_cursor": "5369096449295542"
+  }
+ },
+ "search": {
+  "ok": 1,
+  "data": {
+   "cards": [
+    {
+     "card_type": 11,
+     "card_group": [
+      {
+       "card_type": 9,
+       "mblog": {
+        "created_at": "Thu Nov 26 07:24:58 +0800 2026",
+        "id": "5369403845641213",
+        "bid": "Rt7vGnFxj",
+        "text": "11月26日2026-2027赛季NBA杯 热火vs76人上半场回放<br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号迎新计划#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369401055051778\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">花查章的微博视频</span></a> ",
+        "user": {
+         "id": 7551290258,
+         "screen_name": "花查章"
+        },
+        "page_info": {
+         "type": "video",
+         "page_pic": {
+          "url": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf8i70lorj31hc0u0q6e.jpg"
+         },
+         "media_info": {
+          "duration": 3828.6
+         },
+         "urls": {
+          "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/K7DTLyTrlx08CF4g7SyI01041211l0nT0E0n0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=FyFifWj6Ib&KID=unistore,video",
+          "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/AdMZPf2Olx08CF4fd4jS0104120y9UCH0E0d0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=FpVJB6sQ%2Fa&KID=unistore,video",
+          "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/AdMZPf2Olx08CF4fd4jS0104120y9UCH0E0d0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=FpVJB6sQ%2Fa&KID=unistore,video"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "card_type": 11,
+     "card_group": [
+      {
+       "card_type": 9,
+       "mblog": {
+        "created_at": "Thu Nov 26 09:05:37 +0800 2026",
+        "id": "5369429173208186",
+        "bid": "Rt8axdsAW",
+        "text": "11月26日2026-2027赛季NBA杯 热火vs76人全场回放<br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号迎新计划#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369421938753589\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">花查章的微博视频</span></a> ",
+        "user": {
+         "id": 7551290258,
+         "screen_name": "花查章"
+        },
+        "page_info": {
+         "type": "video",
+         "page_pic": {
+          "url": "https://wx3.sinaimg.cn/orj480/008f2ryaly1ijfb6tmowzj31hc0u00xq.jpg"
+         },
+         "media_info": {
+          "duration": 7884.399
+         },
+         "urls": {
+          "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/DpTEmGFmlx08CFbGDhVu01041229krzb0E0L0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=jRhumGmT7M&KID=unistore,video",
+          "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/8KZX5Cqolx08CFbzyKnS01041219SJmp0E0q0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=5RlXPHQXfY&KID=unistore,video",
+          "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/8KZX5Cqolx08CFbzyKnS01041219SJmp0E0q0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=5RlXPHQXfY&KID=unistore,video"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "card_type": 11,
+     "card_group": [
+      {
+       "card_type": 9,
+       "mblog": {
+        "created_at": "Thu Nov 26 08:25:33 +0800 2026",
+        "id": "5369419090892833",
+        "bid": "Rt7Uh3Kgx",
+        "text": "11月26日2026-2027赛季NBA杯 热火vs76人上半场录像回放<br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号迎新计划#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369402778910774\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">花查章的微博视频</span></a> ",
+        "user": {
+         "id": 7551290258,
+         "screen_name": "花查章"
+        },
+        "page_info": {
+         "type": "video",
+         "page_pic": {
+          "url": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf9wgr4hoj31hc0u0n7b.jpg"
+         },
+         "media_info": {
+          "duration": 3840.07
+         },
+         "urls": {
+          "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/Y6QrbTiAlx08CF9p40qA01041215nNkV0E0o0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=Zf8Zmsa5GH&KID=unistore,video",
+          "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/VWob9wMFlx08CF9m5ECk0104120zFPpd0E0d0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=RKr6%2Btf4m0&KID=unistore,video",
+          "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/VWob9wMFlx08CF9m5ECk0104120zFPpd0E0d0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=RKr6%2Btf4m0&KID=unistore,video"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Wed Apr 17 22:51:13 +0800 2024",
+      "id": "5024281306337771",
+      "bid": "OabFoqAK7",
+      "text": "球迷想看的2023年NBA季后赛热火vs雄鹿G5中文解说全场超清回放！巴特勒这场比赛上演极限绝平逆天改命！狂砍42分8篮板4助攻2抢断带领热火128:126战胜雄鹿，总比分4-1淘汰雄鹿上演NBA历史上第六次黑八奇迹！关键就是这场比赛雄鹿打的并不差！字母哥砍下38分20篮板的大号两双！米德尔顿也得到33分6篮板6助 ...<a href=\"/status/5024281306337771\">全文</a>",
+      "user": {
+       "id": 2358578625,
+       "screen_name": "篮球之声"
+      },
+      "page_info": {
+       "type": "search_topic",
+       "page_pic": {
+        "url": "https://wx4.sinaimg.cn/large/00368BvZly8i4emznnpwzj608c08cwee02.jpg"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 08:19:56 +0800 2026",
+      "id": "5369417678720771",
+      "bid": "Rt7RZAAFB",
+      "text": "nba杯东部小组赛：热火vs76人 第二节回放！<br /><br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E8%A9%B9%E5%A7%86%E6%96%AF%E4%B8%89%E5%88%86%E8%B6%8A%E6%8A%95%E8%B6%8A%E8%BF%9C%23&extparam=%23%E8%A9%B9%E5%A7%86%E6%96%AF%E4%B8%89%E5%88%86%E8%B6%8A%E6%8A%95%E8%B6%8A%E8%BF%9C%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#詹姆斯三分越投越远#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369416347746332\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">扣烂的篮板的微博视频</span></a> ",
+      "user": {
+       "id": 7410931451,
+       "screen_name": "扣烂的篮板"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx3.sinaimg.cn/orj480/0085xvOrly1ijfa4jzm5ij30u00gx463.jpg"
+       },
+       "media_info": {
+        "duration": 1950.824
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/T5r1dx2flx08CF7MYq8E0104120wbdw00E0c0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=qvIxa6or3f&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/59Ya8vBllx08CF7L0zmE0104120hBMNY0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=gplLJrMSfJ&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/59Ya8vBllx08CF7L0zmE0104120hBMNY0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=gplLJrMSfJ&KID=unistore,video"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 09:02:50 +0800 2026",
+      "id": "5369428472760469",
+      "bid": "Rt89pbA7H",
+      "text": "11月26日 热火vs76人 第1节回放 <a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%83%AD%E7%81%ABvs76%E4%BA%BA%23&extparam=%23%E7%83%AD%E7%81%ABvs76%E4%BA%BA%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#热火vs76人#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号续航计划#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369427068125235\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">JamesLebron的微博视频</span></a> ",
+      "user": {
+       "id": 5313408466,
+       "screen_name": "JamesLebron"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx1.sinaimg.cn/orj480/005NAwgyly1ijfbdheae9j31hc0u0q7y.jpg"
+       },
+       "media_info": {
+        "duration": 1456.262
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/vII39X2vlx08CFaHstwI0104120mVfCn0E090.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=0d3E1f8Zab&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/rUh5SCtFlx08CFaGgFCo0104120cHsDH0E050.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=2y9xxQterQ&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/rUh5SCtFlx08CFaGgFCo0104120cHsDH0E050.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=2y9xxQterQ&KID=unistore,video"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 09:38:58 +0800 2026",
+      "id": "5369437567847938",
+      "bid": "Rt8o4wVBE",
+      "text": "11月26日 热火vs76人 第3节回放 <a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E8%A9%B9%E5%A7%86%E6%96%AF25%E5%88%8610%E6%9D%BF12%E5%8A%A9%23&extparam=%23%E8%A9%B9%E5%A7%86%E6%96%AF25%E5%88%8610%E6%9D%BF12%E5%8A%A9%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#詹姆斯25分10板12助#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号续航计划#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369431770202136\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">JamesLebron的微博视频</span></a> ",
+      "user": {
+       "id": 5313408466,
+       "screen_name": "JamesLebron"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx1.sinaimg.cn/orj480/005NAwgyly1ijfbx66d54j31hc0u0mzs.jpg"
+       },
+       "media_info": {
+        "duration": 1715.048
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/VY6x7ZVElx08CFdgMH5C0104120uxepb0E0b0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=e6d51DZQGp&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/948Tpbmllx08CFdgBfu00104120fY5540E060.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=SVJw1K%2FK3L&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/948Tpbmllx08CFdgBfu00104120fY5540E060.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=SVJw1K%2FK3L&KID=unistore,video"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 09:18:50 +0800 2026",
+      "id": "5369432500078079",
+      "bid": "Rt8fU0kjl",
+      "text": "11月26日 热火vs76人 第2节回放 <a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E8%A9%B9%E5%A7%86%E6%96%AF%E4%B8%89%E5%8F%8C%23&isnewpage=1&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#詹姆斯三双#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号续航计划#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369428146323496\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">JamesLebron的微博视频</span></a> ",
+      "user": {
+       "id": 5313408466,
+       "screen_name": "JamesLebron"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx3.sinaimg.cn/orj480/005NAwgyly1ijfbjukz2lj31hc0u0n02.jpg"
+       },
+       "media_info": {
+        "duration": 1950.824
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/aTjXElBQlx08CFbQJdCM0104120wbdcj0E0c0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=I56BSsECCn&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/k1LVFMdUlx08CFbQDwIw0104120hBMNY0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=czhuPnABOu&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/k1LVFMdUlx08CFbQDwIw0104120hBMNY0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=czhuPnABOu&KID=unistore,video"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 08:15:03 +0800 2026",
+      "id": "5369416447428771",
+      "bid": "Rt7Q0vayT",
+      "text": "nba杯东部小组赛：热火vs76人 第一节回放！<br /><br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/p/index?extparam=76%E4%BA%BA&containerid=100808940b46490930ae05c97ddcb7ad691d9e&launchid=10000360-page_H5\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://n.sinaimg.cn/photo/5213b46e/20180926/timeline_card_small_super_default.png'></span><span class=\"surl-text\">76人</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369415492108321\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">扣烂的篮板的微博视频</span></a> ",
+      "user": {
+       "id": 7410931451,
+       "screen_name": "扣烂的篮板"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx2.sinaimg.cn/orj480/0085xvOrly1ijfa0lpne8j30u00gxgyx.jpg"
+       },
+       "media_info": {
+        "duration": 1456.262
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/DTy0ZOsTlx08CF7rZzsc0104120mVfCn0E090.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=pQrngG8UNE&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/0iLpiGBElx08CF7rhKik0104120cHsCx0E050.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=A%2BNq2RqhHV&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/0iLpiGBElx08CF7rhKik0104120cHsCx0E050.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=A%2BNq2RqhHV&KID=unistore,video"
+       }
+      }
+     }
+    },
+    {
+     "card_type": 11,
+     "card_group": [
+      {
+       "card_type": 9,
+       "mblog": {
+        "created_at": "Thu Nov 26 10:03:53 +0800 2026",
+        "id": "5369443836494597",
+        "bid": "Rt8ybrfxz",
+        "text": "11月26日2026-2027赛季NBA杯 热火vs76人下半场录像回放<br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E8%BF%8E%E6%96%B0%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号迎新计划#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369426342772739\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">花查章的微博视频</span></a> ",
+        "user": {
+         "id": 7551290258,
+         "screen_name": "花查章"
+        },
+        "page_info": {
+         "type": "video",
+         "page_pic": {
+          "url": "https://wx2.sinaimg.cn/orj480/008f2ryaly1ijfchqntoaj31hc0u00y6.jpg"
+         },
+         "media_info": {
+          "duration": 4044.08
+         },
+         "urls": {
+          "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/tmOx7P5olx08CFgAdoP60104121c3yRY0E0r0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664481&ssig=8pQpmxdbW5&KID=unistore,video",
+          "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/HItX5nSmlx08CFgsNyyk0104120DW2770E0f0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664481&ssig=rvFtaZUhw7&KID=unistore,video",
+          "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/HItX5nSmlx08CFgsNyyk0104120DW2770E0f0.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664481&ssig=rvFtaZUhw7&KID=unistore,video"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "card_type": 11,
+     "card_group": [
+      {
+       "card_type": 9,
+       "mblog": {
+        "created_at": "Thu Nov 26 09:53:33 +0800 2026",
+        "id": "5369441237861036",
+        "bid": "Rt8tZwZ0U",
+        "text": "11月26日 热火vs76人 第4节回放 <a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E8%A9%B9%E5%A7%86%E6%96%AF76%E4%BA%BA%E7%94%9F%E6%B6%AF%E9%A6%96%E4%B8%AA%E4%B8%89%E5%8F%8C%23&extparam=%23%E8%A9%B9%E5%A7%86%E6%96%AF76%E4%BA%BA%E7%94%9F%E6%B6%AF%E9%A6%96%E4%B8%AA%E4%B8%89%E5%8F%8C%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#詹姆斯76人生涯首个三双#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E5%8F%B7%E7%BB%AD%E8%88%AA%E8%AE%A1%E5%88%92%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频号续航计划#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369437159882756\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">JamesLebron的微博视频</span></a> ",
+        "user": {
+         "id": 5313408466,
+         "screen_name": "JamesLebron"
+        },
+        "page_info": {
+         "type": "video",
+         "page_pic": {
+          "url": "https://wx3.sinaimg.cn/orj480/005NAwgyly1ijfck2b3m1j31hc0u0tbo.jpg"
+         },
+         "media_info": {
+          "duration": 1988.046
+         },
+         "urls": {
+          "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/XOo1O6U8lx08CFek42240104120yIBW60E0d0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=AUgcsV%2BmAg&KID=unistore,video",
+          "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/51eUhQQPlx08CFeiXspO0104120i75vt0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=1VN5%2BnWmZF&KID=unistore,video",
+          "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/51eUhQQPlx08CFeiXspO0104120i75vt0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=1VN5%2BnWmZF&KID=unistore,video"
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "card_type": 9,
+     "mblog": {
+      "created_at": "Thu Nov 26 09:09:57 +0800 2026",
+      "id": "5369430263465374",
+      "bid": "Rt8ciexv8",
+      "text": "nba杯东部小组赛：热火vs76人 第四节回放！<br /><br />勒布朗25分12助攻10篮板，拿下76人生涯首次三双，率队拿下这场NBA杯关键战！<br /><br /><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%83%AD%E7%81%ABvs76%E4%BA%BA%23&extparam=%23%E7%83%AD%E7%81%ABvs76%E4%BA%BA%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#热火vs76人#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&extparam=%23%E5%BE%AE%E5%8D%9A%E8%A7%86%E9%A2%91%E7%B2%BE%E9%80%89%E5%A4%A7%E8%B5%8F%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#微博视频精选大赏#</span></a><a  href=\"https://m.weibo.cn/search?containerid=231522type%3D1%26t%3D10%26q%3D%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&extparam=%23%E7%AB%9E%E6%8A%80%E6%97%B6%E5%88%BB%23&launchid=10000360-page_H5\" data-hide=\"\"><span class=\"surl-text\">#竞技时刻#</span></a> <a  href=\"https://video.weibo.com/show?fid=1034:5369427865305126\" data-hide=\"\"><span class='url-icon'><img style='width: 1rem;height: 1rem' src='https://h5.sinaimg.cn/upload/2015/09/25/3/timeline_card_small_video_default.png'></span><span class=\"surl-text\">扣烂的篮板的微博视频</span></a> ",
+      "user": {
+       "id": 7410931451,
+       "screen_name": "扣烂的篮板"
+      },
+      "page_info": {
+       "type": "video",
+       "page_pic": {
+        "url": "https://wx4.sinaimg.cn/orj480/0085xvOrly1ijfbhghrexj31hc0u0tbo.jpg"
+       },
+       "media_info": {
+        "duration": 1988.046
+       },
+       "urls": {
+        "mp4_720p_mp4": "https://f.video.weibocdn.com/o0/MIqUCCHJlx08CFb5HZnq0104120yIBDs0E0d0.mp4?label=mp4_720p&template=1280x720.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=33nWCuVPl6&KID=unistore,video",
+        "mp4_hd_mp4": "https://f.video.weibocdn.com/o0/6reZuhLclx08CFb2Mn4s0104120i75uT0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=5jVcFOVJ%2Fp&KID=unistore,video",
+        "mp4_ld_mp4": "https://f.video.weibocdn.com/o0/6reZuhLclx08CFb2Mn4s0104120i75uT0E070.mp4?label=mp4_hd&template=852x480.25.0&ori=0&ps=1BVp4ysnknHVZu&Expires=1795664485&ssig=5jVcFOVJ%2Fp&KID=unistore,video"
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "show": {
+  "created_at": "Thu Nov 26 07:24:58 +0800 2026",
+  "id": "5369403845641213",
+  "mblogid": "Rt7vGnFxj",
+  "text_raw": "11月26日2026-2027赛季NBA杯 热火vs76人上半场回放\n#微博视频精选大赏##竞技时刻##微博视频号迎新计划# http://t.cn/AXT86Ul9 ​​​",
+  "user": {
+   "id": 7551290258,
+   "screen_name": "花查章"
+  },
+  "page_info": {
+   "object_type": "video",
+   "page_pic": "https://wx1.sinaimg.cn/orj480/008f2ryaly1ijf8i70lorj31hc0u0q6e.jpg",
+   "media_info": {
+    "duration": 3828,
+    "playback_list": [
+     {
+      "meta": {
+       "label": "mp4_1080p"
+      },
+      "play_info": {
+       "url": "https://f.video.weibocdn.com/o0/TBLU0FOElx08CF4jq7WU0104121IeZgw0E0C0.mp4?label=mp4_1080p&template=1920x1080.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=A67yWk757q&KID=unistore,video",
+       "width": 1920,
+       "height": 1080
+      }
+     },
+     {
+      "meta": {
+       "label": "mp4_720p"
+      },
+      "play_info": {
+       "url": "https://f.video.weibocdn.com/o0/K7DTLyTrlx08CF4g7SyI01041211l0nT0E0n0.mp4?label=mp4_720p&template=1280x720.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=Tpzf%2Bb7jpa&KID=unistore,video",
+       "width": 1280,
+       "height": 720
+      }
+     },
+     {
+      "meta": {
+       "label": "mp4_hd"
+      },
+      "play_info": {
+       "url": "https://f.video.weibocdn.com/o0/AdMZPf2Olx08CF4fd4jS0104120y9UCH0E0d0.mp4?label=mp4_hd&template=852x480.25.0&media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=1ZM5mMj3mA&KID=unistore,video",
+       "width": 852,
+       "height": 480
+      }
+     },
+     {
+      "meta": {
+       "label": "scrubber_hd"
+      },
+      "play_info": {
+       "url": "https://wx2.sinaimg.cn/large/008f2ryaly1ijf8kcpfgmj30qo460h33.jpg?media_id=5369401055051778&tp=8x8A3El:YTkl0eM8&us=0&ori=1&bf=2&ot=h&lp=000041uCSX&ps=mZ6WB&uid=i1WDudi&ab=17399-g1,3601-g42,8013-g0,22690-g4&Expires=1795664633&ssig=jDWx4Tq3HC&KID=unistore,video",
+       "width": 320,
+       "height": 180
+      }
+     }
+    ]
+   }
+  }
+ }
+}

@@ -62,18 +62,57 @@ struct AppConfig: Codable, Equatable {
         }
     }
 
+    /// Match recordings from Weibo (回看). Defaults work with no remote
+    /// config at all; the remote copy exists to switch it off or retune it
+    /// when Weibo changes.
+    struct Replay: Codable, Equatable {
+        var enabled = true
+        /// Weibo uids whose video feeds make up the 回看 list.
+        var uploaders = ["7551290258", "2358578625"]
+        /// Appended to "主队vs客队" for a match's own search.
+        var searchSuffix = " 回放"
+        /// Shorter videos are highlights, not recordings.
+        var minDuration: Double = 600
+        /// Untitled videos at least this long count as the whole game.
+        var fullDuration: Double = 5400
+        /// How long after kickoff an undated upload still belongs to the match.
+        var windowHours: Double = 48
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let base = Replay()
+            enabled = (try? c.decode(Bool.self, forKey: .enabled)) ?? base.enabled
+            let uploaders = ((try? c.decode([String].self, forKey: .uploaders)) ?? [])
+                .filter { !$0.isEmpty && $0.allSatisfy(\.isNumber) }
+            self.uploaders = uploaders.isEmpty ? base.uploaders : Array(uploaders.prefix(10))
+            searchSuffix = (try? c.decode(String.self, forKey: .searchSuffix)) ?? base.searchSuffix
+            minDuration = min(3600, max(60, (try? c.decode(Double.self, forKey: .minDuration)) ?? base.minDuration))
+            fullDuration = min(14_400, max(1800, (try? c.decode(Double.self, forKey: .fullDuration)) ?? base.fullDuration))
+            windowHours = min(240, max(6, (try? c.decode(Double.self, forKey: .windowHours)) ?? base.windowHours))
+        }
+
+        var rules: ReplayRules {
+            ReplayRules(minDuration: minDuration, fullDuration: fullDuration, windowHours: windowHours)
+        }
+    }
+
     var watermark = Watermark()
     var slots: [String: Slot] = [:]
+    var replay = Replay()
 
-    init(watermark: Watermark = Watermark(), slots: [String: Slot] = [:]) {
+    init(watermark: Watermark = Watermark(), slots: [String: Slot] = [:], replay: Replay = Replay()) {
         self.watermark = watermark
         self.slots = slots
+        self.replay = replay
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         watermark = (try? c.decode(Watermark.self, forKey: .watermark)) ?? Watermark()
         slots = (try? c.decode([String: Slot].self, forKey: .slots)) ?? [:]
+        replay = (try? c.decode(Replay.self, forKey: .replay)) ?? Replay()
     }
 
     /// The watermark to draw, or nil when it is off for this viewer.

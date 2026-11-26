@@ -46,6 +46,7 @@ struct MatchDetailScreen: View {
                     }
                     .tint(Palette.secondaryText)
                     .disabled(openingPlayback)
+                    MatchReplaySection(match: match)
                     statistics
                 }
                 .padding(horizontalSizeClass == .compact ? 16 : 28)

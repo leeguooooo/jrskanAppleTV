@@ -36,6 +36,15 @@ pick them up on their next fetch.
 
 The watermark is burned into exported recordings too, moving the same way it does in the player.
 
+| `replay.enabled` | 回看 on/off (list button and the 回放 section on finished matches) |
+| `replay.uploaders` | Weibo uids (numeric strings, up to 10) whose video feeds make up the 回看 list |
+| `replay.searchSuffix` | appended to "主队vs客队" for a match's own Weibo search (default `" 回放"`) |
+| `replay.minDuration` | seconds; shorter videos are highlights and are skipped (60–3600, default 600) |
+| `replay.fullDuration` | seconds; an untitled video this long counts as the whole game (1800–14400, default 5400) |
+| `replay.windowHours` | how long after kickoff an undated upload still belongs to the match (6–240, default 48) |
+
+The apps carry the same replay defaults, so a Worker that predates the `replay` block (and drops it) changes nothing.
+
 A new slot id can be added to `slots` without a Worker deploy; it shows up once a client draws it. tvOS only
 shows the watermark (no banner).
 

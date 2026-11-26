@@ -56,6 +56,7 @@ struct MatchDetailView: View {
                         Button { showsChannels.toggle() } label: { Label("手动切换线路", systemImage: "list.bullet") }
                         if showsChannels { channelSection }
                     }
+                    MatchReplayRows(match: match)
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.vertical, 46)

@@ -1,4 +1,5 @@
-// Remote config for the JRKAN apps: the player watermark and ad slots.
+// Remote config for the JRKAN apps: the player watermark, ad slots and the
+// Weibo replay (回看) knobs.
 //
 // Shared by the Worker (which normalizes whatever is stored in KV before
 // serving it) and scripts/config.mjs (which validates a file before it is
@@ -34,6 +35,19 @@ export const DEFAULT_CONFIG = {
       url: "",
       hideForMembers: true,
     },
+  },
+  // 回看: match recordings fetched from Weibo by the apps themselves. The apps
+  // carry these same defaults, so this block only matters to switch it off or
+  // retune it when Weibo changes.
+  replay: {
+    enabled: true,
+    // Weibo uids whose video feeds make up the 回看 list.
+    uploaders: ["7551290258", "2358578625"],
+    // Appended to "主队vs客队" for a match's own search.
+    searchSuffix: " 回放",
+    minDuration: 600,
+    fullDuration: 5400,
+    windowHours: 48,
   },
 };
 
@@ -105,5 +119,22 @@ export function normalize(input) {
     };
   }
 
-  return { config: { version: 1, watermark, slots }, problems };
+  const r = source.replay && typeof source.replay === "object" ? source.replay : {};
+  let uploaders = Array.isArray(r.uploaders)
+    ? r.uploaders.map((u) => (typeof u === "number" ? String(u) : text(u, 20))).filter((u) => /^\d+$/.test(u)).slice(0, 10)
+    : null;
+  if (!uploaders || uploaders.length === 0) {
+    if (r.uploaders !== undefined) problems.push("replay.uploaders must be a non-empty array of numeric Weibo uids");
+    uploaders = base.replay.uploaders;
+  }
+  const replay = {
+    enabled: bool(r.enabled, base.replay.enabled),
+    uploaders,
+    searchSuffix: typeof r.searchSuffix === "string" ? r.searchSuffix.slice(0, 20) : base.replay.searchSuffix,
+    minDuration: number(r.minDuration, 60, 3600, base.replay.minDuration),
+    fullDuration: number(r.fullDuration, 1800, 14400, base.replay.fullDuration),
+    windowHours: number(r.windowHours, 6, 240, base.replay.windowHours),
+  };
+
+  return { config: { version: 1, watermark, slots, replay }, problems };
 }

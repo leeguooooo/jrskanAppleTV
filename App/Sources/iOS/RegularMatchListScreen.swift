@@ -16,6 +16,7 @@ struct RegularMatchListScreen: View {
     @State private var selectionToken = UUID()
     @State private var showsSettings = false
     @State private var showsRecordings = false
+    @State private var showsReplays = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     #if DEBUG
@@ -40,6 +41,16 @@ struct RegularMatchListScreen: View {
                     .toolbar {
                         ToolbarItem(placement: donePlacement) {
                             Button("完成") { showsRecordings = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showsReplays) {
+            NavigationStack {
+                ReplaysScreen()
+                    .toolbar {
+                        ToolbarItem(placement: donePlacement) {
+                            Button("完成") { showsReplays = false }
                         }
                     }
             }
@@ -102,6 +113,15 @@ struct RegularMatchListScreen: View {
         .navigationTitle("leeguoo sports")
         .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
         .toolbar {
+            if appConfig.config.replay.enabled {
+                ToolbarItem {
+                    Button {
+                        showsReplays = true
+                    } label: {
+                        Label("回看", systemImage: "play.rectangle.on.rectangle")
+                    }
+                }
+            }
             ToolbarItem {
                 Button {
                     showsRecordings = true

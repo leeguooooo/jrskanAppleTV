@@ -3,6 +3,7 @@ import SwiftUI
 struct MatchListView: View {
     @EnvironmentObject private var model: MatchListModel
     @EnvironmentObject private var preferences: Preferences
+    @ObservedObject private var appConfig = AppConfigStore.shared
 
     /// Re-evaluates "已进行 N 分钟" and moves matches between sections as
     /// kickoff passes, without a network refresh.
@@ -133,6 +134,15 @@ struct MatchListView: View {
                 HeaderIconButton(systemImage: "magnifyingglass", title: "搜索")
             }
             .buttonStyle(BareButtonStyle())
+
+            if appConfig.config.replay.enabled {
+                NavigationLink {
+                    ReplaysView()
+                } label: {
+                    HeaderIconButton(systemImage: "play.rectangle.on.rectangle", title: "回看")
+                }
+                .buttonStyle(BareButtonStyle())
+            }
 
             Button {
                 Task { await model.refresh() }

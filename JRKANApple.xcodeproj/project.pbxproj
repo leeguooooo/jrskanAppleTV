@@ -39,9 +39,11 @@
 		30B0BD0144ACC59F0826B89E /* StreamResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146FE878061FD60A7E8B410D /* StreamResolverTests.swift */; };
 		32C5F1E27942B698B7EECAC1 /* AppConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3F6C46EB5707B006996686C /* AppConfigTests.swift */; };
 		33056E80ADB05B7E07C65E48 /* MatchDataViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20084C4028DD8400105B30FE /* MatchDataViews.swift */; };
+		333BE725232D5C0F4F675F39 /* Replay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E61F5FA5C6DA9FAFE3F363 /* Replay.swift */; };
 		34E24F4A93FC7FF407B75965 /* HLSRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5863CD90AC4412E187B5137 /* HLSRecorder.swift */; };
 		35E5D4E0D86AB68191BB53D7 /* TencentSportsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */; };
 		365C44F1AD51B71BE7B0E0B6 /* RecordingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C9C9E407CCD4DA3838D402 /* RecordingsScreen.swift */; };
+		3BFB43A31075A511AF39544A /* Replay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E61F5FA5C6DA9FAFE3F363 /* Replay.swift */; };
 		3CA639C2DD817FACD72178F6 /* AccountAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39356D84442C30F7B046BF13 /* AccountAPI.swift */; };
 		41102F8E5D95270A3A034F97 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = E667E76B2B895B5D0789174A /* OFL.txt */; };
 		41725E6CAC51CC3A899C4D51 /* MultiSports.swift in Sources */ = {isa = PBXBuildFile; fileRef = 883755772EBC4743103B1657 /* MultiSports.swift */; };
@@ -50,7 +52,9 @@
 		4CF7D02FE21F8B286A1709CD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18C6543E468B4065A6EC744 /* Models.swift */; };
 		4E77AEC94B5B6EA1D563BBE4 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		4EA7126903D8FBFBB07BA8C4 /* RecordingExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542F0A57AD031B46A19E43DA /* RecordingExporter.swift */; };
+		4EABA9B4275F12B9A57F5423 /* WeiboClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8E107D8CD442023791E379 /* WeiboClient.swift */; };
 		50A0D6C951653ADCD28B8602 /* DeviceSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739EE460518CFFA4D0DB8DC0 /* DeviceSignIn.swift */; };
+		51CB30CC84EB2F6154361721 /* ReplaysScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF010614C3EFBA61DD41878B /* ReplaysScreen.swift */; };
 		520420A18CE2F0354C3600B6 /* Disguise.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A5FEDB7AAADC6624A11A27 /* Disguise.swift */; };
 		55A7FD0CC11D5EAAFC8A48BF /* TencentSportsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */; };
 		580BC96B511F1896D43077DD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 653DDABE5314A75C6A24CAE2 /* LaunchScreen.storyboard */; };
@@ -59,6 +63,7 @@
 		5C11EF67F00E71AC327076A6 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		5C914807D7A4A5DBC7F305D9 /* MatchDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0234E27651736E182F447240 /* MatchDetailScreen.swift */; };
 		5D9E1402C6E538EA83B4532A /* OrientationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */; };
+		5EA3E8FAD1DE6D63AD4BC0BA /* ReplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92161D9099EFF684BD9B07FE /* ReplayTests.swift */; };
 		61434824021049A6A521E3B5 /* MatchCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A03E1AD1E6AD14AAAFFA7EF /* MatchCard.swift */; };
 		626D5F4ECC13986CF4A1FD12 /* AccountSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C77CF8B3571CF73BC4B586F /* AccountSession.swift */; };
 		65C930740BA8BCAC3E9041FD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B5FEBB3FC07441CDDA83D3A6 /* PrivacyInfo.xcprivacy */; };
@@ -66,6 +71,7 @@
 		6BB572B7A9E69C80285110AE /* PlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E562777A1E90EA727E2F897D /* PlayerSession.swift */; };
 		6BD40C7F3851EBC43C6655AB /* LiveSiteContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5A1BDA5A7D27DA23B74A56 /* LiveSiteContractTests.swift */; };
 		6E443337D1649BDE9A16F296 /* AccountAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39356D84442C30F7B046BF13 /* AccountAPI.swift */; };
+		758BAA0101BC6118B6E36B1C /* ReplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92161D9099EFF684BD9B07FE /* ReplayTests.swift */; };
 		7624C69B95E5DE3C5F191081 /* MatchScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */; };
 		7737DBD6113F68387154EC78 /* PlaybackHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97594FAB228C1A127418D2E8 /* PlaybackHealth.swift */; };
 		790314D7B7A45B8B3152B0AD /* RecordingExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542F0A57AD031B46A19E43DA /* RecordingExporter.swift */; };
@@ -78,9 +84,11 @@
 		87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */; };
 		8A32FF6B2EFBFE2E5E54B671 /* TSRemuxer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55476F4897370F67347A7543 /* TSRemuxer.swift */; };
 		8B4211E69E47F9434E231A19 /* recording-1.mpegts in Resources */ = {isa = PBXBuildFile; fileRef = CE8F35AD507BEAEF582D7A0E /* recording-1.mpegts */; };
+		8D08F262E4C75C9A7B84B17D /* ReplayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB4F20F8411D570343A66636 /* ReplayStore.swift */; };
 		8FB7DFE9E8FFACA2528A34EB /* CompactMatchListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74CD530550FAFE75466DF7 /* CompactMatchListScreen.swift */; };
 		927FB31C55A0E0DC5F26AAE2 /* MatchScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */; };
 		9555F68EC6C93D670DF98F95 /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */; };
+		98DEC12554B60E0872A032D4 /* ReplayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB4F20F8411D570343A66636 /* ReplayStore.swift */; };
 		9DA3F097D02CF73DC0CB802D /* HLSPlaylist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC372A9469D23AC35D82938 /* HLSPlaylist.swift */; };
 		9E519C204229261351A60C8B /* StreamResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5BE82233AE1714BD02AEDE /* StreamResolver.swift */; };
 		9EAB1295BF34BFBD9F61423D /* RecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E948B5683E5A996105970426 /* RecordingStore.swift */; };
@@ -88,6 +96,7 @@
 		A24C7084D15139EE69D008B8 /* ExperienceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0794D2151FCE69C6BCB598AB /* ExperienceTests.swift */; };
 		A4C7C851E944B830DF73D1F8 /* RecordingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E3369A41475C2141317361 /* RecordingTests.swift */; };
 		A5FB174EC9771F64DBB18670 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCBF11EAF493C5299A821529 /* Assets.xcassets */; };
+		A8A9E6C463A4269258B98873 /* ReplaysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DF6CE2461849313AE2A723 /* ReplaysView.swift */; };
 		ABF39F61FAD181936DAAC61B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18C6543E468B4065A6EC744 /* Models.swift */; };
 		ABF854EEF57636E925E880BF /* AccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182FA6FA19422F8C514EF6D /* AccountStore.swift */; };
 		AD966957C062CE6661493EDF /* JRSListingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */; };
@@ -123,6 +132,7 @@
 		F2A21FB1ECB5AEC80CCFC655 /* recording-1.mpegts in Resources */ = {isa = PBXBuildFile; fileRef = CE8F35AD507BEAEF582D7A0E /* recording-1.mpegts */; };
 		F332D358D8158C7647F9740A /* OrientationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */; };
 		F36E514748615A4A95F38C14 /* JRKANiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */; };
+		F37BDB5F0BF1B665A916DA82 /* WeiboClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8E107D8CD442023791E379 /* WeiboClient.swift */; };
 		F5D1AEE65D860250E52EE386 /* LeeguooHeading-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 636ECA3B4FDC57B0A78FBE90 /* LeeguooHeading-Black.ttf */; };
 		F653E886998A45AFC179D6A3 /* AccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182FA6FA19422F8C514EF6D /* AccountStore.swift */; };
 		F702DD8A96C50B4F9A7A9099 /* MatchPlaybackModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F14150CD0489DD517C591F /* MatchPlaybackModel.swift */; };
@@ -172,8 +182,10 @@
 		542F0A57AD031B46A19E43DA /* RecordingExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingExporter.swift; sourceTree = "<group>"; };
 		55476F4897370F67347A7543 /* TSRemuxer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TSRemuxer.swift; sourceTree = "<group>"; };
 		56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRoute.swift; sourceTree = "<group>"; };
+		56E61F5FA5C6DA9FAFE3F363 /* Replay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Replay.swift; sourceTree = "<group>"; };
 		5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TencentSportsTests.swift; sourceTree = "<group>"; };
 		581B4B353F8C9863B02DF5F1 /* JRKANiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JRKANiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E8E107D8CD442023791E379 /* WeiboClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeiboClient.swift; sourceTree = "<group>"; };
 		5EC0EE40097AF2B9448CB59D /* TouchDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchDesign.swift; sourceTree = "<group>"; };
 		624EF5584288107D4B442797 /* RecordingCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingCenter.swift; sourceTree = "<group>"; };
 		636ECA3B4FDC57B0A78FBE90 /* LeeguooHeading-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LeeguooHeading-Black.ttf"; sourceTree = "<group>"; };
@@ -193,13 +205,16 @@
 		8CAB8F67A3E8647674137F51 /* CommentsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsWindow.swift; sourceTree = "<group>"; };
 		8F795A4A37A735508DDDBD0A /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		8FA3D4DE130C492B290FB4EB /* MatchScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchScheduleTests.swift; sourceTree = "<group>"; };
+		92161D9099EFF684BD9B07FE /* ReplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayTests.swift; sourceTree = "<group>"; };
 		97594FAB228C1A127418D2E8 /* PlaybackHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackHealth.swift; sourceTree = "<group>"; };
 		9C77CF8B3571CF73BC4B586F /* AccountSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSession.swift; sourceTree = "<group>"; };
 		9DC799BD820D1268CB4FA2C7 /* MatchListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchListView.swift; sourceTree = "<group>"; };
 		A0425CB0B64CC7E444C74608 /* JRKANiOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = JRKANiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A78184D0D479F4FE58EB4DEC /* recording-2.mpegts */ = {isa = PBXFileReference; path = "recording-2.mpegts"; sourceTree = "<group>"; };
+		AB4F20F8411D570343A66636 /* ReplayStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayStore.swift; sourceTree = "<group>"; };
 		ADA1C12705AC68769B12AD55 /* JRSListingParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRSListingParser.swift; sourceTree = "<group>"; };
 		AEE5D4CCA7B1CC4A4B17C0E1 /* SportsInsightsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportsInsightsViews.swift; sourceTree = "<group>"; };
+		AF010614C3EFBA61DD41878B /* ReplaysScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaysScreen.swift; sourceTree = "<group>"; };
 		B1448D30F03D5ED92BA5CFDA /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		B3E988F6A8A71368B65E0BA6 /* JRKANiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JRKANiOSApp.swift; sourceTree = "<group>"; };
 		B5863CD90AC4412E187B5137 /* HLSRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSRecorder.swift; sourceTree = "<group>"; };
@@ -216,6 +231,7 @@
 		D0C73B294039C092C684ACE8 /* LICENSES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSES.md; sourceTree = "<group>"; };
 		D3F6C46EB5707B006996686C /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
 		D6B493CE6BB2FB3AC7928093 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		D9DF6CE2461849313AE2A723 /* ReplaysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaysView.swift; sourceTree = "<group>"; };
 		E562777A1E90EA727E2F897D /* PlayerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSession.swift; sourceTree = "<group>"; };
 		E667E76B2B895B5D0789174A /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		E801DCA1C64C4ADCDE644D83 /* MultiSportsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSportsTests.swift; sourceTree = "<group>"; };
@@ -255,6 +271,7 @@
 				E562777A1E90EA727E2F897D /* PlayerSession.swift */,
 				75C9C9E407CCD4DA3838D402 /* RecordingsScreen.swift */,
 				F36F70D55742F421AD9C2D86 /* RegularMatchListScreen.swift */,
+				AF010614C3EFBA61DD41878B /* ReplaysScreen.swift */,
 				2EEEAA3631E8CB62F93052A1 /* RootScreen.swift */,
 				493E0B013E479B8EF86CE9B1 /* ScoreboardRow.swift */,
 				C253D69C104183CC136B6570 /* SettingsScreen.swift */,
@@ -332,6 +349,7 @@
 				E801DCA1C64C4ADCDE644D83 /* MultiSportsTests.swift */,
 				67FF5C0DBE5DECE9515557D0 /* OrientationPolicyTests.swift */,
 				07E3369A41475C2141317361 /* RecordingTests.swift */,
+				92161D9099EFF684BD9B07FE /* ReplayTests.swift */,
 				146FE878061FD60A7E8B410D /* StreamResolverTests.swift */,
 				5737CD59BE66872A1BCC1150 /* TencentSportsTests.swift */,
 				2B4E92DFAF3D1905285A169C /* Fixtures */,
@@ -359,6 +377,7 @@
 				08037366F4EC3456A8E0E3DE /* TencentSports.swift */,
 				5D69B4B526FA930A2AF473B9 /* Account */,
 				3C7F9AA57F7A0EEAF5F5B6C3 /* Recording */,
+				E006B814E0626E6EE3438ACD /* Replay */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -372,6 +391,7 @@
 				7E15189360D043027DF726F4 /* MatchDetailView.swift */,
 				9DC799BD820D1268CB4FA2C7 /* MatchListView.swift */,
 				166AFFAD6BCDCB1CB9018CC3 /* PlayerScreen.swift */,
+				D9DF6CE2461849313AE2A723 /* ReplaysView.swift */,
 				68B3E8B1E431F8497F427872 /* SettingsView.swift */,
 			);
 			path = TV;
@@ -410,6 +430,16 @@
 				8F11D3CDA5D21376BAED42E5 /* TV */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		E006B814E0626E6EE3438ACD /* Replay */ = {
+			isa = PBXGroup;
+			children = (
+				56E61F5FA5C6DA9FAFE3F363 /* Replay.swift */,
+				AB4F20F8411D570343A66636 /* ReplayStore.swift */,
+				5E8E107D8CD442023791E379 /* WeiboClient.swift */,
+			);
+			path = Replay;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -625,11 +655,15 @@
 				4EA7126903D8FBFBB07BA8C4 /* RecordingExporter.swift in Sources */,
 				2298AD2DA0DFA4D51919592B /* RecordingServer.swift in Sources */,
 				F10B92C072A5FFF23518B045 /* RecordingStore.swift in Sources */,
+				3BFB43A31075A511AF39544A /* Replay.swift in Sources */,
+				98DEC12554B60E0872A032D4 /* ReplayStore.swift in Sources */,
+				A8A9E6C463A4269258B98873 /* ReplaysView.swift in Sources */,
 				04E763EBB945EF0A395FB4AA /* SettingsView.swift in Sources */,
 				30563BB710007AD17F988D3E /* SportsInsightsViews.swift in Sources */,
 				D8D7F870BF57CE2BE1C21EC5 /* StreamResolver.swift in Sources */,
 				0033D7916F0DF529C0BFD6A2 /* TSRemuxer.swift in Sources */,
 				F9E8842139EA8951448E1422 /* TencentSports.swift in Sources */,
+				F37BDB5F0BF1B665A916DA82 /* WeiboClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -646,6 +680,7 @@
 				E7D93D9F8556B2FDAD19351A /* MultiSportsTests.swift in Sources */,
 				5D9E1402C6E538EA83B4532A /* OrientationPolicyTests.swift in Sources */,
 				A4C7C851E944B830DF73D1F8 /* RecordingTests.swift in Sources */,
+				5EA3E8FAD1DE6D63AD4BC0BA /* ReplayTests.swift in Sources */,
 				30B0BD0144ACC59F0826B89E /* StreamResolverTests.swift in Sources */,
 				35E5D4E0D86AB68191BB53D7 /* TencentSportsTests.swift in Sources */,
 			);
@@ -690,6 +725,9 @@
 				9EAB1295BF34BFBD9F61423D /* RecordingStore.swift in Sources */,
 				365C44F1AD51B71BE7B0E0B6 /* RecordingsScreen.swift in Sources */,
 				7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */,
+				333BE725232D5C0F4F675F39 /* Replay.swift in Sources */,
+				8D08F262E4C75C9A7B84B17D /* ReplayStore.swift in Sources */,
+				51CB30CC84EB2F6154361721 /* ReplaysScreen.swift in Sources */,
 				87BD4EF94022E2057D35C8D7 /* RootScreen.swift in Sources */,
 				F730894A27E9A40302916E13 /* ScoreboardRow.swift in Sources */,
 				08349E7A2C724CDB7011195A /* SettingsScreen.swift in Sources */,
@@ -699,6 +737,7 @@
 				00CC000A595F1509DAB4BE26 /* TencentSports.swift in Sources */,
 				4B7D566FEA8A5038A38271C9 /* TouchDesign.swift in Sources */,
 				80DBE1F70734F7FCFDE78F80 /* TouchPlayerScreen.swift in Sources */,
+				4EABA9B4275F12B9A57F5423 /* WeiboClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -715,6 +754,7 @@
 				595266967D23DE1036772DB8 /* MultiSportsTests.swift in Sources */,
 				F332D358D8158C7647F9740A /* OrientationPolicyTests.swift in Sources */,
 				E52C9CF68F6C803E8C60D345 /* RecordingTests.swift in Sources */,
+				758BAA0101BC6118B6E36B1C /* ReplayTests.swift in Sources */,
 				200218C81A1D8941BB310C8D /* StreamResolverTests.swift in Sources */,
 				55A7FD0CC11D5EAAFC8A48BF /* TencentSportsTests.swift in Sources */,
 			);

@@ -13,10 +13,13 @@ import Foundation
 ///                   `-account-mock trial|member|expired|free`)
 ///   recordings      iOS: open the recordings list at launch
 ///   recordings:play iOS: …and play the newest recording
+///   replays         open the 回看 list at launch
+///   replays:play    …and play the newest recording
 ///   membership      tvOS: open the scan-to-pay screen
 ///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter
 ///   play:<n>        open it and start the suggested channel
+///   detail:finished open the first finished match (its 回放 section)
 ///   play:live       open the most recently started live match that has
 ///                   channels and start playing
 enum DebugRoute {
@@ -43,6 +46,9 @@ enum DebugRoute {
                     return nil
                 }
                 .min { $0.1 < $1.1 }?.0
+        }
+        if argument == "finished" {
+            return matches.first { MatchSchedule.status(for: $0, now: now) == .finished }
         }
         if argument.hasPrefix("team=") {
             let team = String(argument.dropFirst(5))

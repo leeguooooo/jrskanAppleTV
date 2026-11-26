@@ -33,6 +33,15 @@ struct CompactMatchListScreen: View {
                     if sport == .all {
                         ToolbarItem(placement: .topBarTrailing) { refinementMenu }
                     }
+                    if appConfig.config.replay.enabled {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            NavigationLink {
+                                ReplaysScreen()
+                            } label: {
+                                Label("回看", systemImage: "play.rectangle.on.rectangle")
+                            }
+                        }
+                    }
                     if !recordings.recordings.isEmpty {
                         ToolbarItem(placement: .topBarTrailing) {
                             NavigationLink {

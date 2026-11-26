@@ -56,6 +56,8 @@ struct JRKANiOSApp: App {
                     NavigationStack { AccountScreen() }
                 } else if DebugRoute.raw?.hasPrefix("recordings") == true {
                     NavigationStack { RecordingsScreen() }
+                } else if DebugRoute.raw?.hasPrefix("replays") == true {
+                    NavigationStack { ReplaysScreen() }
                 } else {
                     RootScreen()
                 }
