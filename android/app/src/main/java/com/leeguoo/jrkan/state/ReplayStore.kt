@@ -4,10 +4,12 @@ import com.leeguoo.jrkan.data.LiveMatch
 import com.leeguoo.jrkan.data.MatchSchedule
 import com.leeguoo.jrkan.data.MatchStatus
 import com.leeguoo.jrkan.data.ReplayGroup
+import com.leeguoo.jrkan.data.ReplayCache
 import com.leeguoo.jrkan.data.ReplayParsing
 import com.leeguoo.jrkan.data.ReplayVideo
 import com.leeguoo.jrkan.data.WeiboClient
 import com.leeguoo.jrkan.data.userMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -33,7 +35,14 @@ object ReplayLibrary {
     fun group(id: String): ReplayGroup? = _state.value.groups.firstOrNull { it.id == id }
 
     suspend fun refreshIfStale(now: Long = System.currentTimeMillis()) {
-        if (lastLoad != 0L && now - lastLoad < 10 * 60_000L && _state.value.groups.isNotEmpty()) return
+        // Last time's list shows at once; a stale one is refreshed behind it.
+        if (_state.value.groups.isEmpty()) {
+            ReplayCache.read("library", ReplayCache.videoList)?.let { hit ->
+                lastLoad = hit.savedAt
+                _state.value = _state.value.copy(groups = ReplayParsing.groups(hit.value))
+            }
+        }
+        if (lastLoad != 0L && now - lastLoad < ReplayCache.LIBRARY_LIFETIME && _state.value.groups.isNotEmpty()) return
         refresh()
     }
 
@@ -63,6 +72,7 @@ object ReplayLibrary {
             _state.value.copy(isLoading = false, errorMessage = failure.userMessage())
         } else {
             lastLoad = System.currentTimeMillis()
+            ReplayCache.write("library", videos, ReplayCache.videoList)
             State(groups = ReplayParsing.groups(videos))
         }
     }
@@ -87,8 +97,17 @@ class MatchReplays(val match: LiveMatch) {
         if (_state.value == State.Loading || !isEligible(match, now)) return
         val kickoff = MatchSchedule.kickoff(match.time, now)?.toEpochMilli() ?: return
         val config = AppConfigStore.config.value.replay
-        _state.value = State.Loading
         val known = ReplayLibrary.videos
+        val key = ReplayCache.searchKey(match.homeTeam, match.awayTeam, kickoff)
+        // A search that is still good is used as is; an older one shows while the new search runs.
+        val cached = ReplayCache.read(key, ReplayCache.videoList)
+        if (cached != null) {
+            _state.value = State.Loaded(ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, cached.value + known, config.rules))
+            if (now - cached.savedAt < ReplayCache.searchLifetime(kickoff, cached.value.isNotEmpty(), now)) return
+        } else {
+            _state.value = State.Loading
+        }
+        val shown = _state.value
         _state.value = try {
             // Uploaders write either order and Weibo ranks them apart: ask both ways.
             val queries = listOf(
@@ -102,8 +121,14 @@ class MatchReplays(val match: LiveMatch) {
             }
             if (results.all { it.isFailure }) throw results.first().exceptionOrNull()!!
             val found = results.flatMap { it.getOrNull().orEmpty() }
-            State.Loaded(ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, found + known, config.rules))
+            val matched = ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, found, config.rules)
+            ReplayCache.write(key, matched, ReplayCache.videoList)
+            State.Loaded(ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, matched + known, config.rules))
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            // Keep what the cache showed; only an empty screen becomes an error.
+            if (shown is State.Loaded && shown.videos.isNotEmpty()) return
             val fallback = ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, known, config.rules)
             if (fallback.isEmpty()) State.Failed(error.userMessage()) else State.Loaded(fallback)
         }

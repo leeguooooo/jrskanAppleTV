@@ -16,6 +16,12 @@ final class ReplayLibrary: ObservableObject {
 
     init(client: WeiboClient = .shared) {
         self.client = client
+        Task.detached(priority: .background) { ReplayCache.prune() }
+        // Last time's list shows at once; a stale one is refreshed behind it.
+        if let cached = ReplayCache.read("library", as: [ReplayVideo].self) {
+            groups = ReplayParsing.groups(cached.value)
+            lastLoad = cached.savedAt
+        }
     }
 
     var config: AppConfig.Replay { AppConfigStore.shared.config.replay }
@@ -24,7 +30,7 @@ final class ReplayLibrary: ObservableObject {
     var videos: [ReplayVideo] { groups.flatMap(\.videos) }
 
     func refreshIfStale(now: Date = Date()) async {
-        if let lastLoad, now.timeIntervalSince(lastLoad) < 10 * 60, !groups.isEmpty { return }
+        if let lastLoad, now.timeIntervalSince(lastLoad) < ReplayCache.libraryLifetime, !groups.isEmpty { return }
         await refresh()
     }
 
@@ -65,6 +71,7 @@ final class ReplayLibrary: ObservableObject {
         errorMessage = nil
         lastLoad = Date()
         groups = ReplayParsing.groups(videos)
+        ReplayCache.write("library", videos)
     }
 }
 
@@ -78,6 +85,7 @@ final class MatchReplays: ObservableObject {
 
     @Published private(set) var videos: [ReplayVideo] = []
     @Published private(set) var state = State.idle
+    private var isSearching = false
 
     let match: LiveMatch
     private let client: WeiboClient
@@ -100,11 +108,24 @@ final class MatchReplays: ObservableObject {
     }
 
     func load(now: Date = Date()) async {
-        guard state != .loading, Self.isEligible(match, now: now),
+        guard state != .loading, !isSearching, Self.isEligible(match, now: now),
               let kickoff = MatchSchedule.kickoff(from: match.time, now: now) else { return }
         let config = AppConfigStore.shared.config.replay
-        state = .loading
+        let key = ReplayCache.searchKey(home: match.homeTeam, away: match.awayTeam, kickoff: kickoff)
         let known = ReplayLibrary.shared.videos
+        // A search that is still good is used as is; an older one shows while
+        // the new search runs.
+        isSearching = true
+        defer { isSearching = false }
+        if let cached = ReplayCache.read(key, as: [ReplayVideo].self) {
+            videos = ReplayParsing.videos(for: match.homeTeam, away: match.awayTeam, kickoff: kickoff,
+                                          in: cached.value + known, rules: config.rules)
+            state = .loaded
+            let lifetime = ReplayCache.searchLifetime(kickoff: kickoff, foundAny: !cached.value.isEmpty, now: now)
+            if now.timeIntervalSince(cached.savedAt) < lifetime { return }
+        } else {
+            state = .loading
+        }
         do {
             // Uploaders write either order ("76人vs热火" and "热火vs76人"), and
             // Weibo's search ranks them apart, so ask both ways.
@@ -112,10 +133,15 @@ final class MatchReplays: ObservableObject {
                 "\(match.homeTeam)vs\(match.awayTeam)\(config.searchSuffix)",
                 "\(match.awayTeam)vs\(match.homeTeam)\(config.searchSuffix)",
             ], rules: config.rules)
+            let matched = ReplayParsing.videos(for: match.homeTeam, away: match.awayTeam, kickoff: kickoff,
+                                               in: found, rules: config.rules)
+            ReplayCache.write(key, matched)
             videos = ReplayParsing.videos(for: match.homeTeam, away: match.awayTeam, kickoff: kickoff,
-                                          in: found + known, rules: config.rules)
+                                          in: matched + known, rules: config.rules)
             state = .loaded
         } catch {
+            // Keep what the cache showed; only an empty screen becomes an error.
+            if state == .loaded, !videos.isEmpty { return }
             videos = ReplayParsing.videos(for: match.homeTeam, away: match.awayTeam, kickoff: kickoff,
                                           in: known, rules: config.rules)
             state = videos.isEmpty ? .failed(error.localizedDescription) : .loaded

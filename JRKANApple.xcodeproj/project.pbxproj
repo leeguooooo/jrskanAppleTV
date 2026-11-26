@@ -54,6 +54,7 @@
 		4E77AEC94B5B6EA1D563BBE4 /* JRSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA31676B29AF1E71B60E890 /* JRSClient.swift */; };
 		4EA7126903D8FBFBB07BA8C4 /* RecordingExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542F0A57AD031B46A19E43DA /* RecordingExporter.swift */; };
 		4EABA9B4275F12B9A57F5423 /* WeiboClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8E107D8CD442023791E379 /* WeiboClient.swift */; };
+		4F8AF91FFA3B8FC3FD907987 /* ReplayCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77E4A5C18F77F2248333EC1 /* ReplayCache.swift */; };
 		50A0D6C951653ADCD28B8602 /* DeviceSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 739EE460518CFFA4D0DB8DC0 /* DeviceSignIn.swift */; };
 		51CB30CC84EB2F6154361721 /* ReplaysScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF010614C3EFBA61DD41878B /* ReplaysScreen.swift */; };
 		520420A18CE2F0354C3600B6 /* Disguise.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A5FEDB7AAADC6624A11A27 /* Disguise.swift */; };
@@ -109,6 +110,7 @@
 		C2D71DCBD5FC6C4F736CF26C /* ReplayStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8C30D9076B8E0BC6BD9641 /* ReplayStats.swift */; };
 		C2DD5EFD2D6ACA98E3AC2C3B /* ChakraPetch-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 360FFFDC057D1157C1FE7A27 /* ChakraPetch-Bold.ttf */; };
 		C4F2CE29255ED27A5F842FE6 /* iOSAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1309C8B5493C3C6AF2316DD1 /* iOSAssets.xcassets */; };
+		C6B838BB716D18D2BBF738AD /* ReplayCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77E4A5C18F77F2248333EC1 /* ReplayCache.swift */; };
 		CBB66786093D305B9D3CC12C /* DebugRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CAFEDE64202CB6BD5C17D6 /* DebugRoute.swift */; };
 		CDD5204B04A6F77B978FED0B /* recording-2.mpegts in Resources */ = {isa = PBXBuildFile; fileRef = A78184D0D479F4FE58EB4DEC /* recording-2.mpegts */; };
 		D000F5608E1A0A0941D5F29E /* CommentsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAB8F67A3E8647674137F51 /* CommentsWindow.swift */; };
@@ -233,6 +235,7 @@
 		D0C73B294039C092C684ACE8 /* LICENSES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSES.md; sourceTree = "<group>"; };
 		D3F6C46EB5707B006996686C /* AppConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigTests.swift; sourceTree = "<group>"; };
 		D6B493CE6BB2FB3AC7928093 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		D77E4A5C18F77F2248333EC1 /* ReplayCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayCache.swift; sourceTree = "<group>"; };
 		D9DF6CE2461849313AE2A723 /* ReplaysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaysView.swift; sourceTree = "<group>"; };
 		E562777A1E90EA727E2F897D /* PlayerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSession.swift; sourceTree = "<group>"; };
 		E667E76B2B895B5D0789174A /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
@@ -439,6 +442,7 @@
 			isa = PBXGroup;
 			children = (
 				56E61F5FA5C6DA9FAFE3F363 /* Replay.swift */,
+				D77E4A5C18F77F2248333EC1 /* ReplayCache.swift */,
 				EC8C30D9076B8E0BC6BD9641 /* ReplayStats.swift */,
 				AB4F20F8411D570343A66636 /* ReplayStore.swift */,
 				5E8E107D8CD442023791E379 /* WeiboClient.swift */,
@@ -660,6 +664,7 @@
 				2298AD2DA0DFA4D51919592B /* RecordingServer.swift in Sources */,
 				F10B92C072A5FFF23518B045 /* RecordingStore.swift in Sources */,
 				3BFB43A31075A511AF39544A /* Replay.swift in Sources */,
+				C6B838BB716D18D2BBF738AD /* ReplayCache.swift in Sources */,
 				C2D71DCBD5FC6C4F736CF26C /* ReplayStats.swift in Sources */,
 				98DEC12554B60E0872A032D4 /* ReplayStore.swift in Sources */,
 				A8A9E6C463A4269258B98873 /* ReplaysView.swift in Sources */,
@@ -731,6 +736,7 @@
 				365C44F1AD51B71BE7B0E0B6 /* RecordingsScreen.swift in Sources */,
 				7A4FD678DAFA37C7E0948965 /* RegularMatchListScreen.swift in Sources */,
 				333BE725232D5C0F4F675F39 /* Replay.swift in Sources */,
+				4F8AF91FFA3B8FC3FD907987 /* ReplayCache.swift in Sources */,
 				2B56B528F331487E232E5803 /* ReplayStats.swift in Sources */,
 				8D08F262E4C75C9A7B84B17D /* ReplayStore.swift in Sources */,
 				51CB30CC84EB2F6154361721 /* ReplaysScreen.swift in Sources */,

@@ -161,6 +161,29 @@ final class ReplayTests: XCTestCase {
         XCTAssertEqual(found.first?.away, "热火")
     }
 
+    func testCacheRoundTripAndLifetimes() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("replay-cache-tests-\(UUID().uuidString)")
+        ReplayCache.directoryOverride = dir
+        defer { ReplayCache.directoryOverride = nil; try? FileManager.default.removeItem(at: dir) }
+        let videos = ReplayParsing.waterfall(try XCTUnwrap(fixture()["waterfall"] as? [String: Any]), rules: rules).videos
+        ReplayCache.write("library", videos)
+        let back = try XCTUnwrap(ReplayCache.read("library", as: [ReplayVideo].self))
+        XCTAssertEqual(back.value, videos, "parts, matchups and dates survive the round trip")
+        XCTAssertLessThan(Date().timeIntervalSince(back.savedAt), 5)
+
+        let kickoff = beijing("2026-11-26 08:00")
+        XCTAssertEqual(ReplayCache.searchLifetime(kickoff: kickoff, foundAny: true, now: kickoff.addingTimeInterval(3 * 3600)), 15 * 60)
+        XCTAssertEqual(ReplayCache.searchLifetime(kickoff: kickoff, foundAny: true, now: kickoff.addingTimeInterval(20 * 3600)), 2 * 3600)
+        XCTAssertEqual(ReplayCache.searchLifetime(kickoff: kickoff, foundAny: true, now: kickoff.addingTimeInterval(5 * 86_400)), 24 * 3600)
+        XCTAssertEqual(ReplayCache.searchLifetime(kickoff: kickoff, foundAny: false, now: kickoff.addingTimeInterval(5 * 86_400)), 10 * 60)
+
+        let streams = ReplayParsing.streams(try XCTUnwrap(fixture()["show"] as? [String: Any]))
+        ReplayCache.storeStreams(streams, for: "x")
+        let expires = try XCTUnwrap(streams.first?.expires)
+        XCTAssertNotNil(ReplayCache.usableStreams(for: "x", now: expires.addingTimeInterval(-3600)))
+        XCTAssertNil(ReplayCache.usableStreams(for: "x", now: expires.addingTimeInterval(-300)), "less than 10 minutes left")
+    }
+
     func testRemoteConfigReplayBlock() throws {
         XCTAssertEqual(try JSONDecoder().decode(AppConfig.self, from: Data("{}".utf8)).replay, AppConfig.Replay())
         let config = try JSONDecoder().decode(AppConfig.self, from: Data("""

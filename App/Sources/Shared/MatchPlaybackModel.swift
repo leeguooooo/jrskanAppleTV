@@ -364,7 +364,7 @@ final class MatchPlaybackModel: ObservableObject {
 
     /// Fetches a fresh MP4 link (they expire in about an hour) and plays it
     /// from `resumeAt`, or from where this upload was last left off.
-    private func startReplay(at index: Int, resumeAt: Double?) async {
+    private func startReplay(at index: Int, resumeAt: Double?, freshLink: Bool = false) async {
         guard let replay, replay.videos.indices.contains(index), !Task.isCancelled else { return }
         requestGeneration += 1
         let generation = requestGeneration
@@ -382,7 +382,14 @@ final class MatchPlaybackModel: ObservableObject {
         }
         let video = replay.videos[index]
         do {
-            let streams = ReplayParsing.streams(try await WeiboClient.shared.status(video.id))
+            // A link with time left is reused; after a failure always get a new one.
+            let streams: [ReplayStream]
+            if !freshLink, let cached = ReplayCache.usableStreams(for: video.id) {
+                streams = cached
+            } else {
+                streams = ReplayParsing.streams(try await WeiboClient.shared.status(video.id))
+                ReplayCache.storeStreams(streams, for: video.id)
+            }
             guard generation == requestGeneration, !Task.isCancelled else { return }
             guard let stream = streams.first else {
                 playback = nil
@@ -423,7 +430,7 @@ final class MatchPlaybackModel: ObservableObject {
         recoveryTask?.cancel()
         recoveryTask = Task { [weak self] in
             guard let self, !Task.isCancelled else { return }
-            await self.startReplay(at: index, resumeAt: position)
+            await self.startReplay(at: index, resumeAt: position, freshLink: true)
         }
     }
 

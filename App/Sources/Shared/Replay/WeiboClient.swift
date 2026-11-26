@@ -56,6 +56,25 @@ actor WeiboClient {
         configuration.httpAdditionalHeaders = ["User-Agent": Self.userAgent]
         cookies = configuration.httpCookieStorage ?? HTTPCookieStorage()
         session = URLSession(configuration: configuration)
+        // Visitor identities last for months: reuse last launch's instead of
+        // minting new ones every time.
+        for properties in UserDefaults.standard.array(forKey: Self.savedCookiesKey) as? [[String: Any]] ?? [] {
+            let keyed = Dictionary(uniqueKeysWithValues: properties.map { (HTTPCookiePropertyKey($0.key), $0.value) })
+            if let cookie = HTTPCookie(properties: keyed), let expires = cookie.expiresDate, expires > Date() {
+                cookies.setCookie(cookie)
+            }
+        }
+    }
+
+    private static let savedCookiesKey = "weiboVisitorCookies"
+
+    /// Only the visitor identity, and only cookies that carry their own expiry.
+    private func saveVisitorCookies() {
+        let kept = (cookies.cookies ?? []).filter {
+            ["SUB", "SUBP"].contains($0.name) && $0.domain.contains("weibo") && $0.expiresDate != nil
+        }
+        let plist = kept.compactMap { $0.properties }.map { Dictionary(uniqueKeysWithValues: $0.map { ($0.key.rawValue, $0.value) }) }
+        UserDefaults.standard.set(plist, forKey: Self.savedCookiesKey)
     }
 
     // MARK: Endpoints
@@ -124,5 +143,6 @@ actor WeiboClient {
         request.httpBody = Data("cb=visitor_gray_callback&tid=&from=weibo&webdriver=false".utf8)
         let (_, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200, hasVisitor(site) else { throw Failure.blocked }
+        saveVisitorCookies()
     }
 }

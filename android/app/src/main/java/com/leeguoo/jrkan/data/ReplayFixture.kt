@@ -23,34 +23,52 @@ import java.time.format.DateTimeFormatter
 object ReplayFixture {
     data class Event(val id: String, val start: Long, val home: String, val away: String)
 
-    suspend fun nbaMatch(videos: List<ReplayVideo>): LiveMatch? {
+    @kotlinx.serialization.Serializable
+    private class Cached(val match: LiveMatch? = null)
+
+    /** Cached: found for 30 days, not found for 6 hours (never after a network failure). */
+    suspend fun nbaMatch(videos: List<ReplayVideo>, now: Long = System.currentTimeMillis()): LiveMatch? {
         val first = videos.firstOrNull() ?: return null
         val matchup = first.matchup ?: return null
         val teams = setOf(MultiSportsClient.canonical(matchup.left), MultiSportsClient.canonical(matchup.right))
         if (!nbaTeams.containsAll(teams)) return null
+        val key = "fixture:${matchup.key}@${first.gameDay}"
+        ReplayCache.read(key, Cached.serializer())?.let { hit ->
+            val lifetime = if (hit.value.match == null) 6 * 3_600_000L else 30 * 86_400_000L
+            if (now - hit.savedAt < lifetime) return hit.value.match
+        }
+        val (match, complete) = lookUp(videos, teams)
+        if (match != null || complete) ReplayCache.write(key, Cached(match), Cached.serializer())
+        return match
+    }
+
+    private suspend fun lookUp(videos: List<ReplayVideo>, teams: Set<String>): Pair<LiveMatch?, Boolean> {
+        val first = videos.first()
         val earliest = videos.minOf { it.postedAt }
         val day = first.gameDay
         val ny = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.of("America/New_York"))
         val dates = listOf(day - 86_400_000L, day, day + 43_200_000L).map { ny.format(Instant.ofEpochMilli(it)) }.toSet()
         // In parallel and short: this sits between the tap and the picture.
-        val found = coroutineScope {
+        val pages = coroutineScope {
             dates.map { date ->
                 async {
                     runCatching {
                         val page = Http.get("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=$date", timeoutSeconds = 4)
-                        if (page.status != 200) emptyList()
+                        if (page.status != 200) null
                         else events(Json.parseToJsonElement(page.utf8OrLatin1()) as JsonObject, teams)
-                    }.getOrDefault(emptyList())
+                    }.getOrNull()
                 }
-            }.awaitAll().flatten()
+            }.awaitAll()
         }
+        val complete = pages.all { it != null }
+        val found = pages.filterNotNull().flatten()
         val candidates = found.distinctBy { it.id }.filter { ReplayParsing.beijingDay(it.start) == day && it.start < earliest }
-        val game = candidates.singleOrNull() ?: return null
+        val game = candidates.singleOrNull() ?: return null to complete
         val clock = DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(ReplayParsing.beijing)
         return LiveMatch(
             id = "replay-fixture:espn:${game.id}", league = "NBA", time = clock.format(Instant.ofEpochMilli(game.start)),
             homeTeam = game.home, awayTeam = game.away, homeLogoUrl = null, awayLogoUrl = null, isHot = false, sources = emptyList(),
-        )
+        ) to true
     }
 
     /** Finished games on one scoreboard page with exactly these two teams. */

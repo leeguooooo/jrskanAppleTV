@@ -5,7 +5,7 @@ import Foundation
 // This file only parses and classifies; WeiboClient fetches.
 
 /// One Weibo video post that looks like a match recording.
-struct ReplayVideo: Identifiable, Hashable, Sendable {
+struct ReplayVideo: Identifiable, Hashable, Sendable, Codable {
     enum Part: Hashable, Sendable {
         case full
         case firstHalf
@@ -35,7 +35,7 @@ struct ReplayVideo: Identifiable, Hashable, Sendable {
         }
     }
 
-    struct Matchup: Hashable, Sendable {
+    struct Matchup: Hashable, Sendable, Codable {
         let left: String
         let right: String
 
@@ -392,7 +392,7 @@ enum ReplayParsing {
     }
 }
 
-struct ReplayStream: Hashable, Sendable {
+struct ReplayStream: Hashable, Sendable, Codable {
     let label: String
     let url: URL
     let height: Int

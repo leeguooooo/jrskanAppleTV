@@ -148,6 +148,31 @@ class ReplayTest {
     }
 
     @Test
+    fun cacheRoundTripAndLifetimes() {
+        val dir = kotlin.io.path.createTempDirectory("replay-cache").toFile()
+        com.leeguoo.jrkan.data.ReplayCache.directory = dir
+        try {
+            val cache = com.leeguoo.jrkan.data.ReplayCache
+            val videos = ReplayParsing.waterfall(section("waterfall"), rules).videos
+            cache.write("library", videos, cache.videoList)
+            assertEquals(videos, cache.read("library", cache.videoList)!!.value)
+            val kickoff = beijing("2026-11-26 08:00")
+            assertEquals(15 * 60_000L, cache.searchLifetime(kickoff, true, kickoff + 3 * 3_600_000L))
+            assertEquals(2 * 3_600_000L, cache.searchLifetime(kickoff, true, kickoff + 20 * 3_600_000L))
+            assertEquals(24 * 3_600_000L, cache.searchLifetime(kickoff, true, kickoff + 5 * 86_400_000L))
+            assertEquals(10 * 60_000L, cache.searchLifetime(kickoff, false, kickoff + 5 * 86_400_000L))
+            val streams = ReplayParsing.streams(section("show"))
+            cache.storeStreams(streams, "x")
+            val expires = streams.first().expiresAt!!
+            assertNotNull(cache.usableStreams("x", expires - 3_600_000L))
+            assertNull("less than 10 minutes left", cache.usableStreams("x", expires - 300_000L))
+        } finally {
+            com.leeguoo.jrkan.data.ReplayCache.directory = null
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test
     fun remoteConfigReplayBlock() {
         assertEquals(AppConfig.Replay(), AppConfig.parse("{}")!!.replay)
         val config = AppConfig.parse("""{"replay":{"enabled":false,"uploaders":["abc"],"minDuration":1,"windowHours":1000,"searchSuffix":" 录像"}}""")!!

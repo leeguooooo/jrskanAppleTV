@@ -1,5 +1,6 @@
 package com.leeguoo.jrkan.data
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -17,6 +18,7 @@ import kotlin.math.abs
 // classification only; WeiboClient fetches.
 
 /** One Weibo video post that looks like a match recording. Times are epoch millis. */
+@Serializable
 data class ReplayVideo(
     /** Weibo's short id (mblogid / bid), used to fetch fresh play links. */
     val id: String,
@@ -32,12 +34,13 @@ data class ReplayVideo(
     /** Match day named in the title, Beijing midnight. */
     val titledDay: Long?,
 ) {
+    @Serializable
     sealed interface Part {
-        data object Full : Part
-        data object FirstHalf : Part
-        data object SecondHalf : Part
-        data class Period(val number: Int) : Part
-        data object Other : Part
+        @Serializable data object Full : Part
+        @Serializable data object FirstHalf : Part
+        @Serializable data object SecondHalf : Part
+        @Serializable data class Period(val number: Int) : Part
+        @Serializable data object Other : Part
 
         val label: String
             get() = when (this) {
@@ -59,6 +62,7 @@ data class ReplayVideo(
             }
     }
 
+    @Serializable
     data class Matchup(val left: String, val right: String) {
         /** Order-free key in canonical names: 热火vs76人 and 76人vs热火 are one game. */
         val key: String get() = listOf(MultiSportsClient.canonical(left), MultiSportsClient.canonical(right)).sorted().joinToString("|")
@@ -113,6 +117,7 @@ data class ReplayGroup(val matchup: ReplayVideo.Matchup, val day: Long, val vide
     }
 }
 
+@Serializable
 data class ReplayStream(val label: String, val url: String, val height: Int) {
     /** Weibo signs links for about an hour ("Expires=<unix seconds>"). */
     val expiresAt: Long? get() = Regex("[?&]Expires=(\\d+)").find(url)?.groupValues?.get(1)?.toLongOrNull()?.times(1000)

@@ -2,6 +2,7 @@ package com.leeguoo.jrkan.state
 
 import com.leeguoo.jrkan.data.LiveMatch
 import com.leeguoo.jrkan.data.MatchSource
+import com.leeguoo.jrkan.data.ReplayCache
 import com.leeguoo.jrkan.data.ReplayParsing
 import com.leeguoo.jrkan.data.ReplayResume
 import com.leeguoo.jrkan.data.ReplayVideo
@@ -325,7 +326,7 @@ class MatchPlaybackModel(
     // Replay
 
     /** Fetches a fresh MP4 link (they expire in about an hour) and plays it from resumeAtMs, or where it was left. */
-    private suspend fun startReplay(index: Int, resumeAtMs: Long?) {
+    private suspend fun startReplay(index: Int, resumeAtMs: Long?, freshLink: Boolean = false) {
         val replay = replay ?: return
         val video = replay.videos.getOrNull(index) ?: return
         requestGeneration += 1
@@ -337,7 +338,9 @@ class MatchPlaybackModel(
         }
         _state.update { it.copy(errorMessage = null, resolvingIndex = index) }
         try {
-            val streams = ReplayParsing.streams(ReplayLibrary.client.status(video.id))
+            // A link with time left is reused; after a failure always get a new one.
+            val streams = (if (freshLink) null else ReplayCache.usableStreams(video.id))
+                ?: ReplayParsing.streams(ReplayLibrary.client.status(video.id)).also { ReplayCache.storeStreams(it, video.id) }
             if (generation != requestGeneration) return
             val stream = streams.firstOrNull()
             if (stream == null) {
@@ -377,7 +380,7 @@ class MatchPlaybackModel(
         _state.update { it.copy(notice = "播放中断，正在换新的播放地址…") }
         val position = lastPositionMs
         recoveryJob?.cancel()
-        recoveryJob = scope.launch { startReplay(index, resumeAtMs = position) }
+        recoveryJob = scope.launch { startReplay(index, resumeAtMs = position, freshLink = true) }
     }
 
     /** The player's position, for resuming; saved every few seconds. */

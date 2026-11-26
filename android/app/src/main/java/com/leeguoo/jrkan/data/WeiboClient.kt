@@ -42,6 +42,28 @@ class WeiboClient(base: OkHttpClient = Http.client) {
                 this.cookies.removeAll { it.name == cookie.name && it.domain == cookie.domain && it.path == cookie.path }
                 if (cookie.expiresAt > now) this.cookies += cookie
             }
+            persist()
+        }
+
+        /** Visitor identities last for months: keep them across launches. */
+        @Synchronized
+        fun restore(prefs: android.content.SharedPreferences) {
+            store = prefs
+            val now = System.currentTimeMillis()
+            prefs.getStringSet(PREFS_KEY, emptySet()).orEmpty().forEach { line ->
+                val (host, header) = line.split("|", limit = 2).takeIf { it.size == 2 } ?: return@forEach
+                val cookie = runCatching { Cookie.parse("https://$host/".toHttpUrl(), header) }.getOrNull() ?: return@forEach
+                if (cookie.persistent && cookie.expiresAt > now) cookies += cookie
+            }
+        }
+
+        private var store: android.content.SharedPreferences? = null
+
+        private fun persist() {
+            val prefs = store ?: return
+            val kept = cookies.filter { it.persistent && it.name in setOf("SUB", "SUBP") }
+                .map { "${it.domain}|${it}" }.toSet()
+            prefs.edit().putStringSet(PREFS_KEY, kept).apply()
         }
 
         @Synchronized
@@ -52,6 +74,9 @@ class WeiboClient(base: OkHttpClient = Http.client) {
     }
 
     private val client = base.newBuilder().cookieJar(jar).build()
+
+    /** Keep the visitor cookies in these preferences across launches. */
+    fun persistCookies(prefs: android.content.SharedPreferences) = jar.restore(prefs)
 
     /** One page of an uploader's video feed (weibo.com profile "视频" tab). */
     suspend fun uploaderVideos(uid: String, cursor: String? = null): JsonObject {
@@ -113,6 +138,7 @@ class WeiboClient(base: OkHttpClient = Http.client) {
     }
 
     companion object {
+        private const val PREFS_KEY = "visitorCookies"
         private const val USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 " +
             "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
     }
