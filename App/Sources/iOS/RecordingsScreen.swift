@@ -237,9 +237,14 @@ private struct RecordingPlayerScreen: View {
                 errorMessage = "无法打开录像：\(error.localizedDescription)"
             }
         }
-        .onAppear { Orientation.enterLandscape() }
+        .onAppear {
+            // Hold the layout first: landscape on a Pro Max is a regular width.
+            CoverPlayerPresence.shared.playerAppeared()
+            DispatchQueue.main.async { Orientation.enterLandscape() }
+        }
         .onDisappear {
             player?.pause()
+            CoverPlayerPresence.shared.playerDisappeared()
             Orientation.restoreDefault()
         }
     }

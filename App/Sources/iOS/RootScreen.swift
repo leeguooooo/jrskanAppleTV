@@ -18,6 +18,7 @@ struct RootScreen: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ObservedObject private var session = PlayerSession.shared
     @ObservedObject private var handoff = LayoutHandoff.shared
+    @ObservedObject private var coverPlayer = CoverPlayerPresence.shared
     @State private var heldCompact: Bool?
 
     private var fitsCompact: Bool { horizontalSizeClass != .regular }
@@ -35,7 +36,22 @@ struct RootScreen: View {
         .onChange(of: session.isPresented) { _, presented in
             if presented { heldCompact = fitsCompact } else { releaseHeldLayout() }
         }
+        // Replays and recordings play in their own full-screen covers, deep in
+        // the compact stack, and turn the phone to landscape too. On a Pro Max
+        // or Air that is a regular width: switching layouts there tore down
+        // the stack and the cover with it. Hold the layout until the phone is
+        // upright again.
+        .onChange(of: coverPlayer.isPresented) { _, presented in
+            if presented {
+                heldCompact = heldCompact ?? fitsCompact
+            } else if let held = heldCompact, held == fitsCompact, !session.isPresented {
+                heldCompact = nil
+            }
+        }
         .onChange(of: fitsCompact) { _, _ in releaseHeldLayout() }
+        .onReceive(coverPlayer.objectWillChange) { _ in
+            DispatchQueue.main.async { if !coverPlayer.isPresented { releaseHeldLayout() } }
+        }
         .fullScreenCover(isPresented: $session.isPresented) {
             if let model = session.model {
                 TouchPlayerScreen(session: session, model: model)
@@ -45,7 +61,40 @@ struct RootScreen: View {
 
     private func releaseHeldLayout() {
         guard let held = heldCompact, !session.isPresented else { return }
-        if held == fitsCompact || !Orientation.isTurningBackToPortrait { heldCompact = nil }
+        if held == fitsCompact { heldCompact = nil; return }
+        // A cover player stays held until the phone has turned back upright.
+        guard !coverPlayer.isPresented, !coverPlayer.isTurningBack else { return }
+        if !Orientation.isTurningBackToPortrait { heldCompact = nil }
+    }
+}
+
+/// A full-screen player other than the live one (replays, recordings) is up.
+/// RootScreen holds its layout while this is set, as it does for the live player.
+@MainActor
+final class CoverPlayerPresence: ObservableObject {
+    static let shared = CoverPlayerPresence()
+    @Published private(set) var isPresented = false
+    /// Closed on a phone that is still turning back to portrait.
+    private(set) var isTurningBack = false
+
+    /// Call before the cover turns the phone to landscape.
+    func playerAppeared() {
+        isTurningBack = false
+        isPresented = true
+    }
+
+    /// Call as the cover goes, before Orientation.restoreDefault().
+    func playerDisappeared() {
+        isTurningBack = Orientation.isTurningBackToPortrait
+        isPresented = false
+        if isTurningBack {
+            // Upright again by then; a phone left sideways is released too.
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                self.isTurningBack = false
+                self.objectWillChange.send()
+            }
+        }
     }
 }
 

@@ -17,6 +17,7 @@ struct CompactMatchListScreen: View {
 
     @State private var now = Date()
     @State private var path: [MatchRoute] = []
+    @State private var showsReplays = false
     #if DEBUG
     @State private var appliedDebugRoute = false
     #endif
@@ -35,9 +36,7 @@ struct CompactMatchListScreen: View {
                     }
                     if appConfig.config.replay.enabled {
                         ToolbarItem(placement: .topBarTrailing) {
-                            NavigationLink {
-                                ReplaysScreen()
-                            } label: {
+                            Button { showsReplays = true } label: {
                                 Label("回看", systemImage: "play.rectangle.on.rectangle")
                             }
                         }
@@ -62,12 +61,18 @@ struct CompactMatchListScreen: View {
                         }
                     }
                 }
+                .navigationDestination(isPresented: $showsReplays) { ReplaysScreen() }
                 .navigationDestination(for: MatchRoute.self) { route in
                     MatchDetailScreen(match: route.match, preferences: preferences, autoplay: route.autoplay)
                 }
         }
         .onReceive(minuteTick) { now = $0 }
         .onAppear(perform: adoptHandoff)
+        #if DEBUG
+        // `-route replays[:play]` opens 回看 through this toolbar entry, the same
+        // path a tap takes (the player then turns a Pro Max to a regular width).
+        .task { if sport == .all, DebugRoute.raw?.hasPrefix("replays") == true { showsReplays = true } }
+        #endif
         .onChange(of: handoff.pending) { _, _ in adoptHandoff() }
         .onChange(of: path) { _, _ in reportOpenMatch() }
         .onChange(of: model.filter) { _, _ in reportOpenMatch() }

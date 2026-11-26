@@ -266,9 +266,14 @@ struct ReplayPlayerScreen: View {
             dismiss()
         }
         #endif
-        .onAppear { Orientation.enterLandscape() }
+        .onAppear {
+            // Hold the layout first: landscape on a Pro Max is a regular width.
+            CoverPlayerPresence.shared.playerAppeared()
+            DispatchQueue.main.async { Orientation.enterLandscape() }
+        }
         .onDisappear {
             playback.stop()
+            CoverPlayerPresence.shared.playerDisappeared()
             Orientation.restoreDefault()
         }
     }
