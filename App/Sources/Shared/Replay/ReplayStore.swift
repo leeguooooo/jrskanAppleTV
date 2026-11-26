@@ -107,8 +107,12 @@ final class MatchReplays: ObservableObject {
         state = .loading
         let known = ReplayLibrary.shared.videos
         do {
-            let query = "\(match.homeTeam)vs\(match.awayTeam)\(config.searchSuffix)"
-            let found = ReplayParsing.search(try await client.searchVideos(query), rules: config.rules)
+            // Uploaders write either order ("76人vs热火" and "热火vs76人"), and
+            // Weibo's search ranks them apart, so ask both ways.
+            let found = try await search([
+                "\(match.homeTeam)vs\(match.awayTeam)\(config.searchSuffix)",
+                "\(match.awayTeam)vs\(match.homeTeam)\(config.searchSuffix)",
+            ], rules: config.rules)
             videos = ReplayParsing.videos(for: match.homeTeam, away: match.awayTeam, kickoff: kickoff,
                                           in: found + known, rules: config.rules)
             state = .loaded
@@ -117,6 +121,33 @@ final class MatchReplays: ObservableObject {
                                           in: known, rules: config.rules)
             state = videos.isEmpty ? .failed(error.localizedDescription) : .loaded
         }
+    }
+
+    /// Both queries at once; fails only when every one of them does.
+    private func search(_ queries: [String], rules: ReplayRules) async throws -> [ReplayVideo] {
+        let client = client
+        let results = await withTaskGroup(of: Result<[ReplayVideo], Error>.self) { group in
+            for query in queries {
+                group.addTask {
+                    do { return .success(ReplayParsing.search(try await client.searchVideos(query), rules: rules)) }
+                    catch { return .failure(error) }
+                }
+            }
+            var all: [Result<[ReplayVideo], Error>] = []
+            for await result in group { all.append(result) }
+            return all
+        }
+        var videos: [ReplayVideo] = []
+        var lastError: Error?
+        var succeeded = false
+        for result in results {
+            switch result {
+            case .success(let found): videos += found; succeeded = true
+            case .failure(let error): lastError = error
+            }
+        }
+        if !succeeded, let lastError { throw lastError }
+        return videos
     }
 }
 
@@ -134,6 +165,10 @@ final class ReplayPlayback: ObservableObject {
     private var expires: Date?
     private var observers: [NSKeyValueObservation] = []
     private var rateObserver: NSKeyValueObservation?
+    private var timeObserver: Any?
+    /// Where playback was last seen. A failed item's currentTime is not
+    /// reliable, so recovery seeks back to this instead.
+    private var lastPosition = CMTime.zero
     private var failureObserver: NSObjectProtocol?
     private var refreshes: [Date] = []
     private var isRefreshing = false
@@ -150,6 +185,9 @@ final class ReplayPlayback: ObservableObject {
 
     func stop() {
         player?.pause()
+        if let timeObserver { player?.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        debugBreak?.cancel()
         observers.removeAll()
         rateObserver = nil
         if let failureObserver { NotificationCenter.default.removeObserver(failureObserver) }
@@ -194,9 +232,19 @@ final class ReplayPlayback: ObservableObject {
                     guard player.timeControlStatus != .paused else { return }
                     Task { @MainActor in await self?.refreshIfExpiring() }
                 }
+                timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 1), queue: .main) { [weak self] time in
+                    MainActor.assumeIsolated {
+                        guard let self, self.player?.currentItem?.status == .readyToPlay, time.seconds > 0 else { return }
+                        self.lastPosition = time
+                    }
+                }
+                #if DEBUG
+                scheduleDebugBreak()
+                #endif
             }
             if let time, time.isValid, time.seconds > 1 {
                 await player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+                print("replay: resumed at \(Int(player?.currentTime().seconds ?? -1))s (asked \(Int(time.seconds))s)")
             }
             player?.play()
             errorMessage = nil
@@ -219,9 +267,37 @@ final class ReplayPlayback: ObservableObject {
     }
 
     private func recover() {
-        let time = player?.currentTime()
+        let time = lastPosition
+        print("replay: item failed at \(Int(time.seconds))s, fetching a fresh link")
         Task { await load(resumeAt: time) }
     }
+
+    private var debugBreak: Task<Void, Never>?
+
+    #if DEBUG
+    /// `-replay-break-after <s>`: after that many seconds, swap in the same
+    /// link with a broken signature, which the CDN answers 403 exactly like an
+    /// expired one, to exercise recovery mid-game.
+    private func scheduleDebugBreak() {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "-replay-break-after"), index + 1 < args.count,
+              let seconds = Double(args[index + 1]) else { return }
+        debugBreak = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, !Task.isCancelled, let player = self.player,
+                  let url = (player.currentItem?.asset as? AVURLAsset)?.url,
+                  var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+            components.queryItems = components.queryItems?.map { $0.name == "ssig" ? URLQueryItem(name: "ssig", value: "broken0000") : $0 }
+            guard let broken = components.url else { return }
+            print("replay: debug break at \(Int(self.lastPosition.seconds))s")
+            let item = AVPlayerItem(url: broken)
+            self.observe(item)
+            player.replaceCurrentItem(with: item)
+            await player.seek(to: self.lastPosition, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+            player.play()
+        }
+    }
+    #endif
 }
 
 extension ReplayVideo {

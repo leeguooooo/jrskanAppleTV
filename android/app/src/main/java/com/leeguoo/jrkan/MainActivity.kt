@@ -48,7 +48,9 @@ import com.leeguoo.jrkan.ui.RecordingsScreen
 import com.leeguoo.jrkan.ui.ReplayGroupScreen
 import com.leeguoo.jrkan.ui.ReplaysScreen
 import com.leeguoo.jrkan.state.ReplayLibrary
+import com.leeguoo.jrkan.state.AppConfigStore
 import com.leeguoo.jrkan.ui.SettingsScreen
+import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -66,6 +68,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         handleRedirect(intent)
         if (intent?.action == ACTION_OPEN_RECORDINGS) openRecordings = true
+        if (BuildConfig.DEBUG) {
+            ReplayLibrary.debugBreakAfterMs = intent?.getLongExtra("replay_break_after_ms", 0L) ?: 0L
+            // `--es replay_search "热火vs76人 回放"`: one live m.weibo.cn search, logged (QA for the weibo.cn visitor path).
+            intent?.getStringExtra("replay_search")?.let { query ->
+                app.scope.launch {
+                    val result = runCatching { com.leeguoo.jrkan.data.ReplayParsing.search(ReplayLibrary.client.searchVideos(query), AppConfigStore.config.value.replay.rules) }
+                    android.util.Log.i("Replay", "search '$query': " + result.fold({ v -> "${v.size} videos " + v.take(3).map { "${it.id} ${it.part.label}" } }, { "failed ${it.message}" }))
+                }
+            }
+        }
 
         // Refresh on the way back to the foreground, stop polling in the background.
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {

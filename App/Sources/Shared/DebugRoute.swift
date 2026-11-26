@@ -14,7 +14,9 @@ import Foundation
 ///   recordings      iOS: open the recordings list at launch
 ///   recordings:play iOS: …and play the newest recording
 ///   replays         open the 回看 list at launch
-///   replays:play    …and play the newest recording
+///   replays:play    …and play the newest recording (pair with
+///                   `-replay-break-after <s>` to break its link mid-game,
+///                   `-close-replay <s>` to close the player again)
 ///   membership      tvOS: open the scan-to-pay screen
 ///   resume          exercise the Continue Watching action after schedule refresh
 ///   detail:<n>      open the n-th match of the current filter

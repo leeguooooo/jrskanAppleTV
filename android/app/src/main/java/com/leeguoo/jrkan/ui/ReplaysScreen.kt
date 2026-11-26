@@ -259,6 +259,9 @@ fun ReplayPlayer(video: ReplayVideo, onClose: () -> Unit) {
     var error by remember(video.id) { mutableStateOf<String?>(null) }
     var stream by remember(video.id) { mutableStateOf<ReplayStream?>(null) }
     val refreshes = remember(video.id) { mutableListOf<Long>() }
+    // Where playback was last seen; after an error the player's own position
+    // is not reliable, so recovery seeks back to this.
+    val lastPosition = remember(video.id) { longArrayOf(0L) }
     val player = remember(video.id) {
         PlayerSession.pauseForOtherPlayback()
         ExoPlayer.Builder(context).build()
@@ -276,7 +279,10 @@ fun ReplayPlayer(video: ReplayVideo, onClose: () -> Unit) {
                 stream = best
                 player.setMediaItem(MediaItem.fromUri(best.url))
                 player.prepare()
-                if (resumeAt != null && resumeAt > 1000) player.seekTo(resumeAt)
+                if (resumeAt != null && resumeAt > 1000) {
+                    player.seekTo(resumeAt)
+                    android.util.Log.i("Replay", "resumed at ${resumeAt / 1000}s")
+                }
                 player.playWhenReady = true
                 error = null
             } catch (e: Exception) {
@@ -287,10 +293,13 @@ fun ReplayPlayer(video: ReplayVideo, onClose: () -> Unit) {
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
-            override fun onPlayerError(e: PlaybackException) = load(player.currentPosition)
+            override fun onPlayerError(e: PlaybackException) {
+                android.util.Log.i("Replay", "item failed at ${lastPosition[0] / 1000}s, fetching a fresh link")
+                load(lastPosition[0])
+            }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 val expires = stream?.expiresAt ?: return
-                if (isPlaying && expires - System.currentTimeMillis() < 120_000) load(player.currentPosition)
+                if (isPlaying && expires - System.currentTimeMillis() < 120_000) load(lastPosition[0])
             }
         }
         player.addListener(listener)
@@ -306,6 +315,22 @@ fun ReplayPlayer(video: ReplayVideo, onClose: () -> Unit) {
     DisposableEffect(Unit) {
         ReplayLibrary.playerOpen.value = true
         onDispose { ReplayLibrary.playerOpen.value = false }
+    }
+    LaunchedEffect(player) {
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            if (player.playbackState == Player.STATE_READY && player.currentPosition > 0) lastPosition[0] = player.currentPosition
+        }
+    }
+    if (com.leeguoo.jrkan.BuildConfig.DEBUG && ReplayLibrary.debugBreakAfterMs > 0) {
+        LaunchedEffect(player) {
+            kotlinx.coroutines.delay(ReplayLibrary.debugBreakAfterMs)
+            val url = stream?.url ?: return@LaunchedEffect
+            android.util.Log.i("Replay", "debug break at ${lastPosition[0] / 1000}s")
+            player.setMediaItem(MediaItem.fromUri(url.replace(Regex("ssig=[^&]+"), "ssig=broken0000")))
+            player.prepare()
+            player.seekTo(lastPosition[0])
+        }
     }
     BackHandler(onBack = onClose)
 

@@ -224,6 +224,25 @@ struct ReplayPlayerScreen: View {
             } else if playback.errorMessage == nil {
                 ProgressView().tint(.white)
             }
+            // A full-screen cover cannot be swiped away, and the embedded
+            // AVPlayerViewController draws no Done button of its own.
+            VStack {
+                HStack {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(.black.opacity(0.45), in: Circle())
+                    }
+                    .accessibilityLabel("关闭")
+                    .keyboardShortcut(.cancelAction)
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
             if let message = playback.errorMessage {
                 VStack(spacing: 12) {
                     Text(message).foregroundStyle(.white).multilineTextAlignment(.center)
@@ -237,6 +256,16 @@ struct ReplayPlayerScreen: View {
             PlayerSession.shared.player.pause()
             await playback.start()
         }
+        #if DEBUG
+        // `-close-replay <s>` closes the player that long after it opens.
+        .task {
+            let args = CommandLine.arguments
+            guard let index = args.firstIndex(of: "-close-replay"), index + 1 < args.count,
+                  let seconds = Double(args[index + 1]) else { return }
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            dismiss()
+        }
+        #endif
         .onAppear { Orientation.enterLandscape() }
         .onDisappear {
             playback.stop()

@@ -32,6 +32,13 @@ object ReplayLibrary {
     /** A replay is on screen; MainActivity gives it the live player's full-screen chrome. */
     val playerOpen = MutableStateFlow(false)
 
+    /**
+     * Debug builds: `adb shell am start … --el replay_break_after_ms 40000`
+     * swaps the playing link for one with a broken signature after that long,
+     * which the CDN answers 403 exactly like an expired link.
+     */
+    var debugBreakAfterMs = 0L
+
     fun group(id: String): ReplayGroup? = _state.value.groups.firstOrNull { it.id == id }
 
     suspend fun refreshIfStale(now: Long = System.currentTimeMillis()) {
@@ -92,8 +99,18 @@ class MatchReplays(val match: LiveMatch) {
         _state.value = State.Loading
         val known = ReplayLibrary.videos
         _state.value = try {
-            val query = "${match.homeTeam}vs${match.awayTeam}${config.searchSuffix}"
-            val found = ReplayParsing.search(ReplayLibrary.client.searchVideos(query), config.rules)
+            // Uploaders write either order and Weibo ranks them apart: ask both ways.
+            val queries = listOf(
+                "${match.homeTeam}vs${match.awayTeam}${config.searchSuffix}",
+                "${match.awayTeam}vs${match.homeTeam}${config.searchSuffix}",
+            )
+            val results = coroutineScope {
+                queries.map { query ->
+                    async { runCatching { ReplayParsing.search(ReplayLibrary.client.searchVideos(query), config.rules) } }
+                }.awaitAll()
+            }
+            if (results.all { it.isFailure }) throw results.first().exceptionOrNull()!!
+            val found = results.flatMap { it.getOrNull().orEmpty() }
             State.Loaded(ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, found + known, config.rules))
         } catch (error: Exception) {
             val fallback = ReplayParsing.videos(match.homeTeam, match.awayTeam, kickoff, known, config.rules)
