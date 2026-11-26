@@ -1,5 +1,4 @@
 import AVKit
-import Combine
 import SwiftUI
 
 /// 回看 on the TV: recent recordings from Weibo, a card per game.
@@ -89,11 +88,76 @@ private struct ReplayGroupCard: View {
     }
 }
 
+/// Opens replays in the live player (PlayerPresenter), so the transport bar
+/// has the other uploads of the game and 比赛数据, like a live match.
+@MainActor
+final class TVReplayLauncher: ObservableObject {
+    @Published private(set) var model: MatchPlaybackModel?
+    @Published private(set) var openingID: String?
+    @Published var errorMessage: String?
+    private var task: Task<Void, Never>?
+
+    func play(_ videos: [ReplayVideo], at index: Int, fixture: LiveMatch?, preferences: Preferences) {
+        guard videos.indices.contains(index) else { return }
+        task?.cancel()
+        errorMessage = nil
+        openingID = videos[index].id
+        task = Task {
+            defer { if !Task.isCancelled { openingID = nil } }
+            var fixture = fixture
+            if fixture == nil { fixture = await ReplayFixture.nbaMatch(for: videos) }
+            guard !Task.isCancelled else { return }
+            let model = MatchPlaybackModel.replay(videos, fixture: fixture, preferences: preferences)
+            self.model = model
+            await model.startPlayback(at: index)
+            if model.playback == nil { errorMessage = model.errorMessage ?? "这个视频暂时打不开。" }
+        }
+    }
+
+    func stop() {
+        model?.stopPlayback()
+        if let message = model?.errorMessage { errorMessage = message }
+        model = nil
+    }
+}
+
+/// Hosts the live player for a replay model.
+private struct TVReplayPlayer: View {
+    @ObservedObject var model: MatchPlaybackModel
+    let onStop: () -> Void
+
+    var body: some View {
+        PlayerPresenter(
+            request: $model.playback,
+            match: model.match,
+            insights: model.insights,
+            channels: model.resolvedChannels,
+            onSelectChannel: { index in Task { await model.startManualPlayback(at: index) } },
+            onStall: { id, message in model.handleStall(message, requestID: id) },
+            onConfirmed: { id, startup in model.confirmPlayback(requestID: id, startupSeconds: startup) },
+            onStop: onStop,
+            isReplay: true,
+            onPosition: { seconds, duration in model.reportPosition(seconds, duration: duration) },
+            onFinished: { model.replayFinished() }
+        )
+    }
+}
+
+private struct TVReplayPlayerHost: View {
+    @ObservedObject var launcher: TVReplayLauncher
+
+    var body: some View {
+        if let model = launcher.model {
+            TVReplayPlayer(model: model, onStop: { launcher.stop() })
+        }
+    }
+}
+
 /// Every upload of one game; picking one plays it.
 struct ReplayGroupView: View {
     let group: ReplayGroup
-    @State private var playing: ReplayVideo?
-    @State private var errorMessage: String?
+    @StateObject private var launcher = TVReplayLauncher()
+    @EnvironmentObject private var preferences: Preferences
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -106,10 +170,14 @@ struct ReplayGroupView: View {
                         .foregroundStyle(Palette.primaryText)
                     Text("\(group.dayText()) · \(group.videos.count) 个视频")
                         .font(.callout).foregroundStyle(Palette.secondaryText)
-                    if let errorMessage { Text(errorMessage).foregroundStyle(Palette.live) }
-                    ForEach(group.videos) { video in
-                        Button { errorMessage = nil; playing = video } label: { TVReplayVideoCard(video: video) }
-                            .buttonStyle(FocusCardButtonStyle())
+                    if let error = launcher.errorMessage { Text(error).foregroundStyle(Palette.live) }
+                    ForEach(Array(group.videos.enumerated()), id: \.element.id) { index, video in
+                        Button {
+                            launcher.play(group.videos, at: index, fixture: nil, preferences: preferences)
+                        } label: {
+                            TVReplayVideoCard(video: video, isOpening: launcher.openingID == video.id)
+                        }
+                        .buttonStyle(FocusCardButtonStyle())
                     }
                 }
                 .padding(.horizontal, Metrics.gutter)
@@ -118,12 +186,13 @@ struct ReplayGroupView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .onExitCommand { dismiss() }
-        .background(ReplayPlayerPresenter(video: $playing, onError: { errorMessage = $0 }))
+        .background(TVReplayPlayerHost(launcher: launcher))
     }
 }
 
 struct TVReplayVideoCard: View {
     let video: ReplayVideo
+    var isOpening = false
 
     var body: some View {
         HStack(spacing: 28) {
@@ -132,13 +201,25 @@ struct TVReplayVideoCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(video.part.label).font(.title3.weight(.bold)).foregroundStyle(Palette.primaryText)
                 Text(video.title).font(.callout).foregroundStyle(Palette.secondaryText).lineLimit(1)
-                Text("\(ReplayVideo.durationText(video.duration)) · \(video.author)")
+                Text(detail)
                     .font(.caption.monospacedDigit()).foregroundStyle(Palette.tertiaryText)
             }
             Spacer()
-            Image(systemName: "play.fill").foregroundStyle(Palette.accent)
+            if isOpening {
+                ProgressView()
+            } else {
+                Image(systemName: "play.fill").foregroundStyle(Palette.accent)
+            }
         }
         .padding(18)
+    }
+}
+
+extension TVReplayVideoCard {
+    private var detail: String {
+        var parts = [ReplayVideo.durationText(video.duration), video.author]
+        if let resume = ReplayResume.position(for: video.id) { parts.append("看到 \(ReplayVideo.durationText(resume))") }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -158,8 +239,8 @@ private struct TVReplayCover: View {
 /// 回放 rows on the TV match screen, once the match is over.
 struct MatchReplayRows: View {
     @StateObject private var replays: MatchReplays
-    @State private var playing: ReplayVideo?
-    @State private var errorMessage: String?
+    @StateObject private var launcher = TVReplayLauncher()
+    @EnvironmentObject private var preferences: Preferences
 
     init(match: LiveMatch) {
         _replays = StateObject(wrappedValue: MatchReplays(match: match))
@@ -169,7 +250,7 @@ struct MatchReplayRows: View {
         if MatchReplays.isEligible(replays.match) {
             VStack(alignment: .leading, spacing: 18) {
                 Text("回放").font(.title3.weight(.bold)).foregroundStyle(Palette.primaryText)
-                if let errorMessage { Text(errorMessage).foregroundStyle(Palette.live) }
+                if let error = launcher.errorMessage { Text(error).foregroundStyle(Palette.live) }
                 switch replays.state {
                 case .idle, .loading:
                     HStack(spacing: 16) { ProgressView(); Text("正在找录像…") }
@@ -178,93 +259,18 @@ struct MatchReplayRows: View {
                 case .loaded where replays.videos.isEmpty:
                     Text("还没有人上传这场的录像，过一两个小时再来看看。").foregroundStyle(Palette.secondaryText)
                 case .loaded:
-                    ForEach(replays.videos.prefix(6)) { video in
-                        Button { errorMessage = nil; playing = video } label: { TVReplayVideoCard(video: video) }
-                            .buttonStyle(FocusCardButtonStyle())
+                    ForEach(Array(replays.videos.prefix(6).enumerated()), id: \.element.id) { index, video in
+                        Button {
+                            launcher.play(replays.videos, at: index, fixture: replays.match, preferences: preferences)
+                        } label: {
+                            TVReplayVideoCard(video: video, isOpening: launcher.openingID == video.id)
+                        }
+                        .buttonStyle(FocusCardButtonStyle())
                     }
                 }
             }
             .task { if replays.state == .idle { await replays.load() } }
-            .background(ReplayPlayerPresenter(video: $playing, onError: { errorMessage = $0 }))
-        }
-    }
-}
-
-/// Presents AVPlayerViewController modally, like PlayerPresenter does for the
-/// live stream: embedded, it swallows the Menu button and the app quits.
-struct ReplayPlayerPresenter: UIViewControllerRepresentable {
-    @Binding var video: ReplayVideo?
-    let onError: (String) -> Void
-
-    func makeUIViewController(context: Context) -> UIViewController { UIViewController() }
-
-    func updateUIViewController(_ host: UIViewController, context: Context) {
-        let coordinator = context.coordinator
-        coordinator.onFinish = { message in
-            video = nil
-            if let message { onError(message) }
-        }
-        if let video {
-            coordinator.show(video, from: host)
-        } else {
-            coordinator.dismiss(from: host)
-        }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    @MainActor
-    final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
-        var onFinish: (String?) -> Void = { _ in }
-        private weak var controller: AVPlayerViewController?
-        private var playback: ReplayPlayback?
-        private var subscriptions: Set<AnyCancellable> = []
-
-        func show(_ video: ReplayVideo, from host: UIViewController) {
-            guard playback?.video.id != video.id else { return }
-            let playback = ReplayPlayback(video: video)
-            self.playback = playback
-            let controller = AVPlayerViewController()
-            controller.delegate = self
-            self.controller = controller
-            subscriptions = []
-            playback.$player.compactMap { $0 }.sink { [weak controller] player in
-                if controller?.player !== player { controller?.player = player }
-            }.store(in: &subscriptions)
-            playback.$errorMessage.compactMap { $0 }.sink { [weak self, weak host] message in
-                guard let self, let host else { return }
-                self.finish(message: message, host: host)
-            }.store(in: &subscriptions)
-            host.present(controller, animated: true)
-            Task { await playback.start() }
-        }
-
-        func dismiss(from host: UIViewController) {
-            guard playback != nil else { return }
-            finish(message: nil, host: host)
-        }
-
-        private func finish(message: String?, host: UIViewController) {
-            playback?.stop()
-            playback = nil
-            subscriptions = []
-            if let controller, controller.presentingViewController != nil {
-                controller.player = nil
-                host.dismiss(animated: true)
-            }
-            controller = nil
-            onFinish(message)
-        }
-
-        nonisolated func playerViewControllerDidEndDismissalTransition(_ playerViewController: AVPlayerViewController) {
-            MainActor.assumeIsolated {
-                guard playerViewController === controller else { return }
-                playback?.stop()
-                playback = nil
-                subscriptions = []
-                controller = nil
-                onFinish(nil)
-            }
+            .background(TVReplayPlayerHost(launcher: launcher))
         }
     }
 }

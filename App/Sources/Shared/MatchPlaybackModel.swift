@@ -12,6 +12,9 @@ struct PlaybackRequest: Identifiable, Equatable {
     let url: URL
     let sourceName: String
     let index: Int
+    /// Seconds to seek to before playing: a replay picking up where it was
+    /// left, or after its link was renewed. Live streams start at the edge.
+    var startAt: Double? = nil
 }
 
 /// Everything a match screen needs to know about channels and playback,
@@ -20,9 +23,21 @@ struct PlaybackRequest: Identifiable, Equatable {
 /// tvOS and iPhone detail screens both drive this and only differ in layout.
 @MainActor
 final class MatchPlaybackModel: ObservableObject {
+    /// A replay (回看) instead of a live match: the "channels" are the uploads
+    /// of one game, played as MP4 links from Weibo. Live-only behaviour is off
+    /// for it: no channel ranking or history, no 最近观看 entry, no hopping to
+    /// another upload when one fails (each has its own timeline).
+    struct ReplaySet {
+        let videos: [ReplayVideo]
+        /// The real fixture for statistics, when it could be pinned down.
+        let fixture: LiveMatch?
+    }
+
     let match: LiveMatch
     let preferences: Preferences
     let insights = MatchInsightsModel()
+    let replay: ReplaySet?
+    var isReplay: Bool { replay != nil }
 
     /// Second-level channels from the source page; `nil` while loading, empty
     /// when the page gave nothing usable.
@@ -48,17 +63,48 @@ final class MatchPlaybackModel: ObservableObject {
     private var lastReconnect: [Int: Date] = [:]
     private var recoveryTask: Task<Void, Never>?
     private var resolutionDuration: TimeInterval = 0
+    /// Replay: where playback was last seen, and when it was last saved.
+    private var lastPosition: Double = 0
+    private var lastSaved = Date.distantPast
+    private var replayInsights: Task<Void, Never>?
 
     init(
         match: LiveMatch,
         preferences: Preferences,
         resolver: StreamResolver = StreamResolver(),
-        sourcePages: SourcePageClient = SourcePageClient()
+        sourcePages: SourcePageClient = SourcePageClient(),
+        replay: ReplaySet? = nil
     ) {
         self.match = match
         self.preferences = preferences
         self.resolver = resolver
         self.sourcePages = sourcePages
+        self.replay = replay
+        if let replay { channels = Self.replaySources(replay.videos) }
+    }
+
+    /// One game's uploads as a player model. `fixture` is the real match when
+    /// known (opened from it, or found on ESPN): it orders the teams and feeds
+    /// the statistics; without it the panel says there is no data.
+    static func replay(_ videos: [ReplayVideo], fixture: LiveMatch?, preferences: Preferences) -> MatchPlaybackModel {
+        let first = videos.first
+        let key = first?.matchup?.key ?? first?.id ?? "replay"
+        let day = first.map { Int($0.gameDay.timeIntervalSince1970) } ?? 0
+        let match = LiveMatch(
+            id: "replay:\(key)@\(day)", league: fixture?.league ?? "回看", time: fixture?.time ?? "",
+            homeTeam: fixture?.homeTeam ?? first?.matchup?.left ?? "", awayTeam: fixture?.awayTeam ?? first?.matchup?.right ?? "",
+            homeLogoURL: fixture?.homeLogoURL, awayLogoURL: fixture?.awayLogoURL, isHot: false, sources: [])
+        return MatchPlaybackModel(match: match, preferences: preferences, replay: ReplaySet(videos: videos, fixture: fixture))
+    }
+
+    private static func replaySources(_ videos: [ReplayVideo]) -> [MatchSource] {
+        videos.map { MatchSource(id: $0.id, name: "\($0.part.label) · \($0.author)", pageURL: $0.shareURL) }
+    }
+
+    /// The upload playing now, for 分享 and the title.
+    var currentReplay: ReplayVideo? {
+        guard let replay, let index = playback?.index ?? resolvingIndex, replay.videos.indices.contains(index) else { return nil }
+        return replay.videos[index]
     }
 
     // MARK: - Channels
@@ -66,6 +112,7 @@ final class MatchPlaybackModel: ObservableObject {
     /// Parsed channels when the source page gave us any, otherwise the homepage
     /// entries as a fallback so the screen is never a dead end.
     var resolvedChannels: [MatchSource] {
+        if let replay { return Self.replaySources(replay.videos) }
         if let channels, !channels.isEmpty { return MatchSource.playbackOrdered(channels) }
         return MatchSource.playbackOrdered(match.sources)
     }
@@ -98,14 +145,19 @@ final class MatchPlaybackModel: ObservableObject {
 
     /// Channels best-first, the order automatic selection tries them in.
     var rankedChannelIndices: [Int] {
-        preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
+        if let replay { return Array(replay.videos.indices) }
+        return preferences.rankedIndices(for: resolvedChannels, matchID: match.id)
     }
 
     var automaticFallbackEnabled: Bool {
-        preferences.autoNextChannel && resolvedChannels.count > 1
+        !isReplay && preferences.autoNextChannel && resolvedChannels.count > 1
     }
 
     func subtitle(for source: MatchSource, index: Int) -> String {
+        if let replay, replay.videos.indices.contains(index) {
+            if resolvingIndex == index { return "正在获取播放地址…" }
+            return ReplayVideo.durationText(replay.videos[index].duration)
+        }
         if resolvingIndex == index { return "正在解析线路…" }
         if stalledIndices.contains(index) { return "刚才没有画面" }
         if failedResolutionIndices.contains(index) { return "刚才未能播放" }
@@ -177,6 +229,10 @@ final class MatchPlaybackModel: ObservableObject {
     /// moves straight on to the next channel; the viewer sees which one is
     /// being tried and where playback finally landed.
     func startPlayback(at startIndex: Int, resetStalls: Bool = true) async {
+        if replay != nil {
+            await startReplay(at: startIndex, resumeAt: nil)
+            return
+        }
         let channels = resolvedChannels
         guard !Task.isCancelled, channels.indices.contains(startIndex) else { return }
         requestGeneration += 1
@@ -238,6 +294,12 @@ final class MatchPlaybackModel: ObservableObject {
     }
 
     func confirmPlayback(requestID: UUID, startupSeconds: TimeInterval) {
+        if replay != nil {
+            // Nothing to learn about channels, and a replay is not a 最近观看.
+            confirmedRequestID = requestID
+            confirmedAt = Date()
+            return
+        }
         guard let request = playback, request.id == requestID, confirmedRequestID != requestID,
               resolvedChannels.indices.contains(request.index) else { return }
         confirmedRequestID = requestID
@@ -252,6 +314,10 @@ final class MatchPlaybackModel: ObservableObject {
     /// network every channel hiccups now and then, and hopping to another
     /// one only restarts the wait on the same slow connection.
     func handleStall(_ message: String, requestID: UUID? = nil, now: Date = Date()) {
+        if replay != nil {
+            handleReplayStall(message, requestID: requestID, now: now)
+            return
+        }
         guard let request = playback, requestID == nil || request.id == requestID,
               handledFailureID != request.id, resolvedChannels.indices.contains(request.index) else { return }
         handledFailureID = request.id
@@ -284,10 +350,96 @@ final class MatchPlaybackModel: ObservableObject {
     }
 
     func stopPlayback() {
+        if let video = currentReplay { ReplayResume.save(lastPosition, duration: video.duration, for: video.id) }
+        replayInsights?.cancel()
+        replayInsights = nil
         recoveryTask?.cancel()
         recoveryTask = nil
         requestGeneration += 1
         resolvingIndex = nil
         playback = nil
+    }
+
+    // MARK: - Replay
+
+    /// Fetches a fresh MP4 link (they expire in about an hour) and plays it
+    /// from `resumeAt`, or from where this upload was last left off.
+    private func startReplay(at index: Int, resumeAt: Double?) async {
+        guard let replay, replay.videos.indices.contains(index), !Task.isCancelled else { return }
+        requestGeneration += 1
+        let generation = requestGeneration
+        if resumeAt == nil {
+            recoveryTask?.cancel()
+            lastReconnect = [:]
+            handledFailureID = nil
+        }
+        errorMessage = nil
+        resolvingIndex = index
+        defer { if requestGeneration == generation { resolvingIndex = nil } }
+        if replayInsights == nil, let fixture = replay.fixture {
+            let insights = insights
+            replayInsights = Task { await insights.watch(match: fixture, channels: []) }
+        }
+        let video = replay.videos[index]
+        do {
+            let streams = ReplayParsing.streams(try await WeiboClient.shared.status(video.id))
+            guard generation == requestGeneration, !Task.isCancelled else { return }
+            guard let stream = streams.first else {
+                playback = nil
+                errorMessage = "这个视频已经看不了了（可能被删除或设为仅粉丝可见）。"
+                return
+            }
+            let start = resumeAt ?? ReplayResume.position(for: video.id)
+            if resumeAt == nil, let start {
+                notice = "从上次看到的 \(ReplayVideo.durationText(start)) 接着播"
+            }
+            lastPosition = start ?? 0
+            confirmedRequestID = nil
+            playback = PlaybackRequest(url: stream.url, sourceName: "\(video.part.label) · \(video.author)",
+                                       index: index, startAt: start)
+        } catch {
+            guard generation == requestGeneration, !Task.isCancelled else { return }
+            playback = nil
+            errorMessage = "拿不到播放地址：\(error.localizedDescription)"
+        }
+    }
+
+    /// A replay that stops is almost always its link expiring: renew it and
+    /// carry on at the same spot. Twice in 20 seconds means the upload itself
+    /// is gone. Never move to another upload: its timeline is different.
+    private func handleReplayStall(_ message: String, requestID: UUID?, now: Date) {
+        guard let request = playback, requestID == nil || request.id == requestID,
+              handledFailureID != request.id else { return }
+        handledFailureID = request.id
+        let index = request.index
+        if let last = lastReconnect[index], now.timeIntervalSince(last) < 20 {
+            playback = nil
+            errorMessage = "这个视频一直播放失败，可能已被删除：\(message)"
+            return
+        }
+        lastReconnect[index] = now
+        notice = "播放中断，正在换新的播放地址…"
+        let position = lastPosition
+        recoveryTask?.cancel()
+        recoveryTask = Task { [weak self] in
+            guard let self, !Task.isCancelled else { return }
+            await self.startReplay(at: index, resumeAt: position)
+        }
+    }
+
+    /// The player's position, for resuming. Saved every few seconds.
+    func reportPosition(_ seconds: Double, duration: Double?, now: Date = Date()) {
+        guard let video = currentReplay, seconds.isFinite, seconds > 0 else { return }
+        lastPosition = seconds
+        guard now.timeIntervalSince(lastSaved) >= 5 else { return }
+        lastSaved = now
+        ReplayResume.save(seconds, duration: duration ?? video.duration, for: video.id)
+    }
+
+    /// Played to the end: next time it starts from the beginning.
+    func replayFinished() {
+        guard let video = currentReplay else { return }
+        lastPosition = 0
+        ReplayResume.save(0, duration: nil, for: video.id)
     }
 }

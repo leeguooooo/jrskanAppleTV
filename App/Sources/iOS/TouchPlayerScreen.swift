@@ -24,6 +24,8 @@ struct TouchPlayerScreen: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @EnvironmentObject private var listModel: MatchListModel
     @State private var showsStatistics = false
+    /// Replays hide the statistics (and so the final score) until asked.
+    @State private var revealsReplayStatistics = false
     @State private var visibleNotice: String?
     /// The button row over the picture comes and goes with AVKit's own
     /// controls: a tap on the picture toggles it, and it fades after a while.
@@ -222,12 +224,36 @@ struct TouchPlayerScreen: View {
             .aspectRatio(16 / 9, contentMode: .fit)
             scoreStrip
             ScrollView {
-                SportsStatsContent(model: model.insights, showsScoreboard: false, compactWhenEmpty: true)
-                    .padding(16)
+                if model.isReplay && !revealsReplayStatistics {
+                    replayStatisticsGate.padding(16)
+                } else {
+                    SportsStatsContent(model: model.insights, showsScoreboard: false, compactWhenEmpty: true)
+                        .padding(16)
+                }
             }
             .scrollIndicators(.hidden)
         }
         .background(TouchBackground())
+    }
+
+    /// The statistics give the result away, so a replay asks first.
+    @ViewBuilder
+    private var replayStatisticsGate: some View {
+        VStack(spacing: 12) {
+            if model.replay?.fixture == nil {
+                Text("这场录像没有对上比赛数据（目前只有 NBA 能按日期找到）。")
+                    .font(.footnote).foregroundStyle(Palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("比赛数据里有终场比分，看完再打开不剧透。")
+                    .font(.footnote).foregroundStyle(Palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button { withAnimation(.snappy) { revealsReplayStatistics = true } } label: {
+                    Label("显示比赛数据", systemImage: "chart.bar.xaxis").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
     }
 
     private var currentMatch: LiveMatch {
@@ -348,7 +374,8 @@ struct TouchPlayerScreen: View {
                 ChannelMenu(model: model)
             }
 
-            PlayerInsightsControls(model: model.insights, showsStatistics: $showsStatistics, showsToggle: !isUpright)
+            PlayerInsightsControls(model: model.insights, showsStatistics: $showsStatistics, showsToggle: !isUpright,
+                                   showsDanmaku: !model.isReplay)
             if isPhoneSideways {
                 Button { withAnimation(.snappy) { showsStatistics = false }; Orientation.leaveFullScreen() } label: {
                     Label("竖屏", systemImage: "iphone")
@@ -358,7 +385,20 @@ struct TouchPlayerScreen: View {
                 }
                 .accessibilityLabel("竖屏看数据")
             }
-            RecordControl(model: model)
+            if model.isReplay {
+                if let video = model.currentReplay {
+                    ShareLink(item: video.shareURL, subject: Text(video.displayTitle),
+                              message: Text("\(video.displayTitle) 回放")) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.footnote.weight(.semibold))
+                            .padding(8)
+                            .playerChip()
+                    }
+                    .accessibilityLabel("分享")
+                }
+            } else {
+                RecordControl(model: model)
+            }
             #if !targetEnvironment(macCatalyst)
             // 一键伪装: a coding terminal over everything, sound keeps going.
             Button { Disguise.shared.set(true) } label: {
@@ -380,7 +420,7 @@ struct TouchPlayerScreen: View {
             .accessibilityLabel(session.pinsWindow ? "取消置顶" : "画面置顶")
             .help(session.pinsWindow ? "取消置顶" : "画面置顶")
             PictureDimmingMenu(session: session)
-            if CommentFeedModel.hasComments(model.match) {
+            if !model.isReplay && CommentFeedModel.hasComments(model.match) {
                 CommentsWindowButton(match: model.match, channels: model.resolvedChannels, chip: true)
             }
             #endif
@@ -494,9 +534,11 @@ private struct PlayerInsightsControls: View {
     @Binding var showsStatistics: Bool
     /// Upright, the statistics are already under the picture.
     var showsToggle = true
+    /// Replays have no live comments.
+    var showsDanmaku = true
     var body: some View {
         HStack(spacing: 8) {
-            if model.mid != nil {
+            if model.mid != nil && showsDanmaku {
                 Button { model.danmakuEnabled.toggle() } label: {
                     Image(systemName: model.danmakuEnabled ? "captions.bubble.fill" : "captions.bubble")
                         .padding(8).playerChip()
@@ -522,7 +564,7 @@ private struct ChannelMenu: View {
 
     var body: some View {
         Menu {
-            Section("按优先级自动选择，失效会自动换下一条") {
+            Section(model.isReplay ? "这场的其他视频（各自从头或上次的位置播）" : "按优先级自动选择，失效会自动换下一条") {
                 ForEach(model.rankedChannelIndices, id: \.self) { index in
                     let source = model.resolvedChannels[index]
                     Button {
@@ -532,7 +574,7 @@ private struct ChannelMenu: View {
                         if index == model.playback?.index {
                             Label {
                                 Text(source.name)
-                                Text(model.choseManually ? "手动 · 播放中" : "自动 · 播放中")
+                                Text(model.isReplay ? "播放中" : model.choseManually ? "手动 · 播放中" : "自动 · 播放中")
                             } icon: { Image(systemName: "checkmark") }
                         } else {
                             Text(source.name)
@@ -542,9 +584,10 @@ private struct ChannelMenu: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: model.choseManually ? "hand.tap" : "checkmark")
-                    .foregroundStyle(model.choseManually ? Palette.accent : Palette.healthy)
-                Text("\(model.choseManually ? "手动" : "自动") · \(model.playback?.sourceName ?? "线路")")
+                Image(systemName: model.isReplay ? "film" : model.choseManually ? "hand.tap" : "checkmark")
+                    .foregroundStyle(model.isReplay || model.choseManually ? Palette.accent : Palette.healthy)
+                Text(model.isReplay ? (model.playback?.sourceName ?? "视频")
+                     : "\(model.choseManually ? "手动" : "自动") · \(model.playback?.sourceName ?? "线路")")
                 Image(systemName: "chevron.down").font(.caption2.weight(.bold))
             }
             .font(.footnote.weight(.semibold))

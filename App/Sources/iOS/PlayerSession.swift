@@ -101,6 +101,15 @@ final class PlayerSession: NSObject, ObservableObject {
         controller.delegate = self
         PlayerWatermark.install(on: controller)
         installDimView()
+        // Replays remember where they were left; live streams ignore this.
+        player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 1), queue: .main) { [weak self] time in
+            MainActor.assumeIsolated {
+                guard let self, let model = self.model, model.isReplay,
+                      self.player.currentItem?.status == .readyToPlay else { return }
+                let duration = self.player.currentItem?.duration.seconds
+                model.reportPosition(time.seconds, duration: duration?.isFinite == true ? duration : nil)
+            }
+        }
     }
 
     private func installDimView() {
@@ -219,12 +228,51 @@ final class PlayerSession: NSObject, ObservableObject {
         item.externalMetadata = metadataItems(for: request, match: model.match)
         #endif
         player.replaceCurrentItem(with: item)
-        endObserver.observe(item) { [weak model] in
+        endObserver.observe(item) { [weak model] finished in
+            // A replay that reached its end is over, not broken.
+            if finished, model?.isReplay == true { model?.replayFinished(); return }
             model?.handleStall("播放已停止，请重试或切换线路。", requestID: request.id)
+        }
+        if let start = request.startAt, start > 1 {
+            player.seek(to: CMTime(seconds: start, preferredTimescale: 600),
+                        toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+            #if DEBUG
+            print("replay: starting at \(Int(start))s")
+            #endif
         }
         player.play()
         startWatchdog(requestID: request.id)
+        #if DEBUG
+        if model.isReplay, request.startAt == nil { scheduleDebugBreak(for: request) }
+        #endif
     }
+
+    #if DEBUG
+    /// `-replay-break-after <s>`: that long into a replay, swap in its link
+    /// with a broken signature, which the CDN answers 403 exactly like an
+    /// expired one, to check the model renews it and carries on in place.
+    private func scheduleDebugBreak(for request: PlaybackRequest) {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "-replay-break-after"), index + 1 < args.count,
+              let seconds = Double(args[index + 1]) else { return }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, let model = self.model, self.shownRequestID == request.id,
+                  var components = URLComponents(url: request.url, resolvingAgainstBaseURL: false) else { return }
+            components.queryItems = components.queryItems?.map { $0.name == "ssig" ? URLQueryItem(name: "ssig", value: "broken0000") : $0 }
+            guard let broken = components.url else { return }
+            let position = self.player.currentTime()
+            print("replay: debug break at \(Int(position.seconds))s")
+            let item = AVPlayerItem(url: broken)
+            self.player.replaceCurrentItem(with: item)
+            self.endObserver.observe(item) { [weak model] _ in
+                model?.handleStall("debug break", requestID: request.id)
+            }
+            await self.player.seek(to: position)
+            self.player.play()
+        }
+    }
+    #endif
 
     private func startWatchdog(requestID: UUID) {
         watchdog?.cancel()
@@ -264,7 +312,13 @@ final class PlayerSession: NSObject, ObservableObject {
     }
 
     private func metadataItems(for request: PlaybackRequest, match: LiveMatch) -> [AVMetadataItem] {
-        [
+        if match.id.hasPrefix("replay:") {
+            return [
+                metadataItem(.commonIdentifierTitle, value: "\(match.homeTeam) vs \(match.awayTeam) 回看"),
+                metadataItem(.iTunesMetadataTrackSubTitle, value: request.sourceName)
+            ].compactMap { $0 }
+        }
+        return [
             metadataItem(.commonIdentifierTitle, value: "\(match.homeTeam) vs \(match.awayTeam)"),
             metadataItem(.iTunesMetadataTrackSubTitle, value: "\(match.league) · \(request.sourceName)")
         ].compactMap { $0 }

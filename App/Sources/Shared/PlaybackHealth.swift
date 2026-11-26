@@ -8,13 +8,16 @@ final class PlaybackEndObserver: ObservableObject {
     private var tokens: [NSObjectProtocol] = []
     private var generation = 0
 
-    func observe(_ item: AVPlayerItem, onEnd: @escaping () -> Void) {
+    /// `finished` is true when the item played to its end (a replay that is
+    /// over), false when it failed partway.
+    func observe(_ item: AVPlayerItem, onEnd: @escaping (_ finished: Bool) -> Void) {
         stop()
         let current = generation
         for name in [AVPlayerItem.didPlayToEndTimeNotification, AVPlayerItem.failedToPlayToEndTimeNotification] {
+            let finished = name == AVPlayerItem.didPlayToEndTimeNotification
             tokens.append(NotificationCenter.default.addObserver(forName: name, object: item, queue: .main) { [weak self] _ in
                 guard self?.generation == current else { return }
-                onEnd()
+                onEnd(finished)
             })
         }
     }

@@ -20,6 +20,11 @@ struct PlayerPresenter: UIViewControllerRepresentable {
     let onStall: (UUID, String) -> Void
     let onConfirmed: (UUID, TimeInterval) -> Void
     let onStop: () -> Void
+    /// Replays: the "channels" are uploads, there is no danmaku, the position
+    /// is reported for resuming and reaching the end is not a failure.
+    var isReplay = false
+    var onPosition: (Double, Double?) -> Void = { _, _ in }
+    var onFinished: () -> Void = {}
 
     func makeUIViewController(context: Context) -> UIViewController {
         UIViewController()
@@ -32,6 +37,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         coordinator.onConfirmed = onConfirmed
         coordinator.onDismiss = onStop
         coordinator.insights = insights
+        coordinator.onPosition = onPosition
+        coordinator.onFinished = isReplay ? onFinished : nil
 
         guard let request else {
             coordinator.dismissIfPresenting(from: host)
@@ -75,8 +82,8 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             statsPresenter?()
         }
         var items: [UIMenuElement] = channels.count > 1
-            ? [UIMenu(title: "切换线路", options: .displayInline, children: actions)] : []
-        if insights.mid != nil { items.append(toggle) }
+            ? [UIMenu(title: isReplay ? "选择视频" : "切换线路", options: .displayInline, children: actions)] : []
+        if insights.mid != nil && !isReplay { items.append(toggle) }
         items.append(stats)
         return items
     }
@@ -84,7 +91,14 @@ struct PlayerPresenter: UIViewControllerRepresentable {
     /// Populates the tvOS Info panel. Without this the panel shows the bare
     /// stream URL, which is the clearest tell of an unfinished player.
     private func metadataItems(for request: PlaybackRequest) -> [AVMetadataItem] {
-        [
+        if isReplay {
+            return [
+                metadataItem(.commonIdentifierTitle, value: "\(match.homeTeam) vs \(match.awayTeam) 回看"),
+                metadataItem(.iTunesMetadataTrackSubTitle, value: request.sourceName),
+                metadataItem(.commonIdentifierDescription, value: "录像来自微博网友上传 · 共 \(channels.count) 个视频")
+            ].compactMap { $0 }
+        }
+        return [
             metadataItem(.commonIdentifierTitle,
                          value: "\(match.homeTeam) vs \(match.awayTeam)"),
             metadataItem(.iTunesMetadataTrackSubTitle,
@@ -109,6 +123,9 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         var onStall: (UUID, String) -> Void = { _, _ in }
         var onConfirmed: (UUID, TimeInterval) -> Void = { _, _ in }
         var onDismiss: () -> Void = {}
+        var onPosition: (Double, Double?) -> Void = { _, _ in }
+        /// Set for replays only: the item playing to its end.
+        var onFinished: (() -> Void)?
 
         var insights: MatchInsightsModel?
         private var commentsHost: UIHostingController<UIKitHostedScene<SportsDanmakuOverlay>>?
@@ -150,6 +167,10 @@ struct PlayerPresenter: UIViewControllerRepresentable {
             item.externalMetadata = metadata
             let player = AVPlayer(playerItem: item)
             player.allowsExternalPlayback = true
+            if let start = request.startAt, start > 1 {
+                player.seek(to: CMTime(seconds: start, preferredTimescale: 600),
+                            toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+            }
 
             if let controller {
                 // Already on screen — a transport-bar channel switch. Swap the
@@ -220,9 +241,10 @@ struct PlayerPresenter: UIViewControllerRepresentable {
         private func startStallWatchdog(for player: AVPlayer, requestID: UUID) {
             stallWatchdog?.cancel()
             if let item = player.currentItem {
-                endObserver.observe(item) { [weak self, weak player] in
+                endObserver.observe(item) { [weak self, weak player] finished in
                     guard let self, let player, self.controller?.player === player,
                           self.shownRequestID == requestID else { return }
+                    if finished, let onFinished = self.onFinished { onFinished(); return }
                     self.onStall(requestID, "播放已停止，请重试或切换线路。")
                 }
             }
@@ -232,6 +254,10 @@ struct PlayerPresenter: UIViewControllerRepresentable {
                     try? await Task.sleep(nanoseconds: 500_000_000)
                     guard !Task.isCancelled, let self, let player,
                           self.controller?.player === player, self.shownRequestID == requestID else { return }
+                    if player.currentItem?.status == .readyToPlay {
+                        let duration = player.currentItem?.duration.seconds
+                        self.onPosition(player.currentTime().seconds, duration?.isFinite == true ? duration : nil)
+                    }
                     let event = health.sample(now: ProcessInfo.processInfo.systemUptime,
                         mediaTime: player.currentTime().seconds, playing: player.timeControlStatus == .playing,
                         paused: player.timeControlStatus == .paused && player.currentItem?.status != .unknown,

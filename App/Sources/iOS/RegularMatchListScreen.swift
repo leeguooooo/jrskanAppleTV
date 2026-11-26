@@ -9,6 +9,7 @@ struct RegularMatchListScreen: View {
     @EnvironmentObject private var preferences: Preferences
     @ObservedObject private var appConfig = AppConfigStore.shared
     @ObservedObject private var handoff = LayoutHandoff.shared
+    @ObservedObject private var replayLauncher = ReplayLauncher.shared
 
     @State private var now = Date()
     @State private var selection: LiveMatch?
@@ -45,9 +46,10 @@ struct RegularMatchListScreen: View {
                     }
             }
         }
-        .sheet(isPresented: $showsReplays) {
+        .sheet(isPresented: $showsReplays, onDismiss: { replayLauncher.sheetDidDismiss() }) {
             NavigationStack {
                 ReplaysScreen()
+                    .onAppear { replayLauncher.sheetIsUp = true }
                     .toolbar {
                         ToolbarItem(placement: donePlacement) {
                             Button("完成") { showsReplays = false }
@@ -69,6 +71,12 @@ struct RegularMatchListScreen: View {
         // right: it usually is not in the new list, and the two panes then
         // disagree about what is selected.
         .onChange(of: model.filter) { _, _ in selection = nil }
+        // A replay is ready to play: close 回看 so the player can come up.
+        .onChange(of: replayLauncher.waitsForSheet) { _, waits in if waits { showsReplays = false } }
+        #if DEBUG
+        // `-route replays[:play]`: open 回看 the way the toolbar button does.
+        .task { if DebugRoute.raw?.hasPrefix("replays") == true { showsReplays = true } }
+        #endif
         .onChange(of: selection) { _, match in handoff.openMatch = match }
         // Unfolding iPhone Duo hands over the match the compact stack had open.
         .onAppear(perform: adoptHandoff)

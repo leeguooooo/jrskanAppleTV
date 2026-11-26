@@ -87,11 +87,17 @@ final class ExperienceTests: XCTestCase {
         let first = AVPlayerItem(url: URL(string: "https://fixture.example/a.m3u8")!)
         let second = AVPlayerItem(url: URL(string: "https://fixture.example/b.m3u8")!)
         let firstEnded = expectation(description: "first item ended")
-        observer.observe(first) { firstEnded.fulfill() }
+        observer.observe(first) { finished in
+            XCTAssertTrue(finished, "played to the end")
+            firstEnded.fulfill()
+        }
         NotificationCenter.default.post(name: AVPlayerItem.didPlayToEndTimeNotification, object: first)
         await fulfillment(of: [firstEnded], timeout: 2)
         let secondEnded = expectation(description: "current item failed to end")
-        observer.observe(second) { secondEnded.fulfill() }
+        observer.observe(second) { finished in
+            XCTAssertFalse(finished, "failed partway")
+            secondEnded.fulfill()
+        }
         NotificationCenter.default.post(name: AVPlayerItem.didPlayToEndTimeNotification, object: first)
         NotificationCenter.default.post(name: AVPlayerItem.failedToPlayToEndTimeNotification, object: second)
         await fulfillment(of: [secondEnded], timeout: 2)

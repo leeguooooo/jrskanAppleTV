@@ -70,6 +70,42 @@ struct ReplayVideo: Identifiable, Hashable, Sendable {
     }
 
     fileprivate static let chineseDigits = [1: "一", 2: "二", 3: "三", 4: "四"]
+
+    /// The post on Weibo, for 分享 (it opens in the Weibo app or the browser).
+    var shareURL: URL {
+        URL(string: authorID.isEmpty ? "https://m.weibo.cn/status/\(id)" : "https://weibo.com/\(authorID)/\(id)")!
+    }
+
+    /// "热火 vs 76人 · 全场"
+    var displayTitle: String {
+        guard let matchup else { return title }
+        return "\(matchup.left) vs \(matchup.right) · \(part.label)"
+    }
+}
+
+/// Where each recording was left off, so a three-hour game picks up again.
+/// Kept for 30 days; finished or barely started ones are not kept.
+enum ReplayResume {
+    private static let key = "replayPositions"
+    private static let lifetime: TimeInterval = 30 * 86_400
+
+    static func position(for id: String, store: UserDefaults = .standard) -> Double? {
+        guard let entry = (store.dictionary(forKey: key) as? [String: [Double]])?[id], entry.count == 2,
+              Date().timeIntervalSince1970 - entry[1] < lifetime else { return nil }
+        return entry[0]
+    }
+
+    static func save(_ seconds: Double, duration: Double?, for id: String, store: UserDefaults = .standard) {
+        var all = (store.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+        let now = Date().timeIntervalSince1970
+        all = all.filter { now - ($0.value.last ?? 0) < lifetime }
+        if seconds < 30 || (duration.map { $0.isFinite && $0 > 0 && seconds > $0 - 60 } ?? false) {
+            all[id] = nil
+        } else {
+            all[id] = [seconds, now]
+        }
+        store.set(all, forKey: key)
+    }
 }
 
 /// Videos of one game from one or more uploaders.

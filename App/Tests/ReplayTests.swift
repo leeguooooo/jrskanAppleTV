@@ -115,6 +115,52 @@ final class ReplayTests: XCTestCase {
         XCTAssertEqual(groups.map(\.day), groups.map(\.day).sorted(by: >))
     }
 
+    func testResumePositionsKeepOnlyTheMiddle() {
+        let store = UserDefaults(suiteName: "ReplayResumeTests")!
+        store.removePersistentDomain(forName: "ReplayResumeTests")
+        ReplayResume.save(1234, duration: 7000, for: "a", store: store)
+        XCTAssertEqual(ReplayResume.position(for: "a", store: store), 1234)
+        ReplayResume.save(10, duration: 7000, for: "a", store: store)
+        XCTAssertNil(ReplayResume.position(for: "a", store: store), "barely started: start over")
+        ReplayResume.save(6990, duration: 7000, for: "b", store: store)
+        XCTAssertNil(ReplayResume.position(for: "b", store: store), "watched to the end: start over")
+    }
+
+    @MainActor
+    func testReplayModelKeepsUploadOrderAndStaysOutOfRecentWatches() throws {
+        let fx = try fixture()
+        let videos = ReplayParsing.groups(ReplayParsing.waterfall(try XCTUnwrap(fx["waterfall"] as? [String: Any]), rules: rules).videos)
+            .first { $0.title == "热火 vs 76人" }!.videos
+        let store = UserDefaults(suiteName: "ReplayModelTests")!
+        store.removePersistentDomain(forName: "ReplayModelTests")
+        let preferences = Preferences(store: store)
+        let model = MatchPlaybackModel.replay(videos, fixture: nil, preferences: preferences)
+        XCTAssertTrue(model.isReplay)
+        XCTAssertTrue(model.match.id.hasPrefix("replay:"))
+        // "全场高清回放" must not jump the queue the way 高清 does for live channels.
+        XCTAssertEqual(model.resolvedChannels.map(\.id), videos.map(\.id))
+        XCTAssertEqual(model.rankedChannelIndices, Array(videos.indices))
+        XCTAssertFalse(model.automaticFallbackEnabled)
+        model.playback = PlaybackRequest(url: URL(string: "https://f.video.weibocdn.com/x.mp4")!, sourceName: "全场", index: 0)
+        model.confirmPlayback(requestID: model.playback!.id, startupSeconds: 1)
+        XCTAssertTrue(preferences.recentWatches.isEmpty, "a replay is not a 最近观看")
+    }
+
+    func testFixtureEventsNeedBothTeamsAndAFinishedGame() {
+        let root: [String: Any] = ["events": [
+            ["id": "1", "competitions": [["date": "2026-11-26T00:00Z", "status": ["type": ["completed": true]],
+              "competitors": [["homeAway": "home", "team": ["abbreviation": "PHI"]], ["homeAway": "away", "team": ["abbreviation": "MIA"]]]]]],
+            ["id": "2", "competitions": [["date": "2026-11-26T01:00Z", "status": ["type": ["completed": false]],
+              "competitors": [["homeAway": "home", "team": ["abbreviation": "PHI"]], ["homeAway": "away", "team": ["abbreviation": "MIA"]]]]]],
+            ["id": "3", "competitions": [["date": "2026-11-26T00:00Z", "status": ["type": ["completed": true]],
+              "competitors": [["homeAway": "home", "team": ["abbreviation": "LAL"]], ["homeAway": "away", "team": ["abbreviation": "MIA"]]]]]],
+        ]]
+        let found = ReplayFixture.events(root, teams: ["76人", "热火"])
+        XCTAssertEqual(found.map(\.id), ["1"])
+        XCTAssertEqual(found.first?.home, "76人")
+        XCTAssertEqual(found.first?.away, "热火")
+    }
+
     func testRemoteConfigReplayBlock() throws {
         XCTAssertEqual(try JSONDecoder().decode(AppConfig.self, from: Data("{}".utf8)).replay, AppConfig.Replay())
         let config = try JSONDecoder().decode(AppConfig.self, from: Data("""
